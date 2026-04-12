@@ -44,6 +44,9 @@ interface EditorState {
   // 브랜드 설정
   brand: BrandSettings;
 
+  // iframe postMessage 브릿지
+  lastCommand: { userText: string; aiResponse: string; timestamp: number } | null;
+
   // 퍼블리시
   publishedUrl: string | null;
   isFullscreen: boolean;
@@ -65,6 +68,9 @@ interface EditorState {
 
   // 액션 — 브랜드
   updateBrand: (partial: Partial<BrandSettings>) => void;
+
+  // 액션 — iframe 브릿지
+  setLastCommand: (cmd: { userText: string; aiResponse: string; timestamp: number }) => void;
 
   // 액션 — 퍼블리시
   setPublishedUrl: (url: string | null) => void;
@@ -95,6 +101,8 @@ export const useEditorStore = create<EditorState>((set) => ({
     fontFamily: "Inter",
     logoUrl: null,
   },
+
+  lastCommand: null,
 
   publishedUrl: null,
   isFullscreen: false,
@@ -129,6 +137,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   // 브랜드
   updateBrand: (partial) =>
     set((s) => ({ brand: { ...s.brand, ...partial } })),
+
+  // iframe 브릿지
+  setLastCommand: (lastCommand) => set({ lastCommand }),
 
   // 퍼블리시
   setPublishedUrl: (publishedUrl) => set({ publishedUrl }),

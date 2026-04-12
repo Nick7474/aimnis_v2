@@ -19,7 +19,7 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ solutionId }: ChatPanelProps) {
-  const { messages, isStreaming, addMessage, updateLastMessage, setStreaming, addNode } =
+  const { messages, isStreaming, addMessage, updateLastMessage, setStreaming, addNode, setLastCommand } =
     useEditorStore();
   const [input, setInput] = useState("");
   const [logsOpen, setLogsOpen] = useState(false);
@@ -66,7 +66,10 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         }
       }
 
-      // 위젯 추가 명령 파싱
+      // AI 응답을 iframe(AIM GUARD)으로 postMessage 전달
+      setLastCommand({ userText: text, aiResponse: full, timestamp: Date.now() });
+
+      // 위젯 추가 명령 파싱 (레거시 — iframe 전환 후에도 store 동기화 유지)
       if (full.startsWith("위젯 추가:")) {
         const widgetName = full.split("\n")[0].replace("위젯 추가:", "").trim();
         addNode({

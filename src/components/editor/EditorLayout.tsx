@@ -14,7 +14,7 @@ import type { SolutionManifest, SolutionTemplate, SolutionWidget } from "@/lib/s
 
 interface EditorLayoutProps {
   solution: SolutionManifest;
-  template: SolutionTemplate | null;
+  template: SolutionTemplate | null; // 유지 (호환성)
   widgets: SolutionWidget[];
 }
 
@@ -112,7 +112,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
 
         {/* 중앙 캔버스 flex-1 */}
         <main className="relative flex-1 overflow-hidden">
-          <CanvasPanel template={template} primaryColor={brand.primaryColor} />
+          <CanvasPanel />
         </main>
 
         {/* 우측 패널 320px */}
@@ -169,7 +169,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <CanvasPanel template={template} primaryColor={brand.primaryColor} />
+            <CanvasPanel />
           </motion.div>
         )}
       </AnimatePresence>
