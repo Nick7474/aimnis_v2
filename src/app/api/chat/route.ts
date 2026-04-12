@@ -8,15 +8,27 @@ const client = new Anthropic({
 const SYSTEM_PROMPT = `당신은 AIMNIS 엔터프라이즈 플랫폼의 AI 어시스턴트입니다.
 사용자가 대시보드 위젯 추가, 데이터 매핑, 레이아웃 변경 등을 요청하면 한국어로 간결하게 응답하세요.
 위젯 추가 시에는 "위젯 추가: [위젯명]" 형식으로 시작하세요.
+복잡한 아키텍처 결정이나 솔루션 설계가 필요할 때는 advisor에게 자문을 구하세요.
 항상 구체적이고 실행 가능한 도움을 제공하세요.`;
 
 export async function POST(req: NextRequest) {
   const { messages, solution } = await req.json();
 
+  // 오케스트레이터 패턴:
+  // - 실행자(executor): claude-sonnet-4-6
+  // - 어드바이저(advisor): claude-opus-4-6, 복잡한 판단 시 최대 3회 자문
   const stream = client.messages.stream({
-    model: "claude-haiku-4-5-20251001",
+    model: "claude-sonnet-4-6",
     max_tokens: 1024,
     system: `${SYSTEM_PROMPT}\n현재 솔루션: ${solution ?? "guard"}`,
+    tools: [
+      {
+        type: "advisor_20260301",
+        name: "advisor",
+        model: "claude-opus-4-6",
+        max_uses: 3,
+      } as unknown as Anthropic.Tool,
+    ],
     messages: messages.map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
