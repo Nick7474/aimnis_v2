@@ -62,9 +62,9 @@
       "이메일/비밀번호 Shadcn Input 렌더링",
       "로그인 버튼 → /home 이동 (검증 없음, 데모용)"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": ""
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "로그인 페이지 구현. Aurora 배경 Framer Motion 애니메이션 3개 오브, 글라스 카드, 이메일/비밀번호 Input, 로그인 버튼 → /home 이동"
   },
   {
     "id": "F-004",
