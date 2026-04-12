@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "description": "AIMNIS 마켓플레이스 솔루션 레지스트리. 새 솔루션 추가 시 이 파일에만 등록하면 됨.",
+  "solutions": [
+    {
+      "id": "guard",
+      "manifestPath": "solutions/guard/manifest.json",
+      "status": "available",
+      "order": 1
+    },
+    {
+      "id": "eco",
+      "manifestPath": "solutions/eco/manifest.json",
+      "status": "coming-soon",
+      "order": 2
+    }
+  ],
+  "addSolutionGuide": {
+    "steps": [
+      "1. src/solutions/[id]/ 폴더 생성",
+      "2. manifest.json 작성 (guard 것 복사 후 수정)",
+      "3. harness-schema.json 작성",
+      "4. templates/default.json 작성",
+      "5. widgets/index.json 작성",
+      "6. 이 파일(marketplace.json) solutions 배열에 추가",
+      "7. 끝 — core 코드 수정 불필요"
+    ]
+  }
+}

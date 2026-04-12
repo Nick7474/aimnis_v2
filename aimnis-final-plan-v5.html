@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMNIS 최종 상세 기획서 v5</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #050810;
+    --bg2: #080d1a;
+    --glass: rgba(255,255,255,0.04);
+    --gb: rgba(0,212,255,0.12);
+    --neon: #00d4ff;
+    --ndim: rgba(0,212,255,0.12);
+    --nglow: 0 0 20px rgba(0,212,255,0.2);
+    --blue: #0066ff;
+    --t1: #f0f9ff;
+    --t2: #7da8c0;
+    --t3: #3d6478;
+    --ok: #00ff9d;
+    --warn: #ffaa00;
+    --err: #ff4466;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--t1); font-family:'Inter',sans-serif; font-size:13px; line-height:1.6; }
+
+  .orb { position:fixed; border-radius:50%; filter:blur(120px); pointer-events:none; z-index:0; }
+  .o1 { width:700px; height:700px; background:rgba(0,212,255,0.05); top:-200px; right:-150px; }
+  .o2 { width:500px; height:500px; background:rgba(0,102,255,0.07); bottom:-100px; left:-150px; }
+  .o3 { width:300px; height:300px; background:rgba(0,212,255,0.04); top:50%; left:40%; }
+
+  .wrap { max-width:1000px; margin:0 auto; padding:0 2rem 4rem; position:relative; z-index:1; }
+
+  /* Header */
+  .hd { padding:2.5rem 0 2rem; border-bottom:1px solid var(--gb); margin-bottom:2.5rem; display:flex; align-items:center; justify-content:space-between; }
+  .logo { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; color:var(--neon); text-shadow:var(--nglow); letter-spacing:-0.02em; }
+  .logo span { color:var(--t1); }
+  .badges { display:flex; gap:8px; align-items:center; }
+  .badge { font-size:10px; padding:3px 10px; border-radius:20px; font-weight:500; }
+  .badge-neon { background:var(--ndim); border:1px solid var(--gb); color:var(--neon); }
+  .badge-ok { background:rgba(0,255,157,0.1); border:1px solid rgba(0,255,157,0.2); color:var(--ok); }
+
+  /* Hero */
+  .hero { margin-bottom:3rem; }
+  .hero h1 { font-family:'Syne',sans-serif; font-size:2.4rem; font-weight:800; line-height:1.1; letter-spacing:-0.03em; margin-bottom:0.75rem; }
+  .hero h1 em { color:var(--neon); text-shadow:var(--nglow); font-style:normal; }
+  .hero p { color:var(--t2); font-size:0.9rem; }
+
+  .kv { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-top:1.5rem; }
+  .kv-item { background:var(--glass); border:1px solid var(--gb); border-radius:10px; padding:1rem; backdrop-filter:blur(20px); }
+  .kv-l { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+  .kv-v { font-family:'Syne',sans-serif; font-size:0.95rem; font-weight:700; color:var(--neon); }
+
+  /* Section */
+  .sec { margin-bottom:3rem; }
+  .sec-hd { display:flex; align-items:center; gap:10px; margin-bottom:1.25rem; }
+  .sec-n { width:28px; height:28px; border-radius:7px; background:var(--ndim); border:1px solid var(--gb); display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:11px; font-weight:700; color:var(--neon); flex-shrink:0; }
+  .sec-t { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; letter-spacing:-0.02em; }
+
+  /* Cards */
+  .card { background:var(--glass); border:1px solid var(--gb); border-radius:14px; padding:1.25rem; backdrop-filter:blur(20px); margin-bottom:10px; }
+  .card:hover { border-color:rgba(0,212,255,0.22); }
+  .card-t { font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700; color:var(--neon); margin-bottom:0.9rem; display:flex; align-items:center; gap:6px; }
+
+  .g2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .span2 { grid-column:span 2; }
+
+  /* Items */
+  .items { list-style:none; }
+  .items li { display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px; color:var(--t2); }
+  .items li:last-child { border-bottom:none; }
+  .items li b { color:var(--t1); font-weight:500; }
+  .dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+  .dn { background:var(--neon); }
+  .dok { background:var(--ok); }
+  .dw { background:var(--warn); }
+  .de { background:var(--err); }
+  .dg { background:var(--t3); }
+
+  /* Tags */
+  .tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+  .tag { font-size:10px; padding:2px 7px; border-radius:5px; }
+  .tg { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:var(--t2); }
+  .tn { background:var(--ndim); border:1px solid var(--gb); color:var(--neon); }
+  .tok { background:rgba(0,255,157,0.1); border:1px solid rgba(0,255,157,0.2); color:var(--ok); }
+  .tw { background:rgba(255,170,0,0.1); border:1px solid rgba(255,170,0,0.2); color:var(--warn); }
+  .te { background:rgba(255,68,102,0.1); border:1px solid rgba(255,68,102,0.2); color:var(--err); }
+
+  /* Flow */
+  .flow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:1.25rem; }
+  .fn { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:500; background:var(--glass); border:1px solid var(--gb); color:var(--t2); }
+  .fa { background:var(--ndim); border-color:var(--neon); color:var(--neon); }
+  .farr { font-size:11px; color:var(--t3); }
+
+  /* Highlight */
+  .hl { background:var(--ndim); border:1px solid var(--gb); border-radius:10px; padding:1rem 1.25rem; margin-top:10px; }
+  .hl-l { font-size:10px; font-weight:600; color:var(--neon); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:3px; }
+  .hl-t { font-size:12px; color:var(--t2); line-height:1.6; }
+
+  /* Code block */
+  .code { background:rgba(0,0,0,0.4); border:1px solid var(--gb); border-radius:12px; padding:1.5rem; font-family:monospace; font-size:11px; color:var(--t2); line-height:1.9; white-space:pre; overflow-x:auto; }
+  .cn { color:var(--neon); }
+  .cok { color:var(--ok); }
+  .cw { color:var(--warn); }
+  .cd { color:var(--t3); }
+  .cb { color:var(--blue); }
+
+  /* Table */
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; font-size:10px; font-weight:500; color:var(--t3); text-transform:uppercase; letter-spacing:0.08em; padding:0 1rem 8px; border-bottom:1px solid var(--gb); }
+  td { padding:8px 1rem; color:var(--t2); border-bottom:1px solid rgba(255,255,255,0.03); }
+  td:first-child { color:var(--t1); font-weight:500; }
+  tr:last-child td { border-bottom:none; }
+
+  /* Stack row */
+  .sr { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .sr:last-child { border-bottom:none; }
+  .sl { font-size:11px; color:var(--t3); }
+  .sv { font-size:11px; color:var(--neon); font-weight:500; }
+
+  /* Timeline */
+  .tl { display:flex; flex-direction:column; }
+  .tli { display:flex; gap:1rem; padding-bottom:1.25rem; position:relative; }
+  .tli::before { content:''; position:absolute; left:13px; top:28px; bottom:0; width:1px; background:var(--gb); }
+  .tli:last-child::before { display:none; }
+  .tld { width:28px; height:28px; border-radius:50%; background:var(--ndim); border:1px solid var(--neon); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--neon); flex-shrink:0; font-family:'Syne',sans-serif; }
+  .tlc { flex:1; }
+  .tlt { font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700; margin-bottom:3px; }
+  .tld2 { font-size:11px; color:var(--t2); line-height:1.5; }
+  .tls { font-size:10px; color:var(--neon); font-weight:600; }
+
+  /* UX principle */
+  .uxp { background:var(--glass); border:1px solid var(--gb); border-radius:14px; padding:2rem; text-align:center; backdrop-filter:blur(20px); margin-bottom:10px; }
+  .uxq { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:800; color:var(--neon); text-shadow:var(--nglow); margin-bottom:0.5rem; }
+  .uxs { font-size:12px; color:var(--t2); }
+
+  /* Panel mockup */
+  .panel-mock { background:rgba(0,0,0,0.3); border:1px solid var(--gb); border-radius:12px; padding:1rem; }
+  .panel-tabs { display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--gb); padding-bottom:8px; }
+  .ptab { font-size:10px; padding:4px 10px; border-radius:6px; cursor:pointer; color:var(--t3); }
+  .ptab.active { background:var(--ndim); color:var(--neon); border:1px solid var(--gb); }
+  .panel-item { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:11px; }
+  .panel-item:last-child { border-bottom:none; }
+  .pi-l { color:var(--t2); }
+  .pi-v { color:var(--neon); font-family:monospace; }
+
+  /* Widget grid */
+  .wgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .wcard { background:rgba(0,212,255,0.04); border:1px solid var(--gb); border-radius:8px; padding:10px; text-align:center; }
+  .wcard-icon { font-size:18px; margin-bottom:4px; }
+  .wcard-name { font-size:10px; color:var(--t2); }
+  .wcard-type { font-size:9px; color:var(--t3); margin-top:2px; }
+
+  /* Color swatches */
+  .swatches { display:flex; gap:10px; flex-wrap:wrap; }
+  .sw { display:flex; align-items:center; gap:8px; }
+  .swc { width:36px; height:36px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); flex-shrink:0; }
+  .swn { font-size:11px; font-weight:500; }
+  .swh { font-size:10px; color:var(--t3); font-family:monospace; }
+
+  /* Page card */
+  .pgcard { background:var(--glass); border:1px solid var(--gb); border-radius:14px; padding:1.25rem; backdrop-filter:blur(20px); position:relative; overflow:hidden; }
+  .pgcard::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--neon),transparent); opacity:0; transition:opacity 0.3s; }
+  .pgcard:hover::after { opacity:1; }
+  .pg-num { font-size:10px; color:var(--t3); margin-bottom:4px; font-weight:500; letter-spacing:0.08em; }
+  .pg-name { font-family:'Syne',sans-serif; font-size:0.9rem; font-weight:700; margin-bottom:6px; }
+  .pg-desc { font-size:11px; color:var(--t2); line-height:1.6; margin-bottom:10px; }
+
+  /* AI mode */
+  .modes { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .mode { background:var(--glass); border:1px solid var(--gb); border-radius:10px; padding:1rem; text-align:center; }
+  .mode.def { border-color:rgba(0,212,255,0.3); }
+  .mode-dot { width:8px; height:8px; border-radius:50%; margin:0 auto 8px; }
+  .mode-n { font-family:'Syne',sans-serif; font-size:0.8rem; font-weight:700; margin-bottom:4px; }
+  .mode-d { font-size:10px; color:var(--t2); line-height:1.5; }
+
+  /* Widget tiers */
+  .wtier { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .wt { background:var(--glass); border:1px solid var(--gb); border-radius:12px; padding:1.25rem; }
+  .wt-n { font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700; margin-bottom:4px; }
+  .wt-d { font-size:11px; color:var(--t2); margin-bottom:8px; }
+
+  .divider { border:none; border-top:1px solid var(--gb); margin:2.5rem 0; }
+
+  footer { padding:1.5rem 0; border-top:1px solid var(--gb); text-align:center; color:var(--t3); font-size:11px; margin-top:3rem; }
+</style>
+</head>
+<body>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+<div class="orb o3"></div>
+
+<div class="wrap">
+
+  <div class="hd">
+    <div class="logo">AIM<span>NIS</span></div>
+    <div class="badges">
+      <span class="badge badge-ok">전체 확정</span>
+      <span class="badge badge-neon">최종 기획서 v5 · 2026.04.12</span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h1>엔터프라이즈 AI 플랫폼<br><em>최종 상세 기획서</em></h1>
+    <p>Series A VC 데모 기준 · 질의응답을 통해 확정된 모든 내용</p>
+    <div class="kv">
+      <div class="kv-item"><div class="kv-l">플랫폼 모델</div><div class="kv-v">Adobe CC형</div></div>
+      <div class="kv-item"><div class="kv-l">AI 엔진</div><div class="kv-v">Claude 고정</div></div>
+      <div class="kv-item"><div class="kv-l">디자인</div><div class="kv-v">네온+글라스</div></div>
+      <div class="kv-item"><div class="kv-l">데모 시간</div><div class="kv-v">3분 30초</div></div>
+      <div class="kv-item"><div class="kv-l">핵심 단위</div><div class="kv-v">위젯</div></div>
+    </div>
+  </div>
+
+  <!-- 01 제품 구조 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">01</div><div class="sec-t">제품 구조 — Adobe CC 모델</div></div>
+
+    <div class="code"><span class="cn">AIMNIS Platform</span>  <span class="cd">(앱스토어 = 에디터 + 마켓플레이스)</span>
+│
+├── <span class="cn">Core Engine</span>  <span class="cd">(변경 불가 — 모든 솔루션 공통 적용)</span>
+│   ├── AI Engine      <span class="cd">Claude Opus(어드바이저) / Sonnet(실행) / Haiku(단순)</span>
+│   ├── Harness Engine <span class="cd">feature_list / progress 추적 / 세션 연속성</span>
+│   ├── Editor         <span class="cd">3패널 에디터 UI</span>
+│   ├── Widget Engine  <span class="cd">공용+솔루션+프리미엄 위젯 관리</span>
+│   └── Solution Loader <span class="cd">marketplace.json 기반 동적 플러그인</span>
+│
+└── <span class="cok">Solutions</span>  <span class="cd">(무한 확장 — 폴더 추가 + marketplace.json 등록만)</span>
+    ├── <span class="cok">guard/</span>      AIM GUARD  <span class="cd">(안전·환경 · 실제 제품 존재)</span>
+    ├── <span class="cok">eco/</span>        AIM ECO    <span class="cd">(에너지 · coming soon)</span>
+    ├── <span class="cw">logistics/</span>  추후        <span class="cd">(물류)</span>
+    └── <span class="cw">[N개]</span>       산업군 수만큼 확장</div>
+
+    <div class="hl">
+      <div class="hl-l">핵심 원칙</div>
+      <div class="hl-t">새 솔루션 추가 = src/solutions/[id]/ 폴더 생성 + marketplace.json 등록만. Core 코드 수정 불필요. 솔루션이 10개든 100개든 동일.</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 02 위젯 구조 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">02</div><div class="sec-t">위젯 구조 — 제품의 핵심 자산</div></div>
+
+    <div class="hl" style="margin-bottom:10px">
+      <div class="hl-l">확정 원칙</div>
+      <div class="hl-t">위젯 = AIMNIS의 핵심 자산. AIM GUARD 구매 = AIM GUARD 전용 위젯 패키지를 받는 것. 신규 기능 개발 = 새 위젯으로 패키징하여 마켓플레이스에 등록.</div>
+    </div>
+
+    <div class="wtier">
+      <div class="wt">
+        <div class="wt-n" style="color:var(--t1)">공용 위젯</div>
+        <div class="wt-d">모든 고객 무료 사용. 솔루션 관계없이 공유.</div>
+        <ul class="items">
+          <li><div class="dot dn"></div><div>라인차트, 바차트, 도넛차트</div></li>
+          <li><div class="dot dn"></div><div>KPI 카드, 게이지, 테이블</div></li>
+          <li><div class="dot dn"></div><div>알람 리스트, 상태 카드</div></li>
+        </ul>
+        <div class="tags"><span class="tag tg">모든 솔루션</span><span class="tag tok">무료</span></div>
+      </div>
+      <div class="wt" style="border-color:rgba(0,212,255,0.25)">
+        <div class="wt-n" style="color:var(--neon)">솔루션 위젯</div>
+        <div class="wt-d">해당 솔루션 구독자만 사용. 다른 솔루션 화면에도 올릴 수 있음.</div>
+        <ul class="items">
+          <li><div class="dot dn"></div><div><b>GUARD:</b> 배터리감지, CCTV맵, 작업자안전</div></li>
+          <li><div class="dot dn"></div><div><b>ECO:</b> 탄소배출, 스마트미터, ESG리포트</div></li>
+          <li><div class="dot dn"></div><div>구독 늘릴수록 위젯 선택지 증가</div></li>
+        </ul>
+        <div class="tags"><span class="tag tn">구독자 전용</span><span class="tag tw">교차 사용 가능</span></div>
+      </div>
+      <div class="wt">
+        <div class="wt-n" style="color:var(--warn)">프리미엄 위젯</div>
+        <div class="wt-d">추후 별도 판매. 고급 분석 및 AI 예측 기능.</div>
+        <ul class="items">
+          <li><div class="dot dw"></div><div>AI 예측 차트</div></li>
+          <li><div class="dot dw"></div><div>3D 맵 시각화</div></li>
+          <li><div class="dot dw"></div><div>고급 분석 대시보드</div></li>
+        </ul>
+        <div class="tags"><span class="tag tw">별도 구매</span><span class="tag tg">추후 출시</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 03 UX 철학 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">03</div><div class="sec-t">UX 철학 — 플랫폼 전체 적용</div></div>
+
+    <div class="uxp">
+      <div class="uxq">"AI가 묻고, 사용자는 답한다"</div>
+      <div class="uxs">개발을 모르는 실무 담당자가 처음부터 끝까지 혼자 완성. 온보딩부터 에디터까지 동일하게 적용.</div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-t"><div class="dot dn"></div>온보딩 단계</div>
+        <ul class="items">
+          <li><div class="dot dok"></div><div>AI가 먼저 질문: <b>"상세 기획서가 있으시면 첨부해주세요"</b></div></li>
+          <li><div class="dot dok"></div><div>AI가 먼저 질문: <b>"브랜드 로고 파일이 있으신가요?"</b></div></li>
+          <li><div class="dot dok"></div><div>AI가 먼저 질문: <b>"API 명세서가 있으신가요? 없어도 괜찮습니다"</b></div></li>
+          <li><div class="dot dok"></div><div>없어도 OK — AI가 최선의 결과 자동 생성</div></li>
+          <li><div class="dot dok"></div><div>5대 문서를 항목 업로드가 아닌 자연어 대화로 수집</div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-t"><div class="dot dn"></div>에디터 단계</div>
+        <ul class="items">
+          <li><div class="dot dok"></div><div>AI가 먼저 개선점 제안 (설정에 따라)</div></li>
+          <li><div class="dot dok"></div><div>사용자는 승인/거절만으로 작업 완료</div></li>
+          <li><div class="dot dok"></div><div>MVP: 자연어로만 수정 (드래그는 v1.1 이후)</div></li>
+          <li><div class="dot dok"></div><div>AI 개입 수준 3단계 세팅 가능</div></li>
+          <li><div class="dot dok"></div><div>페이지 추가도 자연어로: <b>"알람 페이지 추가해줘"</b></div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="modes" style="margin-top:10px">
+      <div class="mode">
+        <div class="mode-dot" style="background:var(--t3)"></div>
+        <div class="mode-n">수동</div>
+        <div class="mode-d">내가 물어볼 때만 AI가 답함. IT 담당자용.</div>
+      </div>
+      <div class="mode def">
+        <div class="mode-dot" style="background:var(--neon)"></div>
+        <div class="mode-n" style="color:var(--neon)">반능동 (기본값)</div>
+        <div class="mode-d">작업할 때 옆에서 제안. 실무 담당자용.</div>
+      </div>
+      <div class="mode">
+        <div class="mode-dot" style="background:var(--ok)"></div>
+        <div class="mode-n">능동</div>
+        <div class="mode-d">AI가 알아서 분석·개선. 경영진용.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 04 유저 플로우 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">04</div><div class="sec-t">유저 플로우 — 신규/기존 분기</div></div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-t"><div class="dot dok"></div>신규 고객 (첫 방문)</div>
+        <div class="flow" style="margin-bottom:8px">
+          <div class="fn fa">로그인</div><div class="farr">→</div>
+          <div class="fn fa">솔루션 선택</div><div class="farr">→</div>
+          <div class="fn fa">AI 온보딩</div><div class="farr">→</div>
+          <div class="fn fa">에디터</div>
+        </div>
+        <ul class="items">
+          <li><div class="dot dok"></div><div>Adobe CC형 마켓플레이스에서 솔루션 선택</div></li>
+          <li><div class="dot dok"></div><div>AI가 자연어로 5대 문서 요청</div></li>
+          <li><div class="dot dok"></div><div>harness.md 생성 → 에디터 진입</div></li>
+          <li><div class="dot dok"></div><div>온보딩은 1회만 (이후 재방문 시 생략)</div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-t"><div class="dot dw"></div>기존 고객 (재방문)</div>
+        <div class="flow" style="margin-bottom:8px">
+          <div class="fn fa">로그인</div><div class="farr">→</div>
+          <div class="fn fa">프로젝트 목록</div><div class="farr">→</div>
+          <div class="fn fa">프리뷰</div><div class="farr">→</div>
+          <div class="fn fa">에디터</div>
+        </div>
+        <ul class="items">
+          <li><div class="dot dw"></div><div>바로 내 프로젝트 카드 목록</div></li>
+          <li><div class="dot dw"></div><div>카드 클릭 → AIM GUARD 프리뷰 풀스크린</div></li>
+          <li><div class="dot dw"></div><div>"편집하기" 버튼 → 에디터 진입</div></li>
+          <li><div class="dot dw"></div><div>Adobe 파일 열기 패턴과 동일</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 05 페이지 구조 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">05</div><div class="sec-t">페이지 구조 — 5페이지</div></div>
+
+    <div class="g2">
+      <div class="pgcard">
+        <div class="pg-num">PAGE 01</div>
+        <div class="pg-name">로그인</div>
+        <div class="pg-desc">딥 네이비 + Sky Blue 네온 오로라. 중앙 글라스 카드. 첫 화면에서 와우.</div>
+        <ul class="items">
+          <li><div class="dot dn"></div><div>AIMNIS 로고 + 슬로건</div></li>
+          <li><div class="dot dn"></div><div>글라스 카드 로그인 폼</div></li>
+          <li><div class="dot dn"></div><div>로그인 → 신규/기존 분기</div></li>
+        </ul>
+        <div class="tags"><span class="tag tn">글라스모피즘</span><span class="tag tn">네온 글로우</span><span class="tag tg">오로라 배경</span></div>
+      </div>
+
+      <div class="pgcard">
+        <div class="pg-num">PAGE 02</div>
+        <div class="pg-name">솔루션 선택 / 프로젝트 목록</div>
+        <div class="pg-desc">신규: Adobe CC형 마켓플레이스. 기존: 프로젝트 카드 목록.</div>
+        <ul class="items">
+          <li><div class="dot dn"></div><div>신규: marketplace.json 기반 솔루션 카드 그리드</div></li>
+          <li><div class="dot dn"></div><div>구독중: "편집하기" / 미구독: "구매하기"</div></li>
+          <li><div class="dot dn"></div><div>기존: 카드 클릭 → 프리뷰 → 에디터</div></li>
+          <li><div class="dot dw"></div><div>솔루션 카드 하드코딩 금지 (동적 로딩)</div></li>
+        </ul>
+        <div class="tags"><span class="tag tn">분기 UX</span><span class="tag tok">동적 로딩</span><span class="tag tg">Adobe 패턴</span></div>
+      </div>
+
+      <div class="pgcard span2">
+        <div class="pg-num">PAGE 03 — 데모 클라이맥스</div>
+        <div class="pg-name">에디터 — 3패널 구조</div>
+        <div class="pg-desc">AIMNIS의 본체. 자연어 입력 → AI가 위젯을 생성하는 장면이 핵심.</div>
+
+        <div class="g3" style="margin-bottom:10px">
+          <div class="panel-mock">
+            <div style="font-size:10px;color:var(--neon);margin-bottom:8px;font-weight:600">좌측 패널 (280px)</div>
+            <div class="panel-tabs">
+              <div class="ptab active">AI 에이전트</div>
+              <div class="ptab">페이지 목록</div>
+              <div class="ptab">위젯 (v1.1)</div>
+            </div>
+            <ul class="items">
+              <li><div class="dot dok"></div><div><b>탭1</b> AI 채팅 + 실행 로그</div></li>
+              <li><div class="dot dok"></div><div><b>탭2</b> 페이지 추가/삭제/전환</div></li>
+              <li><div class="dot dg"></div><div><b>탭3</b> 위젯 라이브러리 (v1.1)</div></li>
+              <li><div class="dot dn"></div><div>Claude API 스트리밍 응답</div></li>
+            </ul>
+          </div>
+
+          <div class="panel-mock">
+            <div style="font-size:10px;color:var(--neon);margin-bottom:8px;font-weight:600">중앙 캔버스</div>
+            <ul class="items">
+              <li><div class="dot dok"></div><div>React Flow 위젯 캔버스</div></li>
+              <li><div class="dot dok"></div><div>AI 명령 → 위젯 스프링 애니메이션 등장</div></li>
+              <li><div class="dot dok"></div><div>위젯 클릭 → 우측 패널 활성화</div></li>
+              <li><div class="dot dg"></div><div>MVP: AI 채팅으로만 수정</div></li>
+              <li><div class="dot dg"></div><div>드래그 이동/크기조절 (v1.1)</div></li>
+            </ul>
+          </div>
+
+          <div class="panel-mock">
+            <div style="font-size:10px;color:var(--neon);margin-bottom:8px;font-weight:600">우측 패널 (320px)</div>
+            <div class="panel-tabs">
+              <div class="ptab active">데이터 센터</div>
+              <div class="ptab">인터랙션</div>
+              <div class="ptab">세팅</div>
+            </div>
+            <ul class="items">
+              <li><div class="dot dok"></div><div><b>탭1</b> API 매핑 + 데이터 소스</div></li>
+              <li><div class="dot dok"></div><div><b>탭2</b> 이벤트/액션 설정</div></li>
+              <li><div class="dot dok"></div><div><b>탭3</b> 컬러/브랜드/AI 모드</div></li>
+              <li><div class="dot dn"></div><div>컬러 변경 → 전체 실시간 반영</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="hl">
+            <div class="hl-l">상단 툴바</div>
+            <div class="hl-t">로고 · 프로젝트명 · 자동저장 · <b>프리뷰 버튼</b> · <b>발행 버튼</b></div>
+          </div>
+          <div class="hl">
+            <div class="hl-l">발행 플로우 (아임웹 방식)</div>
+            <div class="hl-t">에디터 작업 → 프리뷰(라이브 렌더링) → 발행 → 실제 URL 반영</div>
+          </div>
+        </div>
+
+        <div class="tags" style="margin-top:10px">
+          <span class="tag tn">AI채팅→위젯생성</span>
+          <span class="tag tn">실시간 스트리밍</span>
+          <span class="tag tok">React Flow</span>
+          <span class="tag tg">API 매핑</span>
+          <span class="tag tg">페이지 관리</span>
+          <span class="tag tw">프리뷰→발행</span>
+        </div>
+      </div>
+
+      <div class="pgcard">
+        <div class="pg-num">PAGE 04</div>
+        <div class="pg-name">프로젝트 DB</div>
+        <div class="pg-desc">기존 고객 재진입 시 첫 화면. 내 프로젝트 카드 목록.</div>
+        <ul class="items">
+          <li><div class="dot dn"></div><div>카드 그리드: 썸네일, 프로젝트명, 솔루션 뱃지, 수정일</div></li>
+          <li><div class="dot dn"></div><div>카드 클릭 → AIM GUARD 프리뷰 풀스크린</div></li>
+          <li><div class="dot dn"></div><div>프리뷰 "편집하기" → 에디터 진입</div></li>
+          <li><div class="dot dn"></div><div>호버: 수정/삭제/URL복사</div></li>
+          <li><div class="dot dn"></div><div>새 프로젝트 → 솔루션 선택(P2)</div></li>
+        </ul>
+        <div class="tags"><span class="tag tg">카드 그리드</span><span class="tag tn">프리뷰→에디터</span></div>
+      </div>
+
+      <div class="pgcard">
+        <div class="pg-num">PAGE 05</div>
+        <div class="pg-name">AIM GUARD 뷰</div>
+        <div class="pg-desc">완성된 납품 화면. 에디터가 아닌 실제 결과물.</div>
+        <ul class="items">
+          <li><div class="dot de"></div><div><b>기존 디자인 절대 고정</b> — 다크 네이비 + 시안/틸</div></li>
+          <li><div class="dot dn"></div><div>실시간 에너지 센서 차트</div></li>
+          <li><div class="dot dn"></div><div>보안 CCTV 위치 맵</div></li>
+          <li><div class="dot dn"></div><div>KPI 카드 + 알람 리스트</div></li>
+          <li><div class="dot dn"></div><div>우상단 "에디터로 돌아가기"</div></li>
+          <li><div class="dot dw"></div><div>하단 배너: "AIMNIS로 2개월 만에 완성"</div></li>
+        </ul>
+        <div class="tags"><span class="tag te">디자인 변경 금지</span><span class="tag tok">실제 제품</span><span class="tag tg">Ant Design</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 06 디자인 시스템 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">06</div><div class="sec-t">디자인 시스템 — 네온 Sky Blue + 글라스모피즘</div></div>
+
+    <div class="card">
+      <div class="card-t"><div class="dot dn"></div>컬러 팔레트</div>
+      <div class="swatches" style="margin-bottom:1.25rem">
+        <div class="sw"><div class="swc" style="background:#050810"></div><div><div class="swn">배경</div><div class="swh">#050810</div></div></div>
+        <div class="sw"><div class="swc" style="background:#00d4ff;box-shadow:0 0 15px rgba(0,212,255,0.5)"></div><div><div class="swn" style="color:var(--neon)">네온 Sky Blue</div><div class="swh">#00d4ff</div></div></div>
+        <div class="sw"><div class="swc" style="background:#0066ff"></div><div><div class="swn">딥 블루</div><div class="swh">#0066ff</div></div></div>
+        <div class="sw"><div class="swc" style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2)"></div><div><div class="swn">글라스</div><div class="swh">rgba+blur</div></div></div>
+        <div class="sw"><div class="swc" style="background:#00ff9d;box-shadow:0 0 10px rgba(0,255,157,0.3)"></div><div><div class="swn">성공</div><div class="swh">#00ff9d</div></div></div>
+        <div class="sw"><div class="swc" style="background:#14b8a6"></div><div><div class="swn">AIM GUARD 틸 (고정)</div><div class="swh">#14b8a6</div></div></div>
+      </div>
+      <div class="g2">
+        <div>
+          <div class="sr"><span class="sl">글라스 배경</span><span class="sv">rgba(255,255,255,0.04) + blur(20px)</span></div>
+          <div class="sr"><span class="sl">글라스 보더</span><span class="sv">rgba(0,212,255,0.12)</span></div>
+          <div class="sr"><span class="sl">네온 글로우</span><span class="sv">0 0 20px rgba(0,212,255,0.25)</span></div>
+        </div>
+        <div>
+          <div class="sr"><span class="sl">헤딩 폰트</span><span class="sv">Syne 800</span></div>
+          <div class="sr"><span class="sl">본문 폰트</span><span class="sv">Inter 400/500</span></div>
+          <div class="sr"><span class="sl">레퍼런스</span><span class="sv">Stitch + Linear + 네온 글라스</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 07 기술 스택 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">07</div><div class="sec-t">기술 스택</div></div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-t"><div class="dot dn"></div>AIMNIS 에디터 (새로 개발)</div>
+        <div class="sr"><span class="sl">Framework</span><span class="sv">Next.js 14 (App Router)</span></div>
+        <div class="sr"><span class="sl">Styling</span><span class="sv">Tailwind CSS</span></div>
+        <div class="sr"><span class="sl">Components</span><span class="sv">Shadcn/ui (Radix)</span></div>
+        <div class="sr"><span class="sl">Canvas</span><span class="sv">React Flow</span></div>
+        <div class="sr"><span class="sl">Charts</span><span class="sv">Recharts</span></div>
+        <div class="sr"><span class="sl">Animation</span><span class="sv">Framer Motion</span></div>
+        <div class="sr"><span class="sl">State</span><span class="sv">Zustand</span></div>
+        <div class="sr"><span class="sl">AI</span><span class="sv">Anthropic Claude API</span></div>
+        <div class="sr"><span class="sl">Data</span><span class="sv">Mock JSON (DB 없음)</span></div>
+      </div>
+      <div class="card">
+        <div class="card-t"><div class="dot de"></div>AIM GUARD (기존 — 절대 변경 금지)</div>
+        <div class="sr"><span class="sl">Framework</span><span class="sv">React + Vite</span></div>
+        <div class="sr"><span class="sl">UI</span><span class="sv">Ant Design 6.3.3</span></div>
+        <div class="sr"><span class="sl">State</span><span class="sv">Zustand 5.0.12</span></div>
+        <div class="sr"><span class="sl">Router</span><span class="sv">react-router-dom 7</span></div>
+        <div class="sr"><span class="sl">디자인</span><span class="sv">다크 네이비 + 시안/틸 고정</span></div>
+        <div class="sr"><span class="sl">수정 여부</span><span class="sv" style="color:var(--err)">절대 변경 금지</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:10px">
+      <div class="card-t"><div class="dot dn"></div>AI 오케스트레이터 패턴 (코어 고정값 — 모든 솔루션 공통)</div>
+      <table>
+        <tr><th>모델</th><th>역할</th><th>사용 시점</th><th>비용 수준</th></tr>
+        <tr><td>Claude Opus</td><td>어드바이저</td><td>아키텍처 결정, 복잡한 판단 (1회)</td><td>최소화</td></tr>
+        <tr><td>Claude Sonnet</td><td>실행자</td><td>페이지 구현, 일반 채팅 응답</td><td>메인</td></tr>
+        <tr><td>Claude Haiku</td><td>러너</td><td>단순 반복, 확인 응답, 아이콘 생성</td><td>저비용</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 08 하네스 구조 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">08</div><div class="sec-t">하네스 구조 — 개발 효율화</div></div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-t"><div class="dot dn"></div>핵심 파일 구성</div>
+        <ul class="items">
+          <li><div class="dot dok"></div><div><b>CLAUDE.md</b> — 프로젝트 전체 컨텍스트 (60줄 이내)</div></li>
+          <li><div class="dot dok"></div><div><b>feature_list.json</b> — 전체 기능 목록, passes 추적</div></li>
+          <li><div class="dot dok"></div><div><b>claude-progress.txt</b> — 세션 간 진행 상황 기록</div></li>
+          <li><div class="dot dok"></div><div><b>init.sh</b> — 매 세션 시작 시 환경 자동 점검</div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-t"><div class="dot dn"></div>토큰 절약 3원칙</div>
+        <ul class="items">
+          <li><div class="dot dok"></div><div><b>오케스트레이터 패턴</b> — Opus 1회, 나머지 Sonnet/Haiku</div></li>
+          <li><div class="dot dok"></div><div><b>세션 분리</b> — feature 하나씩 새 세션, 컨텍스트 축적 방지</div></li>
+          <li><div class="dot dok"></div><div><b>하네스 자동 복원</b> — 매 세션 컨텍스트 설명 불필요</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 09 데모 시나리오 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">09</div><div class="sec-t">VC 데모 시나리오 — 총 3분 30초</div></div>
+
+    <div class="tl">
+      <div class="tli">
+        <div class="tld">1</div>
+        <div class="tlc">
+          <div class="tls">0:00 — 0:10</div>
+          <div class="tlt">로그인</div>
+          <div class="tld2">네온 오로라 배경 + 글라스 카드. 첫 화면에서 와우.</div>
+        </div>
+      </div>
+      <div class="tli">
+        <div class="tld">2</div>
+        <div class="tlc">
+          <div class="tls">0:10 — 0:30</div>
+          <div class="tlt">솔루션 선택 → AIM GUARD 클릭</div>
+          <div class="tld2">Adobe CC형 마켓플레이스. 구독/미구독 카드 구분.</div>
+        </div>
+      </div>
+      <div class="tli">
+        <div class="tld">3</div>
+        <div class="tlc">
+          <div class="tls">0:30 — 1:10</div>
+          <div class="tlt">AI 온보딩 — 자연어로 5대 문서 수집</div>
+          <div class="tld2">AI가 먼저 질문 → 문서 업로드 → harness.md 생성 애니메이션. 핵심 차별점.</div>
+        </div>
+      </div>
+      <div class="tli">
+        <div class="tld">4</div>
+        <div class="tlc">
+          <div class="tls">1:10 — 2:40</div>
+          <div class="tlt">에디터 — AI 채팅으로 화면 생성 및 수정</div>
+          <div class="tld2">자연어 입력 → 위젯 등장 → 페이지 추가 → API 매핑 → 컬러 변경 → 프리뷰 → 발행. 클라이맥스.</div>
+        </div>
+      </div>
+      <div class="tli">
+        <div class="tld">5</div>
+        <div class="tlc">
+          <div class="tls">2:40 — 3:10</div>
+          <div class="tlt">AIM GUARD 완성 화면</div>
+          <div class="tld2">발행된 실제 납품 화면. "이게 2개월 만에 만들어진 결과물입니다."</div>
+        </div>
+      </div>
+      <div class="tli">
+        <div class="tld">6</div>
+        <div class="tlc">
+          <div class="tls">3:10 — 3:30</div>
+          <div class="tlt">에디터로 돌아가기 → 클로징</div>
+          <div class="tld2">에디터↔결과물 왕복으로 "만드는 과정 + 완성품"을 VC가 직접 체험.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 10 개발 환경 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">10</div><div class="sec-t">개발 환경 및 비용</div></div>
+
+    <div class="g3">
+      <div class="card">
+        <div class="card-t"><div class="dot dok"></div>기획 단계 (현재)</div>
+        <ul class="items">
+          <li><div class="dot dok"></div><div>claude.ai Pro → 기획/대화</div></li>
+          <li><div class="dot dok"></div><div>추가 비용 없음</div></li>
+          <li><div class="dot dok"></div><div>모바일/PC 동일 계정 연동</div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-t"><div class="dot dw"></div>개발 단계</div>
+        <ul class="items">
+          <li><div class="dot dw"></div><div>Antigravity + Claude 플러그인</div></li>
+          <li><div class="dot dw"></div><div>Claude Code (터미널)</div></li>
+          <li><div class="dot dw"></div><div>API 크레딧 $20 권장</div></li>
+          <li><div class="dot dw"></div><div>PC 환경 필수</div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-t"><div class="dot dn"></div>데모 테스트 단계</div>
+        <ul class="items">
+          <li><div class="dot dn"></div><div>console.anthropic.com 접속</div></li>
+          <li><div class="dot dn"></div><div>.env.local에 API 키 입력</div></li>
+          <li><div class="dot dn"></div><div>$10~20으로 충분</div></li>
+          <li><div class="dot dn"></div><div>종량제 (쓴 만큼만)</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 11 MVP vs 추후 -->
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-n">11</div><div class="sec-t">MVP 범위 vs 추후 버전</div></div>
+
+    <div class="card">
+      <table>
+        <tr><th>기능</th><th>MVP (데모)</th><th>v1.1</th><th>v2.0</th></tr>
+        <tr><td>AI 채팅으로 위젯 생성</td><td><span class="tag tok">포함</span></td><td></td><td></td></tr>
+        <tr><td>페이지 추가/삭제/전환</td><td><span class="tag tok">포함</span></td><td></td><td></td></tr>
+        <tr><td>API 매핑 패널</td><td><span class="tag tok">포함</span></td><td></td><td></td></tr>
+        <tr><td>컬러/브랜드 세팅</td><td><span class="tag tok">포함</span></td><td></td><td></td></tr>
+        <tr><td>프리뷰 → 발행</td><td><span class="tag tok">포함</span></td><td></td><td></td></tr>
+        <tr><td>AI 개입 수준 3단계</td><td><span class="tag tok">포함</span></td><td></td><td></td></tr>
+        <tr><td>드래그 위젯 이동</td><td></td><td><span class="tag tw">v1.1</span></td><td></td></tr>
+        <tr><td>위젯 라이브러리 탭</td><td></td><td><span class="tag tw">v1.1</span></td><td></td></tr>
+        <tr><td>AI로 페이지 자동 생성</td><td></td><td><span class="tag tw">v1.1</span></td><td></td></tr>
+        <tr><td>페이지 간 링크 설정</td><td></td><td><span class="tag tw">v1.1</span></td><td></td></tr>
+        <tr><td>프리미엄 위젯</td><td></td><td></td><td><span class="tag tg">v2.0</span></td></tr>
+        <tr><td>실제 DB 연결</td><td></td><td></td><td><span class="tag tg">v2.0</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    AIMNIS 최종 상세 기획서 v5 · 2026.04.12 전체 확정 · 다음 단계: CLAUDE.md v4 업데이트 → 목업 제작 → Claude Code 개발 시작
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,75 @@
+{
+  "solution": "guard",
+  "version": "1.0.0",
+  "description": "AIM GUARD 솔루션 데이터 스키마. 고객사 자료 업로드 시 AI가 이 스키마 기준으로 harness.md 생성",
+  "requiredInputs": [
+    {
+      "id": "design-system",
+      "label": "디자인 시스템",
+      "description": "브랜드 컬러, 폰트, 로고 가이드",
+      "formats": ["pdf", "figma", "png"],
+      "required": true
+    },
+    {
+      "id": "api-spec",
+      "label": "API 명세",
+      "description": "센서 데이터 API 엔드포인트 문서",
+      "formats": ["pdf", "json", "yaml"],
+      "required": true
+    },
+    {
+      "id": "architecture",
+      "label": "시스템 아키텍처",
+      "description": "전체 시스템 구조도",
+      "formats": ["pdf", "png"],
+      "required": false
+    },
+    {
+      "id": "requirements",
+      "label": "기획서",
+      "description": "화면 기획 및 요구사항 정의서",
+      "formats": ["pdf", "docx"],
+      "required": false
+    },
+    {
+      "id": "brand-guide",
+      "label": "브랜드 가이드",
+      "description": "CI/BI 가이드라인",
+      "formats": ["pdf", "png"],
+      "required": false
+    }
+  ],
+  "outputSchema": {
+    "designTokens": {
+      "primaryColor": "string",
+      "secondaryColor": "string",
+      "backgroundColor": "string",
+      "fontFamily": "string",
+      "borderRadius": "string",
+      "logoUrl": "string"
+    },
+    "apiEndpoints": [
+      {
+        "id": "string",
+        "name": "string",
+        "path": "string",
+        "method": "GET|POST",
+        "fields": ["string"]
+      }
+    ],
+    "widgetMapping": [
+      {
+        "widgetId": "string",
+        "dataConnector": "string",
+        "fieldBindings": {}
+      }
+    ],
+    "layoutTemplate": "string"
+  },
+  "analysisSteps": [
+    { "step": 1, "label": "디자인 시스템 파싱 중...", "duration": 1200 },
+    { "step": 2, "label": "API 엔드포인트 분석 중...", "duration": 1500 },
+    { "step": 3, "label": "데이터 스키마 매핑 중...", "duration": 1000 },
+    { "step": 4, "label": "harness.md 생성 완료", "duration": 800 }
+  ]
+}

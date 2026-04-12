@@ -1,0 +1,51 @@
+# AIMNIS Demo v3 — 세션 진행 로그
+
+## 프로젝트 상태
+- 시작일: 2026-04-12
+- 현재 상태: 하네스 초기화 완료, 구현 대기
+- 완료된 feature: 없음 (0/18)
+- 다음 작업: F-000 (Next.js 프로젝트 생성)
+
+---
+
+## 핵심 아키텍처 요약
+- AIMNIS = 플랫폼 (앱스토어)
+- AIM GUARD / AIM ECO = 솔루션 (앱)
+- 새 솔루션 추가 = src/solutions/[id]/ 폴더 + marketplace.json 등록만
+- core 코드 수정 불필요
+
+---
+
+## 생성된 파일 목록
+- CLAUDE.md ✓
+- feature_list.json ✓ (18개 feature)
+- claude-progress.txt ✓
+- init.sh ✓
+- package.json ✓
+- src/styles/tokens.css ✓
+- src/solutions/guard/manifest.json ✓
+- src/solutions/guard/harness-schema.json ✓
+- src/solutions/guard/templates/default.json ✓
+- src/solutions/guard/widgets/index.json ✓
+- src/solutions/eco/manifest.json ✓
+- src/solutions/eco/harness-schema.json ✓
+- src/data/marketplace.json ✓
+- src/data/projects.json ✓
+- src/data/aimguard.json ✓
+- src/data/widgets.json ✓
+
+---
+
+## 세션 로그
+
+### [2026-04-12] 초기화
+- v3 하네스 설계 완료
+- 솔루션 플러그인 아키텍처 적용
+- Next.js 프로젝트 미생성 상태
+
+---
+
+## 주의사항
+- AIM GUARD 디자인 절대 변경 금지
+- 솔루션 데이터 하드코딩 금지 → solutions/ JSON 참조
+- F-016 통과해야 플러그인 구조 검증 완료

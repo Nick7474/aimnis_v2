@@ -1,0 +1,297 @@
+[
+  {
+    "id": "F-000",
+    "category": "setup",
+    "priority": 1,
+    "description": "Next.js 14 프로젝트 생성 및 패키지 설치",
+    "steps": [
+      "npx create-next-app@latest . --typescript --tailwind --app 실행",
+      "shadcn/ui 초기화: npx shadcn-ui@latest init",
+      "패키지 설치: reactflow recharts framer-motion zustand lucide-react @anthropic-ai/sdk",
+      "src/styles/tokens.css 적용 확인",
+      "npm run dev 실행 후 localhost:3000 빈 화면 확인",
+      "git init && git add -A && git commit -m 'init: 프로젝트 초기화'"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": ""
+  },
+  {
+    "id": "F-001",
+    "category": "setup",
+    "priority": 2,
+    "description": "솔루션 플러그인 구조 확인 및 데이터 파일 검증",
+    "steps": [
+      "src/solutions/guard/manifest.json 존재 및 유효성 확인",
+      "src/solutions/eco/manifest.json 존재 및 유효성 확인",
+      "src/data/marketplace.json 존재 확인",
+      "src/data/projects.json, aimguard.json, widgets.json 존재 확인",
+      "모든 JSON 파싱 에러 없음 확인"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "파일은 이미 생성됨. 확인만 하면 됨."
+  },
+  {
+    "id": "F-002",
+    "category": "core",
+    "priority": 3,
+    "description": "솔루션 로더 유틸리티 구현 — marketplace.json 기반 동적 로딩",
+    "steps": [
+      "src/lib/solutionLoader.ts 생성",
+      "loadAllSolutions(): marketplace.json 읽어 전체 솔루션 반환",
+      "loadSolution(id): 특정 솔루션 manifest 반환",
+      "loadSolutionWidgets(id): 솔루션 위젯 목록 반환",
+      "loadSolutionTemplate(id): 기본 템플릿 반환",
+      "TypeScript 타입 정의: Solution, Widget, Template 인터페이스",
+      "하드코딩 없이 파일 기반으로만 동작 확인"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "이 유틸리티가 있어야 AIM ECO 추가 시 core 수정 불필요"
+  },
+  {
+    "id": "F-003",
+    "category": "auth",
+    "priority": 4,
+    "description": "P1 로그인 페이지",
+    "steps": [
+      "/ 접속 시 로그인 화면 표시",
+      "다크 배경 + 퍼플/인디고 오로라 Framer Motion 애니메이션",
+      "중앙 글라스 카드: AIMNIS 로고 + 슬로건",
+      "이메일/비밀번호 Shadcn Input 렌더링",
+      "로그인 버튼 → /home 이동 (검증 없음, 데모용)"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": ""
+  },
+  {
+    "id": "F-004",
+    "category": "home",
+    "priority": 5,
+    "description": "P2 홈 — Stitch형 중앙 AI 입력창",
+    "steps": [
+      "/home 접속 시 홈 화면 표시",
+      "상단 Navbar 렌더링",
+      "화면 중앙 오로라 배경 + 글라스 채팅 입력창",
+      "입력창 하단 솔루션 칩: marketplace.json 기반 동적 렌더링",
+      "AIM GUARD 칩 / AIM ECO 칩 (coming-soon 뱃지)"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "솔루션 칩은 하드코딩 금지. marketplace.json에서 읽어야 함."
+  },
+  {
+    "id": "F-005",
+    "category": "home",
+    "priority": 6,
+    "description": "P2 홈 — 파일 업로드 + harness 생성 애니메이션",
+    "steps": [
+      "파일 첨부(+) 버튼 클릭 시 업로드 UI 활성화",
+      "선택된 솔루션의 harness-schema.json 기반 분석 단계 표시",
+      "각 단계 순차 애니메이션 (guard: 4단계, eco: 다른 4단계)",
+      "완료 토스트: harness.md 생성 완료",
+      "에디터 열기 버튼 등장 → /editor?solution=guard 이동"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "분석 단계 텍스트는 harness-schema.json의 analysisSteps에서 읽어야 함"
+  },
+  {
+    "id": "F-006",
+    "category": "home",
+    "priority": 7,
+    "description": "P2 홈 — 하단 구독 솔루션 카드",
+    "steps": [
+      "marketplace.json 기반 솔루션 카드 동적 렌더링",
+      "각 카드: 솔루션 아이콘/이름/설명/상태 뱃지",
+      "available: 편집하기 버튼 활성화",
+      "coming-soon: 비활성 뱃지 표시",
+      "편집하기 → /editor?solution=[id] 이동"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "카드 목록 하드코딩 금지. marketplace.json에서 읽어야 함."
+  },
+  {
+    "id": "F-007",
+    "category": "editor",
+    "priority": 8,
+    "description": "P3 에디터 — 3패널 레이아웃",
+    "steps": [
+      "/editor?solution=[id] 접속 시 에디터 표시",
+      "URL 파라미터에서 solution id 읽기",
+      "상단 툴바: 로고, 솔루션명, 저장상태, 확대/퍼블리시 버튼",
+      "좌측 280px / 중앙 flex / 우측 320px 레이아웃",
+      "1280px에서 정상 표시 확인"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": ""
+  },
+  {
+    "id": "F-008",
+    "category": "editor",
+    "priority": 9,
+    "description": "P3 에디터 — 좌측 AI 채팅 패널",
+    "steps": [
+      "채팅 메시지 리스트 렌더링",
+      "사용자/AI 메시지 스타일 구분",
+      "하단 입력창 + 전송 버튼",
+      "Claude API 스트리밍 응답 표시",
+      "실행 로그 섹션 (접기/펼치기)"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": ""
+  },
+  {
+    "id": "F-009",
+    "category": "editor",
+    "priority": 10,
+    "description": "P3 에디터 — React Flow 위젯 캔버스",
+    "steps": [
+      "React Flow 캔버스 렌더링",
+      "solution 파라미터 기반 templates/default.json 로드",
+      "초기 노드/엣지 templates/default.json에서 동적 로딩",
+      "노드 드래그 이동",
+      "AI 명령 후 새 노드 Framer Motion 등장 애니메이션",
+      "노드 클릭 시 우측 API 매핑 패널 활성화"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "초기 노드 하드코딩 금지. templates/default.json에서 읽어야 함."
+  },
+  {
+    "id": "F-010",
+    "category": "editor",
+    "priority": 11,
+    "description": "P3 에디터 — 우측 API 매핑 패널",
+    "steps": [
+      "선택된 위젯 이름 표시",
+      "Widget 필드 ↔ 데이터 필드 매핑 UI",
+      "데이터 소스 드롭다운: 솔루션의 dataConnectors 기반 동적 렌더링",
+      "harness.json 기반 자동 추천 표시",
+      "매핑 연결선 시각화"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "데이터 소스 목록은 manifest.json의 dataConnectors에서 읽어야 함"
+  },
+  {
+    "id": "F-011",
+    "category": "editor",
+    "priority": 12,
+    "description": "P3 에디터 — 세팅 패널 (브랜드 커스터마이징)",
+    "steps": [
+      "주컬러 컬러 피커: 변경 시 CSS 변수 즉시 전체 반영",
+      "보조컬러 컬러 피커",
+      "로고 업로드 버튼 (UI만)",
+      "폰트 선택 드롭다운",
+      "기능 모듈 토글 (ON/OFF): 솔루션 위젯 기반 동적 렌더링",
+      "변경사항 캔버스에 실시간 반영 확인"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "모듈 토글 목록은 widgets/index.json에서 읽어야 함"
+  },
+  {
+    "id": "F-012",
+    "category": "editor",
+    "priority": 13,
+    "description": "P3 에디터 — 확대 및 퍼블리시",
+    "steps": [
+      "확대 버튼 → 캔버스 풀스크린 모달",
+      "퍼블리시 버튼 → 가상 URL 생성 토스트",
+      "URL 형식: https://[solution].aimnis.ai/[random]"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": ""
+  },
+  {
+    "id": "F-013",
+    "category": "projects",
+    "priority": 14,
+    "description": "P4 프로젝트 DB — 카드 그리드 + CRUD",
+    "steps": [
+      "/projects 접속 시 projects.json 기반 카드 그리드",
+      "카드: 썸네일, 프로젝트명, 솔루션 뱃지, 수정일, 퍼블리싱 상태",
+      "호버: 수정/삭제/URL복사 버튼",
+      "삭제: 확인 다이얼로그 → 카드 제거 애니메이션",
+      "새 프로젝트 → /home",
+      "AIM GUARD 카드 → /guard"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": ""
+  },
+  {
+    "id": "F-014",
+    "category": "guard",
+    "priority": 15,
+    "description": "P5 AIM GUARD 뷰 — 레이아웃",
+    "steps": [
+      "/guard 접속 시 화면 표시",
+      "AIM GUARD 로고 + 타이틀",
+      "우상단 에디터로 돌아가기 → /editor?solution=guard",
+      "3열 그리드 레이아웃",
+      "하단 배너: 이 화면은 AIMNIS로 2개월 만에 만들어졌습니다",
+      "디자인: 다크 네이비 + 시안/틸 (절대 변경 금지)"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "AIM GUARD 디자인 절대 변경 금지"
+  },
+  {
+    "id": "F-015",
+    "category": "guard",
+    "priority": 16,
+    "description": "P5 AIM GUARD 뷰 — 실시간 데이터 위젯",
+    "steps": [
+      "aimguard.json 기반 에너지 차트 Recharts 렌더링",
+      "차트 데이터 실시간 애니메이션 효과",
+      "KPI 카드 3개 (사용량/성능/효율)",
+      "CCTV 위치 맵",
+      "알람 리스트",
+      "하이브리드 AI 게이트웨이 상태 표시"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": ""
+  },
+  {
+    "id": "F-016",
+    "category": "integration",
+    "priority": 17,
+    "description": "솔루션 플러그인 구조 검증 — AIM ECO 추가 테스트",
+    "steps": [
+      "src/solutions/eco/ 폴더 및 파일 존재 확인",
+      "marketplace.json에 eco 등록 확인",
+      "홈 화면에서 AIM ECO 칩 coming-soon으로 표시 확인",
+      "solutionLoader.ts로 eco manifest 로딩 확인",
+      "core 코드 수정 없이 eco가 마켓플레이스에 표시됨을 증명"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": "이 테스트를 통과해야 플러그인 구조가 제대로 작동하는 것"
+  },
+  {
+    "id": "F-017",
+    "category": "polish",
+    "priority": 18,
+    "description": "전체 데모 시나리오 최종 테스트",
+    "steps": [
+      "로그인 → 홈 → 파일업로드 → 에디터 플로우 실행",
+      "에디터: 채팅 → 위젯 생성 → API 매핑 → 컬러 변경 → 퍼블리시",
+      "프로젝트DB → AIM GUARD 이동 확인",
+      "에디터로 돌아가기 확인",
+      "총 데모 시간 4분 이내 확인",
+      "AIM ECO coming-soon 카드 표시 확인"
+    ],
+    "passes": false,
+    "completedAt": null,
+    "notes": ""
+  }
+]

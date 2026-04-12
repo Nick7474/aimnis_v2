@@ -1,0 +1,58 @@
+{
+  "solution": "guard",
+  "templateId": "default",
+  "name": "기본 관제 레이아웃",
+  "description": "에너지 센서 + CCTV + KPI 3패널 기본 구성",
+  "nodes": [
+    {
+      "id": "node-energy-chart",
+      "type": "chartWidget",
+      "position": { "x": 80, "y": 60 },
+      "data": {
+        "widgetId": "w-line-chart",
+        "label": "실시간 에너지 사용량",
+        "dataConnector": "energy-sensor",
+        "dataKey": "energyTimeSeries",
+        "color": "#14b8a6"
+      }
+    },
+    {
+      "id": "node-kpi",
+      "type": "kpiWidget",
+      "position": { "x": 80, "y": 320 },
+      "data": {
+        "widgetId": "w-kpi-card",
+        "label": "시스템 KPI",
+        "dataConnector": "energy-sensor",
+        "dataKey": "kpi"
+      }
+    },
+    {
+      "id": "node-cctv-map",
+      "type": "mapWidget",
+      "position": { "x": 500, "y": 60 },
+      "data": {
+        "widgetId": "w-map",
+        "label": "보안 CCTV 위치",
+        "dataConnector": "cctv",
+        "dataKey": "cctvLocations"
+      }
+    },
+    {
+      "id": "node-alerts",
+      "type": "alertWidget",
+      "position": { "x": 500, "y": 320 },
+      "data": {
+        "widgetId": "w-alert",
+        "label": "실시간 알람",
+        "dataConnector": "worker-safety",
+        "dataKey": "recentAlerts"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "node-energy-chart", "target": "node-kpi", "type": "smoothstep" },
+    { "id": "e2", "source": "node-energy-chart", "target": "node-cctv-map", "type": "smoothstep" },
+    { "id": "e3", "source": "node-cctv-map", "target": "node-alerts", "type": "smoothstep" }
+  ]
+}
