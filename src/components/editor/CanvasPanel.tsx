@@ -1,40 +1,21 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import { useEditorStore } from "@/store/editorStore";
+import dynamic from "next/dynamic";
 
-const GUARD_ORIGIN = "http://localhost:3004";
+// GuardApp은 antd/react-router-dom 의존성으로 SSR 비활성화
+const GuardApp = dynamic(() => import("@/components/guard/GuardApp"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-[#070F24]">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+    </div>
+  ),
+});
 
 export default function CanvasPanel() {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const lastCommand = useEditorStore((s) => s.lastCommand);
-
-  // AI 명령이 올 때마다 iframe에 postMessage 전달
-  useEffect(() => {
-    if (!lastCommand) return;
-    const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
-
-    iframe.contentWindow.postMessage(
-      {
-        type: "AIMNIS_COMMAND",
-        userText: lastCommand.userText,
-        aiResponse: lastCommand.aiResponse,
-        timestamp: lastCommand.timestamp,
-      },
-      GUARD_ORIGIN
-    );
-  }, [lastCommand]);
-
   return (
     <div className="h-full w-full">
-      <iframe
-        ref={iframeRef}
-        src={GUARD_ORIGIN}
-        className="h-full w-full border-0"
-        title="AIM GUARD"
-        allow="same-origin"
-      />
+      <GuardApp />
     </div>
   );
 }

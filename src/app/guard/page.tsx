@@ -2,8 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Shield } from "lucide-react";
+import dynamic from "next/dynamic";
 
-const GUARD_URL = "http://localhost:3004";
+const GuardApp = dynamic(() => import("@/components/guard/GuardApp"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-[#070F24]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+    </div>
+  ),
+});
 
 export default function GuardPage() {
   const router = useRouter();
@@ -25,13 +33,10 @@ export default function GuardPage() {
         </button>
       </div>
 
-      {/* AIM GUARD iframe — 풀스크린 */}
-      <iframe
-        src={GUARD_URL}
-        className="h-full w-full border-0"
-        title="AIM GUARD"
-        allow="same-origin"
-      />
+      {/* AIM GUARD — 풀스크린 직접 렌더링 */}
+      <div className="h-full w-full">
+        <GuardApp />
+      </div>
     </div>
   );
 }
