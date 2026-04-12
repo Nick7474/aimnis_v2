@@ -223,9 +223,9 @@
       "새 프로젝트 → /home",
       "AIM GUARD 카드 → /guard"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": ""
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "프로젝트 카드 그리드(3개), 호버 수정/삭제/URL복사, 삭제 확인 다이얼로그+애니메이션, 새 프로젝트→홈, 카드→/guard"
   },
   {
     "id": "F-014",
@@ -240,9 +240,9 @@
       "하단 배너: 이 화면은 AIMNIS로 2개월 만에 만들어졌습니다",
       "디자인: 다크 네이비 + 시안/틸 (절대 변경 금지)"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "AIM GUARD 디자인 절대 변경 금지"
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "AIM GUARD 레이아웃: 다크네이비+시안, 헤더+로고, 에디터로 돌아가기 버튼, 3열 그리드, 하단 배너"
   },
   {
     "id": "F-015",
@@ -257,9 +257,9 @@
       "알람 리스트",
       "하이브리드 AI 게이트웨이 상태 표시"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": ""
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "Recharts 에너지 라인차트 실시간 2초갱신, KPI카드3개, CCTV맵, 알람리스트, AI게이트웨이 상태"
   },
   {
     "id": "F-016",
@@ -273,9 +273,9 @@
       "solutionLoader.ts로 eco manifest 로딩 확인",
       "core 코드 수정 없이 eco가 마켓플레이스에 표시됨을 증명"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "이 테스트를 통과해야 플러그인 구조가 제대로 작동하는 것"
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "eco manifest/marketplace 등록, loadAllSolutions eco 포함, coming-soon, core 하드코딩 없음 전항목 통과"
   },
   {
     "id": "F-017",
@@ -290,8 +290,8 @@
       "총 데모 시간 4분 이내 확인",
       "AIM ECO coming-soon 카드 표시 확인"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": ""
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "전체 라우트 200 확인(/,/home,/editor,/projects,/guard), eco→/home 307, AIM ECO coming-soon 칩 확인"
   }
 ]
