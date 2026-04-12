@@ -2,9 +2,34 @@
 
 ## 프로젝트 상태
 - 시작일: 2026-04-12
-- 현재 상태: Next.js 14 설치 완료, 개발 진행 중
-- 완료된 feature: 1/18 (F-000)
-- 다음 작업: F-001 (솔루션 플러그인 구조 확인 및 데이터 파일 검증)
+- 현재 상태: F-000~F-012 완료 (13/18), 핵심 UI 구현 완료
+- 완료된 feature: 13/18
+- 다음 작업: F-013 (프로젝트 DB) → 새 세션에서 진행
+
+---
+
+## 완료 현황
+
+| ID | 설명 | 상태 |
+|----|------|------|
+| F-000 | Next.js 14 프로젝트 생성 및 패키지 설치 | ✅ 완료 |
+| F-001 | 솔루션 플러그인 구조 확인 및 데이터 파일 검증 | ✅ 완료 |
+| F-002 | 솔루션 로더 유틸리티 구현 | ✅ 완료 |
+| F-003 | P1 로그인 페이지 | ✅ 완료 |
+| F-004 | P2 홈 — Stitch형 중앙 AI 입력창 | ✅ 완료 |
+| F-005 | P2 홈 — 파일 업로드 + harness 생성 애니메이션 | ✅ 완료 |
+| F-006 | P2 홈 — 하단 구독 솔루션 카드 | ✅ 완료 |
+| F-007 | P3 에디터 — 3패널 레이아웃 | ✅ 완료 |
+| F-008 | P3 에디터 — 좌측 AI 채팅 패널 | ✅ 완료 |
+| F-009 | P3 에디터 — React Flow 위젯 캔버스 | ✅ 완료 |
+| F-010 | P3 에디터 — 우측 API 매핑 패널 | ✅ 완료 |
+| F-011 | P3 에디터 — 세팅 패널 (브랜드 커스터마이징) | ✅ 완료 |
+| F-012 | P3 에디터 — 확대 및 퍼블리시 | ✅ 완료 |
+| F-013 | P4 프로젝트 DB — 카드 그리드 + CRUD | ⏳ 다음 세션 |
+| F-014 | P5 AIM GUARD 뷰 — 레이아웃 | ⏳ 다음 세션 |
+| F-015 | P5 AIM GUARD 뷰 — 실시간 데이터 위젯 | ⏳ 다음 세션 |
+| F-016 | 솔루션 플러그인 구조 검증 — AIM ECO 추가 테스트 | ⏳ 다음 세션 |
+| F-017 | 전체 데모 시나리오 최종 테스트 | ⏳ 다음 세션 |
 
 ---
 
@@ -16,46 +41,75 @@
 
 ---
 
-## 생성된 파일 목록
-- CLAUDE.md ✓
-- feature_list.json ✓ (18개 feature)
-- claude-progress.txt ✓
-- init.sh ✓
-- package.json ✓
-- src/styles/tokens.css ✓
-- src/solutions/guard/manifest.json ✓
-- src/solutions/guard/harness-schema.json ✓
-- src/solutions/guard/templates/default.json ✓
-- src/solutions/guard/widgets/index.json ✓
-- src/solutions/eco/manifest.json ✓
-- src/solutions/eco/harness-schema.json ✓
-- src/data/marketplace.json ✓
-- src/data/projects.json ✓
-- src/data/aimguard.json ✓
-- src/data/widgets.json ✓
+## 생성된 파일 목록 (전체)
+
+### 설정
+- package.json, next.config.mjs, tsconfig.json, tailwind.config.ts
+- postcss.config.mjs, .gitignore
+
+### src/app/
+- page.tsx (로그인 /)
+- layout.tsx, globals.css
+- home/page.tsx (/home)
+- editor/page.tsx (/editor?solution=[id])
+- api/chat/route.ts (Claude 스트리밍 API)
+
+### src/components/
+- auth/LoginPage.tsx (Aurora 로그인 카드)
+- layout/Navbar.tsx (공통 내비게이션)
+- home/HomeHero.tsx (AI 입력창 + 파일업로드 + 솔루션 카드)
+- editor/EditorLayout.tsx (3패널 레이아웃 + 툴바)
+- editor/ChatPanel.tsx (좌측 AI 채팅)
+- editor/CanvasPanel.tsx (React Flow 캔버스)
+- editor/MappingPanel.tsx (우측 API 매핑)
+- editor/SettingsPanel.tsx (우측 브랜드 세팅)
+- ui/button.tsx, input.tsx, label.tsx
+
+### src/lib/
+- utils.ts (cn 유틸)
+- solutionLoader.ts (동적 솔루션 로더 — 5개 함수)
+
+### src/store/
+- editorStore.ts (Zustand 에디터 스토어)
+
+### src/styles/
+- tokens.css (AIMNIS + AIM GUARD 디자인 토큰)
+
+### src/data/
+- marketplace.json, projects.json, aimguard.json, widgets.json
+
+### src/solutions/
+- guard/manifest.json, harness-schema.json, templates/default.json, widgets/index.json
+- eco/manifest.json
 
 ---
 
 ## 세션 로그
 
-### [2026-04-12] 초기화
-- v3 하네스 설계 완료
-- 솔루션 플러그인 아키텍처 적용
-- Next.js 프로젝트 미생성 상태
+### [2026-04-12] 세션 1 — F-000~F-012 완료
+- Next.js 14 수동 설정 (create-next-app 디렉토리명 대문자 제한으로 수동 구성)
+- 솔루션 플러그인 구조 완성: guard 전체 + eco manifest
+- solutionLoader.ts: marketplace.json 기반 하드코딩 없는 동적 로딩
+- 로그인 페이지: Aurora 배경 Framer Motion 3오브 + 글라스 카드
+- 홈 페이지: Stitch형 AI 입력창, 파일업로드+분석 애니메이션, 솔루션 카드
+- 에디터 전체: 3패널(채팅/캔버스/매핑), Claude API 스트리밍, React Flow
+- Zustand 스토어: 노드/채팅/브랜드/퍼블리시 상태 통합 관리
+- 풀스크린 모달 + 가상 퍼블리시 URL 토스트
+- npm run dev → localhost:3000 정상 동작 확인
 
-### [2026-04-12] F-000 완료
-- Next.js 14 + TypeScript + Tailwind 수동 설정 (create-next-app 디렉토리명 대문자 제한)
-- 패키지 설치: reactflow, recharts, framer-motion, zustand, lucide-react, @anthropic-ai/sdk, shadcn/ui 의존성
-- src/app/layout.tsx, globals.css, 임시 home/page.tsx 생성
-- src/styles/tokens.css 생성 (AIMNIS 디자인 토큰)
-- src/lib/utils.ts 생성 (shadcn cn 유틸)
-- src/solutions/eco/manifest.json 생성
-- src/solutions/guard/widgets/index.json 생성
-- npm run dev → localhost:3000 정상 (307→/home 200)
+---
+
+## 다음 세션 작업 순서
+1. F-013: /projects 페이지 — projects.json 기반 카드 그리드 + 필터/정렬
+2. F-014: /guard 페이지 — AIM GUARD 뷰 레이아웃 (다크 네이비+시안, 디자인 고정)
+3. F-015: /guard 위젯 — aimguard.json 실시간 데이터 차트/지도/알람
+4. F-016: AIM ECO 솔루션 추가 → core 코드 무수정 검증
+5. F-017: 전체 데모 시나리오 최종 테스트
 
 ---
 
 ## 주의사항
-- AIM GUARD 디자인 절대 변경 금지
+- AIM GUARD 디자인 절대 변경 금지 (다크 네이비 + 시안/틸 고정)
 - 솔루션 데이터 하드코딩 금지 → solutions/ JSON 참조
 - F-016 통과해야 플러그인 구조 검증 완료
+- ANTHROPIC_API_KEY 환경변수 필요 (.env.local)
