@@ -78,9 +78,9 @@
       "입력창 하단 솔루션 칩: marketplace.json 기반 동적 렌더링",
       "AIM GUARD 칩 / AIM ECO 칩 (coming-soon 뱃지)"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "솔루션 칩은 하드코딩 금지. marketplace.json에서 읽어야 함."
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "홈 페이지 구현. Navbar + Aurora 배경 + Stitch형 중앙 textarea 입력창. 솔루션 칩 marketplace.json 동적 렌더링. AIM GUARD 칩/AIM ECO 칩(예정 뱃지)"
   },
   {
     "id": "F-005",
