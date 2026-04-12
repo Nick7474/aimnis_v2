@@ -1,0 +1,30 @@
+{
+  "id": "eco",
+  "name": "AIM ECO",
+  "version": "1.0.0",
+  "description": "탄소중립·에너지 최적화 ESG 관리 솔루션",
+  "category": "sustainability",
+  "icon": "Leaf",
+  "color": "#22c55e",
+  "route": "/eco",
+  "status": "coming-soon",
+  "pricing": {
+    "monthly": 2500000,
+    "currency": "KRW"
+  },
+  "features": [
+    "탄소 배출량 실시간 추적",
+    "에너지 사용 최적화",
+    "ESG 보고서 자동 생성",
+    "재생에너지 전환 시뮬레이션",
+    "공급망 탄소발자국 분석"
+  ],
+  "defaultTemplate": "templates/default.json",
+  "widgetRegistry": "widgets/index.json",
+  "harnessSchema": "harness-schema.json",
+  "dataConnectors": [
+    "carbon-tracker",
+    "energy-meter",
+    "esg-reporter"
+  ]
+}

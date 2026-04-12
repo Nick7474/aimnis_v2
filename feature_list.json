@@ -12,9 +12,9 @@
       "npm run dev 실행 후 localhost:3000 빈 화면 확인",
       "git init && git add -A && git commit -m 'init: 프로젝트 초기화'"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": ""
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "Next.js 14 + Tailwind + shadcn/ui deps 수동 설치 완료. npm run dev → localhost:3000 정상"
   },
   {
     "id": "F-001",

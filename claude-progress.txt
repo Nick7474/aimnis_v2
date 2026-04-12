@@ -2,9 +2,9 @@
 
 ## 프로젝트 상태
 - 시작일: 2026-04-12
-- 현재 상태: 하네스 초기화 완료, 구현 대기
-- 완료된 feature: 없음 (0/18)
-- 다음 작업: F-000 (Next.js 프로젝트 생성)
+- 현재 상태: Next.js 14 설치 완료, 개발 진행 중
+- 완료된 feature: 1/18 (F-000)
+- 다음 작업: F-001 (솔루션 플러그인 구조 확인 및 데이터 파일 검증)
 
 ---
 
@@ -42,6 +42,16 @@
 - v3 하네스 설계 완료
 - 솔루션 플러그인 아키텍처 적용
 - Next.js 프로젝트 미생성 상태
+
+### [2026-04-12] F-000 완료
+- Next.js 14 + TypeScript + Tailwind 수동 설정 (create-next-app 디렉토리명 대문자 제한)
+- 패키지 설치: reactflow, recharts, framer-motion, zustand, lucide-react, @anthropic-ai/sdk, shadcn/ui 의존성
+- src/app/layout.tsx, globals.css, 임시 home/page.tsx 생성
+- src/styles/tokens.css 생성 (AIMNIS 디자인 토큰)
+- src/lib/utils.ts 생성 (shadcn cn 유틸)
+- src/solutions/eco/manifest.json 생성
+- src/solutions/guard/widgets/index.json 생성
+- npm run dev → localhost:3000 정상 (307→/home 200)
 
 ---
 

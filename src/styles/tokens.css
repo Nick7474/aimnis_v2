@@ -1,0 +1,107 @@
+/* AIMNIS Design Tokens v3 */
+
+:root {
+  /* === AIMNIS Platform: Dark + Purple/Indigo Aurora === */
+
+  /* Base backgrounds */
+  --bg-base: #0a0a0f;
+  --bg-surface: #0f0f1a;
+  --bg-card: #13131f;
+  --bg-overlay: #1a1a2e;
+
+  /* Aurora gradient colors */
+  --aurora-purple: #7c3aed;
+  --aurora-indigo: #4f46e5;
+  --aurora-violet: #8b5cf6;
+  --aurora-blue: #3b82f6;
+  --aurora-cyan: #06b6d4;
+
+  /* Primary accent: Purple */
+  --color-primary: #7c3aed;
+  --color-primary-light: #a78bfa;
+  --color-primary-dark: #5b21b6;
+
+  /* Secondary accent: Indigo */
+  --color-secondary: #4f46e5;
+  --color-secondary-light: #818cf8;
+
+  /* Text */
+  --text-primary: #f1f0ff;
+  --text-secondary: #a5b4fc;
+  --text-muted: #6b7280;
+  --text-placeholder: #4b5563;
+
+  /* Borders */
+  --border-default: rgba(124, 58, 237, 0.2);
+  --border-subtle: rgba(124, 58, 237, 0.1);
+  --border-active: rgba(124, 58, 237, 0.6);
+
+  /* Shadows */
+  --shadow-glow-purple: 0 0 20px rgba(124, 58, 237, 0.3);
+  --shadow-glow-indigo: 0 0 20px rgba(79, 70, 229, 0.3);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+
+  /* === AIM GUARD: Dark Navy + Cyan/Teal === */
+  --guard-bg-base: #020817;
+  --guard-bg-surface: #0a1628;
+  --guard-bg-card: #0d1f3c;
+  --guard-color-primary: #14b8a6;
+  --guard-color-accent: #06b6d4;
+  --guard-color-warning: #f59e0b;
+  --guard-color-danger: #ef4444;
+  --guard-color-safe: #22c55e;
+  --guard-text-primary: #e2e8f0;
+  --guard-text-secondary: #94a3b8;
+  --guard-border: rgba(20, 184, 166, 0.2);
+  --guard-glow: 0 0 20px rgba(20, 184, 166, 0.3);
+
+  /* === Tailwind CSS Variables (shadcn/ui) === */
+  --background: 240 10% 4%;
+  --foreground: 246 100% 97%;
+  --card: 240 13% 9%;
+  --card-foreground: 246 100% 97%;
+  --popover: 240 13% 9%;
+  --popover-foreground: 246 100% 97%;
+  --primary: 262 83% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 13% 15%;
+  --secondary-foreground: 246 100% 97%;
+  --muted: 240 13% 12%;
+  --muted-foreground: 240 5% 55%;
+  --accent: 262 83% 58%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 262 20% 20%;
+  --input: 262 20% 20%;
+  --ring: 262 83% 58%;
+  --radius: 0.75rem;
+
+  /* Charts */
+  --chart-1: 262 83% 58%;
+  --chart-2: 240 83% 58%;
+  --chart-3: 188 83% 44%;
+  --chart-4: 142 71% 45%;
+  --chart-5: 25 95% 53%;
+
+  /* Typography */
+  --font-geist-sans: "Inter", system-ui, sans-serif;
+  --font-geist-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Z-index layers */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-modal: 200;
+  --z-tooltip: 300;
+  --z-toast: 400;
+}
