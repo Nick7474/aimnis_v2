@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Shield } from "lucide-react";
 
-const GUARD_URL = "http://localhost:3001";
+const GUARD_URL = "http://localhost:3004";
 
 export default function GuardPage() {
   const router = useRouter();

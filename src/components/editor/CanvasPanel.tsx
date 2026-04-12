@@ -3,7 +3,7 @@
 import { useRef, useEffect } from "react";
 import { useEditorStore } from "@/store/editorStore";
 
-const GUARD_ORIGIN = "http://localhost:3001";
+const GUARD_ORIGIN = "http://localhost:3004";
 
 export default function CanvasPanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
