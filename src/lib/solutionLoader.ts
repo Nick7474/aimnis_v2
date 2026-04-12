@@ -45,6 +45,18 @@ export interface Marketplace {
   solutions: MarketplaceEntry[];
 }
 
+export interface AnalysisStep {
+  step: number;
+  label: string;
+  duration: number;
+}
+
+export interface HarnessSchema {
+  solution: string;
+  version: string;
+  analysisSteps: AnalysisStep[];
+}
+
 export interface SolutionWidget {
   id: string;
   name: string;
@@ -143,6 +155,15 @@ export function loadSolutionWidgets(id: string): SolutionWidget[] {
 export function loadSolutionTemplate(id: string): SolutionTemplate | null {
   return readJson<SolutionTemplate>(
     path.join(SRC_ROOT, "solutions", id, "templates", "default.json")
+  );
+}
+
+/**
+ * 특정 솔루션의 harness schema 반환
+ */
+export function loadHarnessSchema(id: string): HarnessSchema | null {
+  return readJson<HarnessSchema>(
+    path.join(SRC_ROOT, "solutions", id, "harness-schema.json")
   );
 }
 

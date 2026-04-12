@@ -94,9 +94,9 @@
       "완료 토스트: harness.md 생성 완료",
       "에디터 열기 버튼 등장 → /editor?solution=guard 이동"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "분석 단계 텍스트는 harness-schema.json의 analysisSteps에서 읽어야 함"
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "파일 첨부 버튼, harness-schema.json 분석 단계 순차 애니메이션, 완료 토스트 + 에디터 열기 버튼"
   },
   {
     "id": "F-006",
@@ -110,9 +110,9 @@
       "coming-soon: 비활성 뱃지 표시",
       "편집하기 → /editor?solution=[id] 이동"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "카드 목록 하드코딩 금지. marketplace.json에서 읽어야 함."
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "marketplace.json 동적 솔루션 카드, available/coming-soon 뱃지, 편집하기 버튼"
   },
   {
     "id": "F-007",
@@ -126,9 +126,9 @@
       "좌측 280px / 중앙 flex / 우측 320px 레이아웃",
       "1280px에서 정상 표시 확인"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": ""
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "에디터 3패널: 좌280px / 중flex / 우320px. 상단 툴바: 솔루션명, 저장, 확대, 퍼블리시"
   },
   {
     "id": "F-008",
@@ -142,9 +142,9 @@
       "Claude API 스트리밍 응답 표시",
       "실행 로그 섹션 (접기/펼치기)"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": ""
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "Claude API 스트리밍 채팅 패널, 사용자/AI 메시지 스타일, 실행 로그 접기/펼치기"
   },
   {
     "id": "F-009",
@@ -159,9 +159,9 @@
       "AI 명령 후 새 노드 Framer Motion 등장 애니메이션",
       "노드 클릭 시 우측 API 매핑 패널 활성화"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "초기 노드 하드코딩 금지. templates/default.json에서 읽어야 함."
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "React Flow 캔버스, templates/default.json 동적 로드, 커스텀 노드, 드래그, 클릭 시 우측 패널 활성화"
   },
   {
     "id": "F-010",
@@ -175,9 +175,9 @@
       "harness.json 기반 자동 추천 표시",
       "매핑 연결선 시각화"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "데이터 소스 목록은 manifest.json의 dataConnectors에서 읽어야 함"
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "선택 위젯 표시, dataConnectors 기반 데이터소스 드롭다운, AI 추천 필드 연결 UI"
   },
   {
     "id": "F-011",
@@ -192,9 +192,9 @@
       "기능 모듈 토글 (ON/OFF): 솔루션 위젯 기반 동적 렌더링",
       "변경사항 캔버스에 실시간 반영 확인"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "모듈 토글 목록은 widgets/index.json에서 읽어야 함"
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "컬러 피커(CSS 변수 즉시 반영), 로고 업로드 UI, 폰트 선택, 위젯 모듈 토글"
   },
   {
     "id": "F-012",
@@ -206,9 +206,9 @@
       "퍼블리시 버튼 → 가상 URL 생성 토스트",
       "URL 형식: https://[solution].aimnis.ai/[random]"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": ""
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "확대 → 풀스크린 모달, 퍼블리시 → aimnis.ai 가상 URL 토스트"
   },
   {
     "id": "F-013",

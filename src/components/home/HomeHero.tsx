@@ -1,33 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Sparkles } from "lucide-react";
+import { ArrowUp, Sparkles, Paperclip, X, CheckCircle2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { SolutionManifest } from "@/lib/solutionLoader";
-
-// Lucide 아이콘을 이름으로 동적 렌더링
+import type { SolutionManifest, AnalysisStep } from "@/lib/solutionLoader";
 import * as LucideIcons from "lucide-react";
 import type { LucideProps } from "lucide-react";
 
 interface HomeHeroProps {
   solutions: SolutionManifest[];
+  analysisStepsMap: Record<string, AnalysisStep[]>;
 }
 
-export default function HomeHero({ solutions }: HomeHeroProps) {
+// ─── 메인 컴포넌트 ────────────────────────────────────────────
+
+export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [input, setInput] = useState("");
   const [activeSolution, setActiveSolution] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<"idle" | "analyzing" | "done">("idle");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    if (activeSolution === "guard") {
-      router.push("/editor");
-    } else {
-      router.push("/editor");
-    }
+    router.push(`/editor${activeSolution ? `?solution=${activeSolution}` : ""}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -37,8 +40,40 @@ export default function HomeHero({ solutions }: HomeHeroProps) {
     }
   };
 
+  // 파일 선택 → 분석 애니메이션 시작
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    setUploadState("analyzing");
+    setCompletedSteps([]);
+    setCurrentStep(0);
+
+    const solutionId = activeSolution ?? "guard";
+    const steps = analysisStepsMap[solutionId] ?? [];
+
+    for (let i = 0; i < steps.length; i++) {
+      setCurrentStep(i);
+      await new Promise((r) => setTimeout(r, steps[i].duration));
+      setCompletedSteps((prev) => [...prev, i]);
+    }
+
+    setUploadState("done");
+  };
+
+  const resetUpload = () => {
+    setUploadState("idle");
+    setFileName(null);
+    setCurrentStep(0);
+    setCompletedSteps([]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const solutionId = activeSolution ?? "guard";
+  const steps = analysisStepsMap[solutionId] ?? [];
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 pt-14">
+    <div className="flex min-h-screen flex-col items-center px-4 pt-28">
       {/* 헤드라인 */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -54,7 +89,7 @@ export default function HomeHero({ solutions }: HomeHeroProps) {
           무엇을 만들어 드릴까요?
         </h1>
         <p className="mt-3 text-sm text-white/40">
-          요구사항을 입력하면 AI가 맞춤 솔루션 하네스를 생성합니다
+          요구사항을 입력하거나 파일을 업로드하면 AI가 맞춤 하네스를 생성합니다
         </p>
       </motion.div>
 
@@ -65,6 +100,89 @@ export default function HomeHero({ solutions }: HomeHeroProps) {
         transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-2xl"
       >
+        {/* 분석 진행 UI */}
+        <AnimatePresence>
+          {(uploadState === "analyzing" || uploadState === "done") && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-3 overflow-hidden rounded-xl border border-purple-500/20 bg-white/[0.03] p-4"
+            >
+              {/* 파일명 헤더 */}
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-white/60">
+                  <Paperclip className="h-3 w-3" />
+                  <span className="truncate max-w-[200px]">{fileName}</span>
+                </div>
+                {uploadState === "done" && (
+                  <button onClick={resetUpload} className="text-white/30 hover:text-white/60 transition-colors">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* 분석 단계 */}
+              <div className="space-y-2">
+                {steps.map((step, i) => {
+                  const isDone = completedSteps.includes(i);
+                  const isActive = currentStep === i && !isDone;
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="flex items-center gap-2.5"
+                    >
+                      {isDone ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-emerald-400" />
+                      ) : isActive ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                          className="h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-purple-500/30 border-t-purple-400"
+                        />
+                      ) : (
+                        <div className="h-3.5 w-3.5 flex-shrink-0 rounded-full border border-white/10" />
+                      )}
+                      <span className={cn(
+                        "text-xs transition-colors",
+                        isDone ? "text-emerald-400/80" : isActive ? "text-white/80" : "text-white/20"
+                      )}>
+                        {step.label}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* 완료 버튼 */}
+              <AnimatePresence>
+                {uploadState === "done" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 flex items-center gap-2"
+                  >
+                    <div className="flex-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400">
+                      ✓ harness.md 생성 완료
+                    </div>
+                    <button
+                      onClick={() => router.push(`/editor?solution=${solutionId}`)}
+                      className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-1.5 text-xs text-white shadow-lg shadow-violet-500/20 hover:from-violet-500 hover:to-indigo-500 transition-all"
+                    >
+                      에디터 열기
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 입력 폼 */}
         <form onSubmit={handleSubmit}>
           <div className="relative rounded-2xl border border-purple-500/20 bg-white/[0.04] p-4 shadow-2xl shadow-black/40 backdrop-blur-xl focus-within:border-purple-500/40 transition-colors">
             <textarea
@@ -80,14 +198,33 @@ export default function HomeHero({ solutions }: HomeHeroProps) {
               className="w-full resize-none bg-transparent text-sm text-white placeholder:text-white/20 focus:outline-none"
             />
 
-            {/* 하단 액션 */}
-            <div className="mt-3 flex items-center justify-between">
-              {/* 솔루션 칩 */}
-              <SolutionChips
-                solutions={solutions}
-                active={activeSolution}
-                onSelect={(id) => setActiveSolution(id === activeSolution ? null : id)}
-              />
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {/* 파일 첨부 버튼 */}
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/40 hover:border-purple-500/30 hover:text-purple-300 transition-colors"
+                >
+                  <Paperclip className="h-3.5 w-3.5" />
+                </motion.button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.json,.yaml,.png,.docx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {/* 솔루션 칩 */}
+                <SolutionChips
+                  solutions={solutions}
+                  active={activeSolution}
+                  onSelect={(id) => setActiveSolution(id === activeSolution ? null : id)}
+                />
+              </div>
 
               {/* 전송 버튼 */}
               <motion.button
@@ -108,16 +245,18 @@ export default function HomeHero({ solutions }: HomeHeroProps) {
           </div>
         </form>
 
-        {/* 힌트 텍스트 */}
         <p className="mt-3 text-center text-[11px] text-white/20">
-          Enter로 전송 · Shift+Enter 줄바꿈
+          Enter로 전송 · Shift+Enter 줄바꿈 · 파일 첨부 시 AI가 자동 분석
         </p>
       </motion.div>
+
+      {/* F-006: 솔루션 카드 섹션 */}
+      <SolutionCards solutions={solutions} />
     </div>
   );
 }
 
-// ─── 솔루션 칩 컴포넌트 ──────────────────────────────────────
+// ─── 솔루션 칩 ───────────────────────────────────────────────
 
 interface SolutionChipsProps {
   solutions: SolutionManifest[];
@@ -127,7 +266,7 @@ interface SolutionChipsProps {
 
 function SolutionChips({ solutions, active, onSelect }: SolutionChipsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {solutions.map((sol) => {
         const IconComp = (
           (LucideIcons as unknown as Record<string, React.FC<LucideProps>>)[sol.icon] ??
@@ -153,30 +292,104 @@ function SolutionChips({ solutions, active, onSelect }: SolutionChipsProps) {
           >
             <IconComp className="h-3 w-3" color={sol.color} />
             <span>{sol.name}</span>
-            <AnimatePresence>
-              {isComingSoon && (
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-full bg-white/10 px-1 py-0.5 text-[9px] text-white/40"
-                >
-                  예정
-                </motion.span>
-              )}
-            </AnimatePresence>
-            <AnimatePresence>
-              {isActive && (
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="h-1.5 w-1.5 rounded-full bg-purple-400"
-                />
-              )}
-            </AnimatePresence>
+            {isComingSoon && (
+              <span className="rounded-full bg-white/10 px-1 py-0.5 text-[9px] text-white/40">예정</span>
+            )}
+            {isActive && (
+              <motion.span
+                layoutId="chip-dot"
+                className="h-1.5 w-1.5 rounded-full bg-purple-400"
+              />
+            )}
           </motion.button>
         );
       })}
     </div>
+  );
+}
+
+// ─── F-006: 솔루션 카드 ───────────────────────────────────────
+
+function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
+  const router = useRouter();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className="mt-16 w-full max-w-2xl pb-16"
+    >
+      <p className="mb-4 text-xs text-white/30 text-center">구독 중인 솔루션</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {solutions.map((sol, i) => {
+          const IconComp = (
+            (LucideIcons as unknown as Record<string, React.FC<LucideProps>>)[sol.icon] ??
+            LucideIcons.Box
+          ) as React.FC<LucideProps>;
+          const isAvailable = sol.status === "available";
+
+          return (
+            <motion.div
+              key={sol.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 + i * 0.08 }}
+              className="glass-card p-4 flex flex-col gap-3"
+            >
+              {/* 헤더 */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="flex h-9 w-9 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: `${sol.color}20`, border: `1px solid ${sol.color}30` }}
+                  >
+                    <IconComp className="h-4.5 w-4.5" color={sol.color} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{sol.name}</p>
+                    <p className="text-[10px] text-white/40 capitalize">{sol.category}</p>
+                  </div>
+                </div>
+                <span className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  isAvailable
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "bg-white/5 text-white/30"
+                )}>
+                  {isAvailable ? "구독 중" : "출시 예정"}
+                </span>
+              </div>
+
+              {/* 설명 */}
+              <p className="text-xs text-white/40 leading-relaxed">{sol.description}</p>
+
+              {/* 기능 태그 */}
+              <div className="flex flex-wrap gap-1">
+                {sol.features.slice(0, 3).map((f) => (
+                  <span key={f} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-white/30">
+                    {f}
+                  </span>
+                ))}
+              </div>
+
+              {/* 액션 버튼 */}
+              <button
+                onClick={() => isAvailable && router.push(`/editor?solution=${sol.id}`)}
+                disabled={!isAvailable}
+                className={cn(
+                  "mt-auto w-full rounded-lg py-2 text-xs font-medium transition-all",
+                  isAvailable
+                    ? "bg-gradient-to-r from-violet-600/80 to-indigo-600/80 text-white hover:from-violet-600 hover:to-indigo-600"
+                    : "cursor-not-allowed bg-white/5 text-white/20"
+                )}
+              >
+                {isAvailable ? "편집하기" : "출시 예정"}
+              </button>
+            </motion.div>
+          );
+        })}
+      </div>
+    </motion.div>
   );
 }

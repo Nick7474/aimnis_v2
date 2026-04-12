@@ -1,9 +1,19 @@
 import Navbar from "@/components/layout/Navbar";
 import HomeHero from "@/components/home/HomeHero";
-import { loadAllSolutions } from "@/lib/solutionLoader";
+import { loadAllSolutions, loadHarnessSchema } from "@/lib/solutionLoader";
+import type { AnalysisStep } from "@/lib/solutionLoader";
 
 export default function HomePage() {
   const solutions = loadAllSolutions();
+
+  // 각 솔루션의 분석 단계를 미리 로드하여 클라이언트로 전달
+  const analysisStepsMap: Record<string, AnalysisStep[]> = {};
+  for (const sol of solutions) {
+    const schema = loadHarnessSchema(sol.id);
+    if (schema?.analysisSteps) {
+      analysisStepsMap[sol.id] = schema.analysisSteps;
+    }
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0a0a0f]">
@@ -15,7 +25,7 @@ export default function HomePage() {
       </div>
 
       <Navbar />
-      <HomeHero solutions={solutions} />
+      <HomeHero solutions={solutions} analysisStepsMap={analysisStepsMap} />
     </main>
   );
 }
