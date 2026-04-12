@@ -1,0 +1,106 @@
+{
+  "version": "1.0.0",
+  "description": "AIMNIS 에디터 공통 위젯 레지스트리. 솔루션별 위젯은 solutions/[id]/widgets/index.json 참조",
+  "commonWidgets": [
+    {
+      "id": "w-text",
+      "name": "텍스트 블록",
+      "type": "text",
+      "category": "basic",
+      "icon": "Type",
+      "description": "자유 텍스트 입력 영역",
+      "defaultSize": { "w": 2, "h": 1 },
+      "configurable": ["content", "fontSize", "align"]
+    },
+    {
+      "id": "w-divider",
+      "name": "구분선",
+      "type": "divider",
+      "category": "basic",
+      "icon": "Minus",
+      "description": "섹션 구분선",
+      "defaultSize": { "w": 4, "h": 0 },
+      "configurable": ["color", "thickness", "style"]
+    },
+    {
+      "id": "w-kpi-card",
+      "name": "KPI 카드",
+      "type": "kpi",
+      "category": "data",
+      "icon": "TrendingUp",
+      "description": "단일 수치 KPI 표시",
+      "defaultSize": { "w": 1, "h": 1 },
+      "configurable": ["label", "value", "unit", "trend", "color"]
+    },
+    {
+      "id": "w-line-chart",
+      "name": "라인 차트",
+      "type": "chart-line",
+      "category": "chart",
+      "icon": "LineChart",
+      "description": "시계열 데이터 라인 차트",
+      "defaultSize": { "w": 2, "h": 2 },
+      "configurable": ["dataKey", "color", "xAxis", "yAxis", "legend"]
+    },
+    {
+      "id": "w-bar-chart",
+      "name": "바 차트",
+      "type": "chart-bar",
+      "category": "chart",
+      "icon": "BarChart3",
+      "description": "카테고리별 막대 차트",
+      "defaultSize": { "w": 2, "h": 2 },
+      "configurable": ["dataKey", "color", "xAxis", "yAxis"]
+    },
+    {
+      "id": "w-donut",
+      "name": "도넛 차트",
+      "type": "chart-donut",
+      "category": "chart",
+      "icon": "PieChart",
+      "description": "비율 시각화 도넛 차트",
+      "defaultSize": { "w": 1, "h": 1 },
+      "configurable": ["dataKey", "colors", "legend"]
+    },
+    {
+      "id": "w-map",
+      "name": "위치 지도",
+      "type": "map",
+      "category": "visualization",
+      "icon": "Map",
+      "description": "2D 평면도 위에 위치 마커",
+      "defaultSize": { "w": 2, "h": 2 },
+      "configurable": ["floorPlan", "markers", "zoom"]
+    },
+    {
+      "id": "w-alert",
+      "name": "알람 패널",
+      "type": "alert-panel",
+      "category": "monitoring",
+      "icon": "Bell",
+      "description": "실시간 이벤트/알람 목록",
+      "defaultSize": { "w": 2, "h": 2 },
+      "configurable": ["severityFilter", "maxItems", "autoRefresh"]
+    },
+    {
+      "id": "w-gauge",
+      "name": "게이지",
+      "type": "gauge",
+      "category": "monitoring",
+      "icon": "Gauge",
+      "description": "현재값 게이지 표시",
+      "defaultSize": { "w": 1, "h": 1 },
+      "configurable": ["min", "max", "value", "unit", "thresholds"]
+    },
+    {
+      "id": "w-table",
+      "name": "데이터 테이블",
+      "type": "table",
+      "category": "data",
+      "icon": "Table",
+      "description": "정형 데이터 테이블",
+      "defaultSize": { "w": 3, "h": 2 },
+      "configurable": ["columns", "sortable", "pagination"]
+    }
+  ]
+}

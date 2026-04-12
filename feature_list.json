@@ -28,9 +28,9 @@
       "src/data/projects.json, aimguard.json, widgets.json 존재 확인",
       "모든 JSON 파싱 에러 없음 확인"
     ],
-    "passes": false,
-    "completedAt": null,
-    "notes": "파일은 이미 생성됨. 확인만 하면 됨."
+    "passes": true,
+    "completedAt": "2026-04-12",
+    "notes": "9개 JSON 파일 모두 존재 및 파싱 정상. projects.json(3개 프로젝트), aimguard.json(센서 목업), widgets.json(10개 공통 위젯) 신규 생성"
   },
   {
     "id": "F-002",

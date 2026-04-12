@@ -1,0 +1,121 @@
+{
+  "version": "1.0.0",
+  "description": "AIM GUARD 뷰 목업 데이터 — 실제 센서 데이터 시뮬레이션",
+  "lastUpdated": "2026-04-12T10:00:00Z",
+
+  "overview": {
+    "systemStatus": "normal",
+    "totalSensors": 142,
+    "activeSensors": 140,
+    "alertCount": 3,
+    "warningCount": 7,
+    "uptime": "99.8%"
+  },
+
+  "energySensor": {
+    "currentKw": 2847,
+    "peakKw": 3200,
+    "dailyKwh": 68340,
+    "monthlyKwh": 2050200,
+    "efficiency": 89.2,
+    "kpi": {
+      "powerFactor": 0.97,
+      "thd": 3.2,
+      "frequency": 60.0,
+      "voltage": 22900
+    },
+    "timeSeries": [
+      { "time": "00:00", "kw": 1820 },
+      { "time": "02:00", "kw": 1650 },
+      { "time": "04:00", "kw": 1590 },
+      { "time": "06:00", "kw": 2100 },
+      { "time": "08:00", "kw": 2850 },
+      { "time": "10:00", "kw": 3050 },
+      { "time": "12:00", "kw": 3200 },
+      { "time": "14:00", "kw": 3100 },
+      { "time": "16:00", "kw": 2950 },
+      { "time": "18:00", "kw": 2847 },
+      { "time": "20:00", "kw": 2400 },
+      { "time": "22:00", "kw": 2100 }
+    ]
+  },
+
+  "cctv": {
+    "totalCameras": 48,
+    "activeCameras": 47,
+    "alertCameras": 2,
+    "locations": [
+      { "id": "cctv-001", "name": "정문 출입구", "x": 15, "y": 10, "status": "normal", "floor": 1 },
+      { "id": "cctv-002", "name": "생산 라인 A", "x": 35, "y": 30, "status": "alert", "floor": 1 },
+      { "id": "cctv-003", "name": "생산 라인 B", "x": 55, "y": 30, "status": "normal", "floor": 1 },
+      { "id": "cctv-004", "name": "배터리 보관실", "x": 75, "y": 25, "status": "alert", "floor": 1 },
+      { "id": "cctv-005", "name": "충전실 1", "x": 25, "y": 60, "status": "normal", "floor": 2 },
+      { "id": "cctv-006", "name": "충전실 2", "x": 50, "y": 65, "status": "normal", "floor": 2 },
+      { "id": "cctv-007", "name": "비상구 A", "x": 80, "y": 70, "status": "normal", "floor": 2 },
+      { "id": "cctv-008", "name": "지하 주차장", "x": 40, "y": 85, "status": "offline", "floor": -1 }
+    ]
+  },
+
+  "airQuality": {
+    "overall": "good",
+    "pm25": 12.4,
+    "pm10": 28.7,
+    "co2": 890,
+    "co": 0.8,
+    "temperature": 22.5,
+    "humidity": 48.2,
+    "zones": [
+      { "id": "zone-a", "name": "생산 구역", "status": "warning", "pm25": 24.1 },
+      { "id": "zone-b", "name": "사무 구역", "status": "good", "pm25": 8.3 },
+      { "id": "zone-c", "name": "창고", "status": "good", "pm25": 11.0 }
+    ]
+  },
+
+  "workerSafety": {
+    "totalWorkers": 312,
+    "onSite": 287,
+    "inDangerZone": 0,
+    "helmetCompliance": 98.6,
+    "recentAlerts": [
+      {
+        "id": "alert-001",
+        "type": "fire-risk",
+        "severity": "high",
+        "location": "배터리 보관실 3F",
+        "message": "온도 이상 감지 — 즉시 점검 요망",
+        "timestamp": "2026-04-12T09:42:00Z",
+        "resolved": false
+      },
+      {
+        "id": "alert-002",
+        "type": "air-quality",
+        "severity": "medium",
+        "location": "생산 구역 A",
+        "message": "PM2.5 기준치(25μg/m³) 초과",
+        "timestamp": "2026-04-12T08:15:00Z",
+        "resolved": false
+      },
+      {
+        "id": "alert-003",
+        "type": "equipment",
+        "severity": "low",
+        "location": "충전실 2",
+        "message": "충전기 #12 응답 없음",
+        "timestamp": "2026-04-12T07:30:00Z",
+        "resolved": true
+      }
+    ]
+  },
+
+  "batteryFireRisk": {
+    "riskLevel": "elevated",
+    "score": 42,
+    "maxScore": 100,
+    "factors": [
+      { "factor": "온도", "value": 38.2, "threshold": 35, "status": "warning" },
+      { "factor": "습도", "value": 52.1, "threshold": 70, "status": "normal" },
+      { "factor": "충전율", "value": 87, "threshold": 95, "status": "normal" },
+      { "factor": "가스 농도", "value": 0.3, "threshold": 1.0, "status": "normal" }
+    ]
+  }
+}

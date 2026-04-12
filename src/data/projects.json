@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "projects": [
+    {
+      "id": "proj-001",
+      "name": "삼성SDI 배터리공장 안전관제",
+      "solution": "guard",
+      "status": "active",
+      "client": "삼성SDI",
+      "industry": "제조/에너지",
+      "createdAt": "2025-11-10",
+      "updatedAt": "2026-04-10",
+      "thumbnail": null,
+      "description": "배터리 생산 라인 화재·안전 통합 모니터링 시스템",
+      "harnessFile": "harness-samsung-sdi.md",
+      "tags": ["배터리", "화재감지", "안전관제"],
+      "stats": {
+        "alerts": 3,
+        "uptime": "99.8%",
+        "sensors": 142
+      }
+    },
+    {
+      "id": "proj-002",
+      "name": "현대제철 작업자 안전관리",
+      "solution": "guard",
+      "status": "active",
+      "client": "현대제철",
+      "industry": "철강/제조",
+      "createdAt": "2025-12-01",
+      "updatedAt": "2026-04-09",
+      "thumbnail": null,
+      "description": "제철소 작업자 위치 추적 및 안전 이벤트 모니터링",
+      "harnessFile": "harness-hyundai-steel.md",
+      "tags": ["작업자안전", "위치추적", "이벤트알림"],
+      "stats": {
+        "alerts": 1,
+        "uptime": "99.5%",
+        "sensors": 89
+      }
+    },
+    {
+      "id": "proj-003",
+      "name": "LG화학 공기질 모니터링",
+      "solution": "guard",
+      "status": "draft",
+      "client": "LG화학",
+      "industry": "화학/제조",
+      "createdAt": "2026-03-15",
+      "updatedAt": "2026-04-08",
+      "thumbnail": null,
+      "description": "화학 공장 실내외 공기질 실시간 측정 및 경보",
+      "harnessFile": null,
+      "tags": ["공기질", "화학공장", "환경모니터링"],
+      "stats": {
+        "alerts": 0,
+        "uptime": "-",
+        "sensors": 0
+      }
+    }
+  ]
+}
