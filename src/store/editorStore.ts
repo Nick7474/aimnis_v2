@@ -3,6 +3,19 @@ import type { Node, Edge } from "reactflow";
 
 // ─── 타입 ─────────────────────────────────────────────────────
 
+export interface WidgetData {
+  value?: string;
+  unit?: string;
+  trend?: string;
+  trendUp?: boolean;
+  color?: string;
+  chartData?: Array<{ name: string; value: number }>;
+  gaugeValue?: number;
+  gaugeMax?: number;
+  alerts?: Array<{ level: "critical" | "warning" | "info"; msg: string }>;
+  description?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -56,6 +69,7 @@ interface EditorState {
   setEdges: (edges: Edge[]) => void;
   selectNode: (nodeId: string | null) => void;
   addNode: (node: Node) => void;
+  removeNode: (nodeId: string) => void;
 
   // 액션 — 채팅
   addMessage: (msg: ChatMessage) => void;
@@ -87,7 +101,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       id: "welcome",
       role: "assistant",
       content:
-        "안녕하세요! AIMNIS 에디터입니다.\n솔루션 하네스를 수정하거나 새 위젯을 추가하려면 명령을 입력하세요.",
+        "안녕하세요! AIMNIS 에디터입니다.\n위젯을 추가하려면 자연어로 요청하세요.\n예: \"에너지 KPI 카드 추가\", \"실시간 라인 차트 보여줘\", \"알람 패널 추가\"",
     },
   ],
   isStreaming: false,
@@ -113,6 +127,8 @@ export const useEditorStore = create<EditorState>((set) => ({
   selectNode: (selectedNodeId) =>
     set({ selectedNodeId, rightPanel: selectedNodeId ? "mapping" : "settings" }),
   addNode: (node) => set((s) => ({ nodes: [...s.nodes, node] })),
+  removeNode: (nodeId) =>
+    set((s) => ({ nodes: s.nodes.filter((n) => n.id !== nodeId) })),
 
   // 채팅
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
