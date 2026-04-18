@@ -241,50 +241,89 @@ function generateMockWidget(userText: string): string {
   });
 }
 
+// ─── Sonnet 자연어 생성 (API 키 없으면 mock) ────────────────────
+
+function generateMockNarrative(userText: string): string {
+  const lower = userText.toLowerCase();
+  if (lower.includes("kpi") || lower.includes("수치") || lower.includes("에너지"))
+    return "KPI 카드 위젯을 캔버스에 추가했습니다. 실시간 데이터와 연동됩니다.";
+  if (lower.includes("차트") || lower.includes("그래프") || lower.includes("라인"))
+    return "라인 차트 위젯을 추가했습니다. 시계열 데이터를 시각화합니다.";
+  if (lower.includes("바") || lower.includes("막대"))
+    return "바 차트 위젯을 추가했습니다. 구역별 비교 데이터를 표시합니다.";
+  if (lower.includes("게이지") || lower.includes("온도") || lower.includes("압력"))
+    return "게이지 위젯을 추가했습니다. 현재 수치를 실시간으로 모니터링합니다.";
+  if (lower.includes("알람") || lower.includes("알림") || lower.includes("경보"))
+    return "알람 패널 위젯을 추가했습니다. 실시간 이벤트를 모니터링합니다.";
+  if (lower.includes("도넛") || lower.includes("비율") || lower.includes("분포"))
+    return "도넛 차트 위젯을 추가했습니다. 비율 분포를 시각화합니다.";
+  return "위젯을 캔버스에 추가했습니다. 좌측 채팅으로 추가 요청이 가능합니다.";
+}
+
 // ─── POST 핸들러 ────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const { messages, solution } = await req.json();
   const userText = messages[messages.length - 1]?.content ?? "";
 
-  // Gemma4 + Sonnet 병렬 실행
-  const [widgetJsonStr, sonnetStream] = await Promise.all([
+  const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+
+  // Gemma4 + Sonnet 병렬 실행 (Sonnet은 API 키 없으면 mock으로 대체)
+  const [widgetJsonStr, sonnetStreamOrNull] = await Promise.all([
     generateWidgetJson(userText, solution ?? "guard"),
-    anthropic.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 256,
-      system: `${SONNET_SYSTEM}\n현재 솔루션: ${solution ?? "guard"}`,
-      tools: [
-        {
-          type: "advisor_20260301",
-          name: "advisor",
-          model: "claude-opus-4-6",
-          max_uses: 2,
-        } as unknown as Anthropic.Tool,
-      ],
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-    }),
+    hasAnthropicKey
+      ? (async () => {
+          try {
+            return anthropic.messages.stream({
+              model: "claude-sonnet-4-6",
+              max_tokens: 256,
+              system: `${SONNET_SYSTEM}\n현재 솔루션: ${solution ?? "guard"}`,
+              tools: [
+                {
+                  type: "advisor_20260301",
+                  name: "advisor",
+                  model: "claude-opus-4-6",
+                  max_uses: 2,
+                } as unknown as Anthropic.Tool,
+              ],
+              messages: messages.map((m: { role: string; content: string }) => ({
+                role: m.role as "user" | "assistant",
+                content: m.content,
+              })),
+            });
+          } catch {
+            return null;
+          }
+        })()
+      : Promise.resolve(null),
   ]);
 
-  // 스트리밍 응답: [Sonnet 자연어] + __WIDGET_JSON__\n[JSON]
+  // 스트리밍 응답: [Sonnet 자연어 or mock] + __WIDGET_JSON__\n[JSON]
   const readable = new ReadableStream({
     async start(controller) {
       const enc = new TextEncoder();
 
-      // 1. Sonnet 자연어 스트리밍
-      for await (const chunk of sonnetStream) {
-        if (
-          chunk.type === "content_block_delta" &&
-          chunk.delta.type === "text_delta"
-        ) {
-          controller.enqueue(enc.encode(chunk.delta.text));
+      if (sonnetStreamOrNull) {
+        // Sonnet 스트리밍
+        try {
+          for await (const chunk of sonnetStreamOrNull) {
+            if (
+              chunk.type === "content_block_delta" &&
+              chunk.delta.type === "text_delta"
+            ) {
+              controller.enqueue(enc.encode(chunk.delta.text));
+            }
+          }
+        } catch {
+          // 스트리밍 중간 오류 → mock으로 fallback
+          controller.enqueue(enc.encode(generateMockNarrative(userText)));
         }
+      } else {
+        // API 키 없음 → mock 자연어
+        controller.enqueue(enc.encode(generateMockNarrative(userText)));
       }
 
-      // 2. 위젯 JSON 전달 (마커로 구분)
+      // 위젯 JSON 전달
       if (widgetJsonStr) {
         controller.enqueue(enc.encode(`\n__WIDGET_JSON__\n${widgetJsonStr}`));
       }
