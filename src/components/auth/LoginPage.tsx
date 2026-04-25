@@ -22,12 +22,11 @@ export default function LoginPage() {
     <div style={{ position: "relative", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg)" }}>
       <MeshBg />
 
-      {/* 상단 로고 바 */}
+      {/* 상단 로고 — 바 없이 투명 */}
       <div style={{
         position: "relative", zIndex: 10,
         height: 48, flexShrink: 0,
         display: "flex", alignItems: "center", padding: "0 24px",
-        background: "var(--s1)", borderBottom: "1px solid var(--border)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS" style={{ width: 24, height: 24, objectFit: "contain", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.5))" }} />
@@ -55,8 +54,8 @@ export default function LoginPage() {
           {/* 수직 강조선 */}
           <div style={{ position: "absolute", right: -1, top: "50%", transform: "translateY(-50%)", width: 1, height: "40%", background: "linear-gradient(transparent, var(--primary), transparent)", opacity: 0.4 }} />
 
-          {/* 중앙 콘텐츠 */}
-          <div style={{ width: "100%", padding: "0 56px" }}>
+          {/* 중앙 콘텐츠 — 로그인 패널과 동일하게 maxWidth 제한 후 중앙 */}
+          <div style={{ width: "100%", maxWidth: 400 }}>
             {/* 배지 */}
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 28, padding: "6px 14px", border: "1px solid var(--border2)", borderRadius: 20, fontSize: 11, color: "var(--t3)", letterSpacing: "0.05em" }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--cyan)", display: "inline-block", animation: "pulse 2s infinite", flexShrink: 0 }} />
