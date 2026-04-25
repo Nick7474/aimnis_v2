@@ -167,7 +167,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               style={{
                 borderRadius: 16,
                 border: "1px solid #2F2243",
-                background: "rgba(41, 35, 51, 0.05)",
+                background: "rgba(135, 135, 178, 0.05)",
                 backdropFilter: "blur(5px)",
                 WebkitBackdropFilter: "blur(5px)",
               }}
@@ -238,7 +238,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               style={{
                 borderRadius: 16,
                 border: "1px solid #2F2243",
-                background: "rgba(41, 35, 51, 0.05)",
+                background: "rgba(135, 135, 178, 0.05)",
                 backdropFilter: "blur(5px)",
                 WebkitBackdropFilter: "blur(5px)",
               }}
@@ -318,7 +318,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
             style={{
               borderRadius: 16,
               border: "1px solid #2F2243",
-              background: "rgba(41, 35, 51, 0.05)",
+              background: "rgba(135, 135, 178, 0.05)",
               backdropFilter: "blur(5px)",
               WebkitBackdropFilter: "blur(5px)",
             }}
@@ -515,7 +515,7 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               style={{
                 borderRadius: 16,
                 border: "1px solid #2F2243",
-                background: "rgba(41, 35, 51, 0.05)",
+                background: "rgba(135, 135, 178, 0.05)",
                 backdropFilter: "blur(5px)",
                 WebkitBackdropFilter: "blur(5px)",
               }}
