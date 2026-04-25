@@ -22,9 +22,51 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ position: "relative", height: "100vh", display: "flex", overflow: "hidden", background: "var(--bg)" }}>
-      {/* ── MeshBg (Redesign.html 패턴) ── */}
+    <div style={{ position: "relative", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg)" }}>
+      {/* ── Aurora 보라색 배경 (홈화면과 동일) ── */}
+      <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+        {/* 홈과 동일한 aurora orbs */}
+        <div style={{ position: "absolute", left: "-10rem", top: "33%", width: 600, height: 600, borderRadius: "50%", background: "rgba(124,58,237,0.08)", filter: "blur(140px)" }} />
+        <div style={{ position: "absolute", right: "-10rem", top: "25%", width: 500, height: 500, borderRadius: "50%", background: "rgba(79,70,229,0.10)", filter: "blur(120px)" }} />
+        <div style={{ position: "absolute", bottom: "25%", left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: "rgba(124,58,237,0.06)", filter: "blur(100px)" }} />
+      </div>
+      {/* ── MeshBg (Redesign.html 그리드+오브) ── */}
       <MeshBg />
+
+      {/* ── 상단 로고 바 (홈화면 Navbar와 동일 디자인) ── */}
+      <div style={{
+        position: "relative", zIndex: 10,
+        height: 48, flexShrink: 0,
+        display: "flex", alignItems: "center",
+        padding: "0 24px",
+        background: "var(--s1)",
+        borderBottom: "1px solid var(--border)",
+        backdropFilter: "blur(8px)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <img
+            src="/img/Aimnis_Symbol.svg"
+            alt="AIMNIS Logo"
+            style={{ width: 24, height: 24, objectFit: "contain", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.5))" }}
+          />
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)", letterSpacing: "0.01em" }}>
+            AIMNIS
+          </span>
+          <span style={{
+            fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
+            padding: "2px 6px", borderRadius: 4,
+            background: "oklch(60% 0.20 285 / .15)",
+            color: "var(--primary)",
+            border: "1px solid oklch(60% 0.20 285 / .25)",
+            textTransform: "uppercase" as const,
+          }}>
+            Enterprise
+          </span>
+        </div>
+      </div>
+
+      {/* ── 본문 좌우 분할 ── */}
+      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", overflow: "hidden" }}>
 
       {/* ── 좌측 브랜드 패널 (46%) ── */}
       <motion.div
@@ -32,7 +74,6 @@ export default function LoginPage() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         style={{
-          position: "relative", zIndex: 1,
           flex: "0 0 46%",
           display: "flex", flexDirection: "column", justifyContent: "center",
           padding: "48px 64px",
@@ -108,7 +149,6 @@ export default function LoginPage() {
 
       {/* ── 우측 로그인 폼 (54%) ── */}
       <div style={{
-        position: "relative", zIndex: 1,
         flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
         padding: 40,
       }}>
@@ -225,6 +265,7 @@ export default function LoginPage() {
           </div>
         </motion.div>
       </div>
+      </div>{/* 본문 분할 래퍼 닫기 */}
     </div>
   );
 }
