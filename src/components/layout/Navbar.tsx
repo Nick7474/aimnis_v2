@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Shield, LayoutDashboard, Database, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useHomeStore } from "@/store/homeStore";
 
 const NAV_ITEMS = [
   { href: "/home",     label: "홈",        icon: LayoutDashboard },
@@ -13,20 +14,17 @@ const NAV_ITEMS = [
   { href: "/guard",    label: "AIM GUARD", icon: Shield },
 ];
 
-function AimLogo({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-      <circle cx="20" cy="20" r="18" fill="var(--primary)" opacity="0.15" />
-      <circle cx="20" cy="20" r="18" stroke="var(--primary)" strokeWidth="1.5" />
-      <path d="M12 28L20 12L28 28" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14.5 22.5H25.5" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="20" cy="20" r="2.5" fill="var(--primary)" />
-    </svg>
-  );
-}
-
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const setIsWorking = useHomeStore((s) => s.setIsWorking);
+
+  // 로고 클릭 → 홈 Step 1으로 복귀 (AI 인터뷰 상태 초기화)
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsWorking(false);
+    router.push("/home");
+  };
 
   return (
     <nav
@@ -44,18 +42,26 @@ export default function Navbar() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", width: "100%", padding: "0 0 0 16px" }}>
-        {/* 로고 — 220px 고정 (LeftPanel 정렬) */}
-        <Link
+
+        {/* 로고 영역 — 에디터와 동일한 Aimnis_Symbol.svg 24px + text-sm font-semibold */}
+        <a
           href="/home"
+          onClick={handleLogoClick}
           style={{
             display: "flex", alignItems: "center", gap: 9,
             width: 220, flexShrink: 0, textDecoration: "none",
             borderRight: "1px solid var(--border)",
-            paddingRight: 16, marginRight: 0, height: 47,
+            paddingRight: 16, height: 47, cursor: "pointer",
           }}
         >
-          <AimLogo size={20} />
-          <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: "0.04em", color: "var(--t1)" }}>
+          {/* 에디터와 동일: Aimnis_Symbol.svg h-[24px] w-[24px] drop-shadow-xl */}
+          <img
+            src="/img/Aimnis_Symbol.svg"
+            alt="AIMNIS Logo"
+            style={{ width: 24, height: 24, objectFit: "contain", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.5))" }}
+          />
+          {/* 에디터와 동일: text-sm(14px) font-semibold */}
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)", letterSpacing: "0.01em" }}>
             AIMNIS
           </span>
           <span
@@ -70,7 +76,7 @@ export default function Navbar() {
           >
             Enterprise
           </span>
-        </Link>
+        </a>
 
         {/* 네비게이션 탭 */}
         <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "0 12px", height: 47, flex: 1 }}>
