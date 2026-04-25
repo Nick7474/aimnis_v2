@@ -64,7 +64,7 @@ export default function LoginPage() {
 
             {/* 헤드라인 */}
             <h1 style={{ fontSize: 44, fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.025em", marginBottom: 20, background: "linear-gradient(135deg, var(--t1) 0%, oklch(70% 0.14 285) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              산업 현장에 맞는<br />AI 하네스를<br />즉시 구성하세요
+              산업 현장에 맞는<br />AI 솔루션을<br />즉시 구성하세요
             </h1>
 
             {/* 서브텍스트 */}
