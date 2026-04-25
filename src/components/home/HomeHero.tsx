@@ -525,23 +525,13 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div
-                    className="flex items-center justify-center rounded-xl"
-                    style={{
-                      width: 32, height: 32,
-                      backgroundColor: `${sol.color}15`,
-                      border: `1px solid ${sol.color}25`,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {logoSrc ? (
-                      <img
-                        src={logoSrc}
-                        alt={sol.name}
-                        style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 10 }}
-                      />
-                    ) : null}
-                  </div>
+                  {logoSrc && (
+                    <img
+                      src={logoSrc}
+                      alt={sol.name}
+                      style={{ width: 32, height: 32, objectFit: "contain", flexShrink: 0 }}
+                    />
+                  )}
                   <div>
                     <p className="text-sm font-semibold text-white">{sol.name}</p>
                     <p className="text-[10px] text-white/40 capitalize">{sol.category}</p>
