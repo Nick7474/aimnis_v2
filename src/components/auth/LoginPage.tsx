@@ -104,7 +104,7 @@ export default function LoginPage() {
                     style={{ width: 50, height: 50, objectFit: "contain", filter: "drop-shadow(0 8px 24px rgba(0,0,0,.6))" }}
                   />
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "0.06em", color: "var(--t1)", marginBottom: 4, fontFamily: "var(--font-montserrat)" }}>
+                <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "0.06em", color: "var(--t1)", marginBottom: 4, fontFamily: "var(--font-montserrat)" }}>
                   AIMNIS
                 </div>
                 <div style={{ fontSize: 13, color: "#9883B6", letterSpacing: "0.04em" }}>
