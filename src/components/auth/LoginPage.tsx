@@ -95,19 +95,19 @@ export default function LoginPage() {
             style={{ width: "100%", maxWidth: 400 }}
           >
             <div style={{ background: "oklch(100% 0 0 / .045)", border: "1px solid var(--border2)", borderRadius: 18, padding: 36, backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", boxShadow: "0 32px 80px oklch(0% 0 0 / .4), 0 1px 0 oklch(100% 0 0 / .08) inset" }}>
-              {/* 카드 상단 — 로고 중앙 배치 (첨부2 디자인) */}
-              <div style={{ textAlign: "center", marginBottom: 32 }}>
-                <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+              {/* 카드 상단 — 로고 중앙 배치 */}
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
                   <img
                     src="/img/Aimnis_Symbol.svg"
                     alt="AIMNIS"
                     style={{ width: 72, height: 72, objectFit: "contain", filter: "drop-shadow(0 8px 24px rgba(0,0,0,.6))" }}
                   />
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "0.06em", color: "var(--t1)", marginBottom: 6 }}>
+                <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "0.06em", color: "var(--t1)", marginBottom: 4, fontFamily: "var(--font-montserrat)" }}>
                   AIMNIS
                 </div>
-                <div style={{ fontSize: 13, color: "var(--t3)", letterSpacing: "0.04em" }}>
+                <div style={{ fontSize: 13, color: "#9883B6", letterSpacing: "0.04em" }}>
                   Enterprise AI Platform
                 </div>
               </div>

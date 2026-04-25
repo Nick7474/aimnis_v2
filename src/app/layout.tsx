@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, DM_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Mono, Montserrat } from "next/font/google";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -13,6 +13,13 @@ const dmMono = DM_Mono({
   subsets: ["latin"],
   weight: ["300", "400", "500"],
   variable: "--font-dm-mono",
+  display: "swap",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["700", "800"],
+  variable: "--font-montserrat",
   display: "swap",
 });
 
@@ -33,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className="dark">
       <body
-        className={`aurora-bg min-h-screen antialiased ${plusJakartaSans.variable} ${dmMono.variable}`}
+        className={`aurora-bg min-h-screen antialiased ${plusJakartaSans.variable} ${dmMono.variable} ${montserrat.variable}`}
         style={{ fontFamily: "var(--font)" }}
       >
         {children}
