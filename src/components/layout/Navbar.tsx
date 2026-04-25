@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Shield, LayoutDashboard, Database, Settings } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield, LayoutDashboard, Database, Settings, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHomeStore } from "@/store/homeStore";
+import { useState, useRef } from "react";
 
 const NAV_ITEMS = [
   { href: "/home",     label: "홈",        icon: LayoutDashboard },
@@ -18,12 +19,29 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const setIsWorking = useHomeStore((s) => s.setIsWorking);
+  const reset = useHomeStore((s) => s.reset);
 
-  // 로고 클릭 → 홈 Step 1으로 복귀 (AI 인터뷰 상태 초기화)
+  const [accountOpen, setAccountOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsWorking(false);
     router.push("/home");
+  };
+
+  const handleLogout = () => {
+    reset();
+    router.push("/");
+  };
+
+  const openDropdown = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setAccountOpen(true);
+  };
+
+  const closeDropdown = () => {
+    closeTimer.current = setTimeout(() => setAccountOpen(false), 120);
   };
 
   return (
@@ -132,16 +150,110 @@ export default function Navbar() {
           >
             <Settings style={{ width: 14, height: 14 }} />
           </button>
+
+          {/* 계정 아바타 + 호버 드롭다운 */}
           <div
-            style={{
-              width: 30, height: 30, borderRadius: 8,
-              background: "linear-gradient(135deg, var(--primary), oklch(52% 0.20 295))",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, fontWeight: 700, cursor: "pointer", color: "white",
-              boxShadow: "0 2px 8px oklch(55% 0.22 285 / .3)",
-            }}
+            style={{ position: "relative" }}
+            onMouseEnter={openDropdown}
+            onMouseLeave={closeDropdown}
           >
-            A
+            {/* 아바타 */}
+            <div
+              style={{
+                width: 30, height: 30, borderRadius: 8,
+                background: accountOpen
+                  ? "linear-gradient(135deg, oklch(52% 0.20 295), var(--primary))"
+                  : "linear-gradient(135deg, var(--primary), oklch(52% 0.20 295))",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 11, fontWeight: 700, cursor: "pointer", color: "white",
+                boxShadow: accountOpen
+                  ? "0 4px 16px oklch(55% 0.22 285 / .5)"
+                  : "0 2px 8px oklch(55% 0.22 285 / .3)",
+                transition: "all .2s",
+                outline: accountOpen ? "2px solid oklch(60% 0.20 285 / .4)" : "none",
+                outlineOffset: 1,
+              }}
+            >
+              A
+            </div>
+
+            {/* 드롭다운 */}
+            <AnimatePresence>
+              {accountOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  onMouseEnter={openDropdown}
+                  onMouseLeave={closeDropdown}
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    width: 180,
+                    background: "var(--s2)",
+                    border: "1px solid var(--border2)",
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    boxShadow: "0 8px 24px oklch(0% 0 0 / .4), 0 1px 0 oklch(100% 0 0 / .06) inset",
+                    zIndex: 200,
+                  }}
+                >
+                  {/* 계정 정보 */}
+                  <div
+                    style={{
+                      padding: "12px 14px",
+                      borderBottom: "1px solid var(--border)",
+                      display: "flex", alignItems: "center", gap: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+                        background: "linear-gradient(135deg, var(--primary), oklch(52% 0.20 295))",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, fontWeight: 700, color: "white",
+                      }}
+                    >
+                      A
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        Admin
+                      </div>
+                      <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 1 }}>
+                        Enterprise
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 로그아웃 버튼 */}
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 14px", border: "none", background: "transparent",
+                      cursor: "pointer", textAlign: "left", transition: "background .15s",
+                      color: "var(--t2)",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "oklch(58% 0.22 25 / .1)";
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--red)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--t2)";
+                    }}
+                  >
+                    <LogOut style={{ width: 13, height: 13, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 500, fontFamily: "var(--font)" }}>
+                      로그아웃
+                    </span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
