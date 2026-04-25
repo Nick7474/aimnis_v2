@@ -4,45 +4,32 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, ChevronDown, ChevronRight, Terminal, Sparkles } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
+import { useLLMStore } from "@/store/llmStore";
+import ProviderPicker from "@/components/shared/ProviderPicker";
 import { cn } from "@/lib/utils";
+import { computeNextPosition, getWidgetSize } from "./SmartGridEngine";
 import type { WidgetData } from "@/store/editorStore";
 
 const LOGS = [
   "✓ solution loader initialized",
   "✓ harness-schema.json loaded",
-  "✓ React Flow canvas mounted",
+  "✓ SmartGridEngine ready",
   "✓ Gemma4 widget engine ready",
   "✓ Sonnet+Opus advisor connected",
   "→ waiting for user input...",
 ];
 
-// 위젯 타입별 위치 자동 배치 (그리드 레이아웃)
-const SIZE_MAP: Record<string, { w: number; h: number }> = {
-  kpi: { w: 180, h: 110 },
-  "chart-line": { w: 280, h: 180 },
-  "chart-bar": { w: 280, h: 180 },
-  "chart-donut": { w: 220, h: 200 },
-  gauge: { w: 160, h: 160 },
-  "alert-panel": { w: 260, h: 200 },
-  table: { w: 320, h: 200 },
-  map: { w: 300, h: 220 },
-};
-
-const GRID_COLS = 3;
-const PAD = 24;
+const QUICK_HINTS = ["KPI 카드 추가", "라인 차트 추가", "알람 패널", "게이지 추가"];
 
 interface ChatPanelProps {
   solutionId: string;
 }
 
-// 메시지에서 자연어 파트만 추출 (JSON 마커 이후 제거)
 function extractDisplayText(content: string): string {
-  const markerIdx = content.indexOf("__WIDGET_JSON__");
-  if (markerIdx === -1) return content;
-  return content.slice(0, markerIdx).trim();
+  const idx = content.indexOf("__WIDGET_JSON__");
+  return idx === -1 ? content : content.slice(0, idx).trim();
 }
 
-// 위젯 배지 (응답에 위젯이 포함된 경우)
 function WidgetBadge({ type, title }: { type: string; title: string }) {
   return (
     <motion.div
@@ -66,13 +53,15 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
     addMessage,
     updateLastMessage,
     setStreaming,
-    addNode,
     setLastCommand,
-    nodes,
+    overlayWidgets,
+    addOverlayWidget,
+    canvasSize,
   } = useEditorStore();
+
+  const { provider } = useLLMStore();
   const [input, setInput] = useState("");
   const [logsOpen, setLogsOpen] = useState(false);
-  // 위젯 배지 추적: messageId → widget info
   const [widgetBadges, setWidgetBadges] = useState<
     Record<string, { type: string; title: string }>
   >({});
@@ -83,31 +72,29 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 위젯 추가: 현재 노드 수 기반 자동 위치 계산
-  const addWidgetNode = (widgetPayload: {
+  // SmartGridEngine으로 위치 계산 후 오버레이 위젯 추가
+  const addWidgetOverlay = (payload: {
     widgetId: string;
     type: string;
     title: string;
     data: WidgetData;
   }) => {
-    const idx = nodes.length;
-    const col = idx % GRID_COLS;
-    const row = Math.floor(idx / GRID_COLS);
-    const size = SIZE_MAP[widgetPayload.type] ?? { w: 220, h: 150 };
-
-    addNode({
-      id: widgetPayload.widgetId,
-      type: "widgetNode",
-      position: {
-        x: PAD + col * (size.w + PAD),
-        y: PAD + row * (size.h + PAD),
-      },
-      data: {
-        widgetId: widgetPayload.widgetId,
-        type: widgetPayload.type,
-        title: widgetPayload.title,
-        data: widgetPayload.data,
-      },
+    const { w, h } = getWidgetSize(payload.type);
+    const existing = overlayWidgets.map((ow) => ({
+      x: ow.x, y: ow.y, w: ow.w, h: ow.h,
+    }));
+    const { x, y } = computeNextPosition(
+      canvasSize.w,
+      canvasSize.h,
+      existing,
+      payload.type
+    );
+    addOverlayWidget({
+      id: payload.widgetId,
+      type: payload.type,
+      title: payload.title,
+      data: payload.data,
+      x, y, w, h,
     });
   };
 
@@ -128,14 +115,13 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         .filter((m) => !(m as { streaming?: boolean }).streaming)
         .map((m) => ({
           role: m.role,
-          // API로는 마커 이전 텍스트만 전송
           content: extractDisplayText(m.content),
         }));
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, solution: solutionId }),
+        body: JSON.stringify({ messages: apiMessages, solution: solutionId, provider }),
       });
 
       const reader = res.body?.getReader();
@@ -151,26 +137,24 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         }
       }
 
-      // iframe 브릿지 동기화 (레거시 호환)
       setLastCommand({ userText: text, aiResponse: full, timestamp: Date.now() });
 
-      // __WIDGET_JSON__ 파싱 및 위젯 추가
+      // __WIDGET_JSON__ 파싱 → 오버레이 위젯 추가
       const markerIdx = full.indexOf("__WIDGET_JSON__");
       if (markerIdx !== -1 && !processedJsonIds.current.has(aiId)) {
         processedJsonIds.current.add(aiId);
         try {
           const jsonStr = full.slice(markerIdx + "__WIDGET_JSON__".length).trim();
           const parsed = JSON.parse(jsonStr);
-
           if (parsed.action === "add_widget" && parsed.widget) {
-            addWidgetNode(parsed.widget);
+            addWidgetOverlay(parsed.widget);
             setWidgetBadges((prev) => ({
               ...prev,
               [aiId]: { type: parsed.widget.type, title: parsed.widget.title },
             }));
           }
         } catch {
-          // JSON 파싱 실패 → 무시
+          // JSON 파싱 실패 무시
         }
       }
     } catch {
@@ -222,7 +206,6 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
                       생각 중…
                     </span>
                   )}
-                  {/* 위젯 배지 */}
                   {badge && <WidgetBadge type={badge.type} title={badge.title} />}
                 </div>
               </motion.div>
@@ -264,9 +247,12 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         </AnimatePresence>
       </div>
 
-      {/* 빠른 예시 버튼 */}
-      <div className="flex flex-wrap gap-1.5 border-t border-white/5 px-3 pt-2.5 pb-1">
-        {["KPI 카드 추가", "라인 차트 추가", "알람 패널", "게이지 추가"].map((hint) => (
+      {/* AI 엔진 선택 + 빠른 예시 버튼 */}
+      <div className="flex items-center justify-between border-t border-white/5 px-3 pt-2 pb-1">
+        <ProviderPicker compact dropUp />
+      </div>
+      <div className="flex flex-wrap gap-1.5 px-3 pb-1">
+        {QUICK_HINTS.map((hint) => (
           <button
             key={hint}
             onClick={() => setInput(hint)}

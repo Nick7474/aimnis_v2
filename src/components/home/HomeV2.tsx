@@ -4,6 +4,8 @@ import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Send } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
+import { useLLMStore } from "@/store/llmStore";
+import ProviderPicker from "@/components/shared/ProviderPicker";
 import ScenarioChips from "./ScenarioChips";
 import SpecBoard from "./SpecBoard";
 import MagicSetupButton from "./MagicSetupButton";
@@ -14,6 +16,7 @@ import ChatArea from "./ChatArea";
 // ─── 채팅 입력창 ──────────────────────────────────────────────
 function ChatInput() {
   const { addMessage, updateLastMessage, isThinking, setIsThinking } = useHomeStore();
+  const { provider } = useLLMStore();
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -33,6 +36,7 @@ function ChatInput() {
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: text }],
           solution: selectedScenario ?? "guard",
+          provider,
         }),
       });
 
@@ -165,7 +169,7 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
             >✦</div>
             <span style={{ fontSize: 11, fontWeight: 600, color: "var(--t2)" }}>AI 어시스턴트</span>
           </div>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)", animation: "pulse 2s infinite" }} />
+          <ProviderPicker compact />
         </div>
 
         <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: "10px 12px 8px" }}>

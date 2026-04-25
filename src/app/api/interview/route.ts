@@ -191,13 +191,15 @@ async function handleClaudeInterview(
 
 // ─── POST 핸들러 ────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const { messages, scenario, turnCount = 0 } = await req.json();
+  const { messages, scenario, turnCount = 0, provider } = await req.json();
   const msgList = messages as { role: string; content: string }[];
   const lastUserMsg = msgList.filter((m) => m.role === "user").slice(-1)[0]?.content ?? "";
   const isSkip = lastUserMsg.includes("대충") || lastUserMsg.includes("그냥 해줘") || lastUserMsg.includes("건너뛰");
 
-  // Claude Advisor 모드
-  if (LLM_PROVIDER === "claude") {
+  // 클라이언트 provider 우선 적용
+  const effectiveProvider = provider === "claude-haiku" ? "claude" : (LLM_PROVIDER as string);
+
+  if (effectiveProvider === "claude") {
     try {
       const result = await handleClaudeInterview(msgList, scenario, turnCount, lastUserMsg, isSkip);
       return new Response(result, { headers: { "Content-Type": "text/plain; charset=utf-8" } });

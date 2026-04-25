@@ -9,8 +9,10 @@ import type { SolutionManifest, AnalysisStep } from "@/lib/solutionLoader";
 import * as LucideIcons from "lucide-react";
 import type { LucideProps } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
+import { useLLMStore } from "@/store/llmStore";
 import { scenarios } from "@/data/scenarios";
 import ParticleWaves from "./ParticleWaves";
+import ProviderPicker from "@/components/shared/ProviderPicker";
 
 interface HomeHeroProps {
   solutions: SolutionManifest[];
@@ -27,6 +29,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
   const [activeSolution, setActiveSolution] = useState<string | null>(null);
 
   const { setIsWorking, setSelectedScenario } = useHomeStore();
+  const { provider } = useLLMStore();
 
   const handleScenarioChip = (sc: typeof scenarios[number]) => {
     setSelectedScenario(sc.id);
@@ -60,7 +63,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
       const res = await fetch("/api/home", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, solution: solId }),
+        body: JSON.stringify({ prompt: text, solution: solId, provider }),
       });
 
       const reader = res.body?.getReader();
@@ -382,11 +385,8 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                   className="hidden"
                 />
 
-                {/* Gemma4 뱃지 */}
-                <div className="flex items-center gap-1 rounded-md border border-purple-500/15 bg-purple-500/8 px-2 py-1">
-                  <div className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
-                  <span className="text-[10px] text-purple-400/70">Gemma4</span>
-                </div>
+                {/* AI 엔진 선택 */}
+                <ProviderPicker compact dropUp />
 
                 {/* 솔루션 칩 */}
                 <SolutionChips

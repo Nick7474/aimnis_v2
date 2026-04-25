@@ -14,34 +14,6 @@ const NARRATIVE_SYSTEM = `당신은 AIMNIS 엔터프라이즈 플랫폼의 AI �
 위젯 JSON은 별도 엔진이 생성합니다 — 당신은 자연어 설명만 담당합니다.
 예시: "에너지 소비 KPI 카드를 캔버스에 추가했습니다. 실시간 센서 데이터와 연동됩니다."`;
 
-const WIDGET_SYSTEM = `You are a widget layout engine for AIMNIS enterprise platform.
-Output ONLY a valid JSON object — no markdown, no explanation, no extra text.
-
-Widget types: kpi | chart-line | chart-bar | chart-donut | gauge | alert-panel | table | map
-
-JSON schema:
-{
-  "action": "add_widget",
-  "widget": {
-    "widgetId": string,
-    "type": string,
-    "title": string,
-    "data": {
-      "value"?: string,
-      "unit"?: string,
-      "trend"?: string,
-      "trendUp"?: boolean,
-      "color"?: string,
-      "chartData"?: [{ "name": string, "value": number }],
-      "gaugeValue"?: number,
-      "gaugeMax"?: number,
-      "alerts"?: [{ "level": "critical"|"warning"|"info", "msg": string }],
-      "description"?: string
-    }
-  }
-}
-
-Use Korean titles. Output ONLY the JSON object.`;
 
 // ─── Ollama 스트리밍 ─────────────────────────────────────────────
 async function ollamaStream(systemPrompt: string, userText: string): Promise<ReadableStream<Uint8Array>> {
@@ -52,17 +24,6 @@ async function ollamaStream(systemPrompt: string, userText: string): Promise<Rea
   });
   if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
   return res.body!;
-}
-
-async function ollamaOnce(systemPrompt: string, userText: string): Promise<string> {
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: OLLAMA_MODEL, system: systemPrompt, prompt: userText, stream: false }),
-  });
-  if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
-  const json = await res.json();
-  return (json.response as string) ?? "";
 }
 
 // ─── Mock 위젯 (위젯 JSON은 결정론적으로 생성) ────────────────────
@@ -151,11 +112,14 @@ async function handleClaude(
 
 // ─── POST 핸들러 ────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const { messages, solution } = await req.json();
+  const { messages, solution, provider } = await req.json();
   const userText = (messages[messages.length - 1]?.content as string) ?? "";
   const sol = (solution as string) ?? "guard";
 
-  if (LLM_PROVIDER === "claude") {
+  // 클라이언트 선택 provider가 있으면 우선 적용 (claude-haiku → claude 모드)
+  const effectiveProvider = provider === "claude-haiku" ? "claude" : (LLM_PROVIDER as string);
+
+  if (effectiveProvider === "claude") {
     const stream = await handleClaude(messages, sol, userText).catch(() => null);
     if (stream) {
       return new Response(stream, {
