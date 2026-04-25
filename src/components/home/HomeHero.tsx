@@ -484,6 +484,12 @@ function SolutionChips({
   );
 }
 
+// 솔루션별 로고 이미지 매핑
+const SOLUTION_LOGOS: Record<string, string> = {
+  guard: "/img/00_AimGuard.png",
+  eco:   "/img/01_AimEco.png",
+};
+
 // ─── 솔루션 카드 ─────────────────────────────────────────────
 
 function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
@@ -499,11 +505,8 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
       <p className="mb-4 text-xs text-white/30 text-center">구독 중인 솔루션</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {solutions.map((sol, i) => {
-          const IconComp = (
-            (LucideIcons as unknown as Record<string, React.FC<LucideProps>>)[sol.icon] ??
-            LucideIcons.Box
-          ) as React.FC<LucideProps>;
           const isAvailable = sol.status === "available";
+          const logoSrc = SOLUTION_LOGOS[sol.id];
 
           return (
             <motion.div
@@ -523,10 +526,21 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2.5">
                   <div
-                    className="flex h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: `${sol.color}20`, border: `1px solid ${sol.color}30` }}
+                    className="flex items-center justify-center rounded-xl"
+                    style={{
+                      width: 32, height: 32,
+                      backgroundColor: `${sol.color}15`,
+                      border: `1px solid ${sol.color}25`,
+                      flexShrink: 0,
+                    }}
                   >
-                    <IconComp className="h-4.5 w-4.5" color={sol.color} />
+                    {logoSrc ? (
+                      <img
+                        src={logoSrc}
+                        alt={sol.name}
+                        style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 10 }}
+                      />
+                    ) : null}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">{sol.name}</p>
