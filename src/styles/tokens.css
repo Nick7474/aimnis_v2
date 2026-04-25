@@ -1,68 +1,113 @@
-/* AIMNIS Design Tokens v3 */
+/* AIMNIS Design System v1.0
+ * oklch 색공간 기반 — 지각적으로 균일한 색상 보장
+ * Surface Scale: 8%~22% 명도로 깊이 형성
+ * 출처: AIMNIS Design System.html
+ */
 
 :root {
-  /* === AIMNIS Platform: Dark + Purple/Indigo Aurora === */
+  /* ── AIMNIS Core Tokens ───────────────────────────────────── */
+  --bg:      oklch(8% 0.025 275);   /* Base background */
+  --s1:      oklch(11% 0.022 275);  /* Surface 1 — panel */
+  --s2:      oklch(14% 0.020 275);  /* Surface 2 — card */
+  --s3:      oklch(18% 0.018 275);  /* Surface 3 — input, chip hover */
+  --s4:      oklch(22% 0.016 275);  /* Surface 4 — disabled, placeholder */
 
-  /* Base backgrounds */
-  --bg-base: #0a0a0f;
-  --bg-surface: #0f0f1a;
-  --bg-card: #13131f;
-  --bg-overlay: #1a1a2e;
+  --border:  oklch(100% 0 0 / .07); /* Default — panel divider */
+  --border2: oklch(100% 0 0 / .12); /* Elevated — card, input */
+  --border3: oklch(100% 0 0 / .18); /* Strong — hover, focus */
 
-  /* Aurora gradient colors */
+  --primary: oklch(60% 0.20 285);   /* Primary purple */
+  --cyan:    oklch(70% 0.14 210);   /* Cyan — info */
+  --green:   oklch(65% 0.16 145);   /* Green — success */
+  --red:     oklch(58% 0.22 25);    /* Red — critical */
+  --orange:  oklch(68% 0.18 55);    /* Orange — high */
+  --yellow:  oklch(74% 0.16 85);    /* Yellow — medium */
+
+  --t1: oklch(96% 0.008 275);  /* Primary text — headline */
+  --t2: oklch(68% 0.012 275);  /* Secondary text — body */
+  --t3: oklch(45% 0.010 275);  /* Muted text — label, hint */
+  --t4: oklch(30% 0.008 275);  /* Disabled — divider */
+
+  --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', 'JetBrains Mono', monospace;
+
+  /* ── ds- 접두사 별칭 (기존 컴포넌트 호환) ───────────────────── */
+  --ds-bg:      var(--bg);
+  --ds-s1:      var(--s1);
+  --ds-s2:      var(--s2);
+  --ds-s3:      var(--s3);
+  --ds-s4:      var(--s4);
+
+  --ds-border:  var(--border);
+  --ds-border2: var(--border2);
+  --ds-border3: var(--border3);
+
+  --ds-primary: var(--primary);
+  --ds-cyan:    var(--cyan);
+  --ds-green:   var(--green);
+  --ds-red:     var(--red);
+  --ds-orange:  var(--orange);
+  --ds-blue:    oklch(70% 0.14 230);
+
+  --ds-t1: var(--t1);
+  --ds-t2: var(--t2);
+  --ds-t3: var(--t3);
+  --ds-t4: var(--t4);
+
+  /* ── Aurora (에디터/홈 배경) ─────────────────────────────────── */
   --aurora-purple: #7c3aed;
   --aurora-indigo: #4f46e5;
   --aurora-violet: #8b5cf6;
-  --aurora-blue: #3b82f6;
-  --aurora-cyan: #06b6d4;
+  --aurora-blue:   #3b82f6;
+  --aurora-cyan:   #735fe9;
 
-  /* Primary accent: Purple */
-  --color-primary: #7c3aed;
+  --color-primary:       #7c3aed;
   --color-primary-light: #a78bfa;
-  --color-primary-dark: #5b21b6;
-
-  /* Secondary accent: Indigo */
-  --color-secondary: #4f46e5;
+  --color-primary-dark:  #5b21b6;
+  --color-secondary:     #4f46e5;
   --color-secondary-light: #818cf8;
 
-  /* Text */
-  --text-primary: #f1f0ff;
-  --text-secondary: #a5b4fc;
-  --text-muted: #6b7280;
-  --text-placeholder: #4b5563;
+  /* ── Legacy text (하위 호환) ─────────────────────────────────── */
+  --bg-base:    var(--bg);
+  --bg-surface: var(--s1);
+  --bg-card:    var(--s2);
+  --bg-overlay: var(--s3);
 
-  /* Borders */
+  --text-primary:     oklch(96% 0.008 275);
+  --text-secondary:   oklch(68% 0.012 275);
+  --text-muted:       oklch(45% 0.010 275);
+  --text-placeholder: oklch(30% 0.008 275);
+
   --border-default: rgba(124, 58, 237, 0.2);
-  --border-subtle: rgba(124, 58, 237, 0.1);
-  --border-active: rgba(124, 58, 237, 0.6);
+  --border-subtle:  rgba(124, 58, 237, 0.1);
+  --border-active:  rgba(124, 58, 237, 0.6);
 
-  /* Shadows */
   --shadow-glow-purple: 0 0 20px rgba(124, 58, 237, 0.3);
   --shadow-glow-indigo: 0 0 20px rgba(79, 70, 229, 0.3);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card:        0 4px 24px rgba(0, 0, 0, 0.4);
 
-  /* === AIM GUARD: Dark Navy + Cyan/Teal === */
-  --guard-bg-base: #020817;
+  /* ── AIM GUARD (변경 금지) ───────────────────────────────────── */
+  --guard-bg-base:    #020817;
   --guard-bg-surface: #0a1628;
-  --guard-bg-card: #0d1f3c;
+  --guard-bg-card:    #0d1f3c;
   --guard-color-primary: #14b8a6;
-  --guard-color-accent: #06b6d4;
+  --guard-color-accent:  #06b6d4;
   --guard-color-warning: #f59e0b;
-  --guard-color-danger: #ef4444;
-  --guard-color-safe: #22c55e;
-  --guard-text-primary: #e2e8f0;
+  --guard-color-danger:  #ef4444;
+  --guard-color-safe:    #22c55e;
+  --guard-text-primary:  #e2e8f0;
   --guard-text-secondary: #94a3b8;
   --guard-border: rgba(20, 184, 166, 0.2);
-  --guard-glow: 0 0 20px rgba(20, 184, 166, 0.3);
+  --guard-glow:   0 0 20px rgba(20, 184, 166, 0.3);
 
-  /* === Tailwind CSS Variables (shadcn/ui) === */
+  /* ── Shadcn/ui (Tailwind CSS Variables) ─────────────────────── */
   --background: 240 10% 4%;
   --foreground: 246 100% 97%;
   --card: 240 13% 9%;
   --card-foreground: 246 100% 97%;
   --popover: 240 13% 9%;
   --popover-foreground: 246 100% 97%;
-  --primary: 262 83% 58%;
+  --primary-tw: 262 83% 58%;
   --primary-foreground: 0 0% 100%;
   --secondary: 240 13% 15%;
   --secondary-foreground: 246 100% 97%;
@@ -72,36 +117,21 @@
   --accent-foreground: 0 0% 100%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --border: 262 20% 20%;
+  --border-tw: 262 20% 20%;
   --input: 262 20% 20%;
   --ring: 262 83% 58%;
   --radius: 0.75rem;
 
-  /* Charts */
-  --chart-1: 262 83% 58%;
-  --chart-2: 240 83% 58%;
-  --chart-3: 188 83% 44%;
-  --chart-4: 142 71% 45%;
-  --chart-5: 25 95% 53%;
-
   /* Typography */
+  --font-plus-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-dm-mono: 'DM Mono', 'JetBrains Mono', monospace;
   --font-geist-sans: "Inter", system-ui, sans-serif;
   --font-geist-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  /* Spacing scale */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
-  --space-16: 64px;
+  /* Spacing */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
 
-  /* Z-index layers */
-  --z-base: 0;
-  --z-dropdown: 100;
-  --z-modal: 200;
-  --z-tooltip: 300;
-  --z-toast: 400;
+  /* Z-index */
+  --z-base: 0; --z-dropdown: 100; --z-modal: 200; --z-tooltip: 300; --z-toast: 400;
 }

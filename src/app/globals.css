@@ -4,8 +4,7 @@
 @tailwind utilities;
 
 @layer base {
-  * {
-    @apply border-border;
+  *, *::before, *::after {
     box-sizing: border-box;
   }
 
@@ -15,37 +14,59 @@
 
   body {
     @apply bg-background text-foreground;
-    background-color: var(--bg-base);
-    color: var(--text-primary);
-    font-family: var(--font-geist-sans);
+    background-color: var(--bg);
+    color: var(--t1);
+    font-family: var(--font);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Antigravity noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+  }
+
+  /* Grid overlay (subtle) */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .018;
+    background-image:
+      linear-gradient(oklch(100% 0 0 / .04) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(100% 0 0 / .04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--s4); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border3); }
+  * { scrollbar-width: thin; scrollbar-color: var(--s4) transparent; }
 }
 
 @layer utilities {
   /* Aurora gradient background */
   .aurora-bg {
-    background: radial-gradient(
-        ellipse at 20% 50%,
-        rgba(124, 58, 237, 0.15) 0%,
-        transparent 60%
-      ),
-      radial-gradient(
-        ellipse at 80% 20%,
-        rgba(79, 70, 229, 0.15) 0%,
-        transparent 60%
-      ),
-      radial-gradient(
-        ellipse at 50% 80%,
-        rgba(6, 182, 212, 0.08) 0%,
-        transparent 60%
-      ),
-      var(--bg-base);
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(124, 58, 237, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(79, 70, 229, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
+      var(--bg);
   }
 
-  /* Glass card effect */
+  /* Glass card */
   .glass-card {
     background: rgba(19, 19, 31, 0.8);
     backdrop-filter: blur(12px);
@@ -53,29 +74,42 @@
     border-radius: var(--radius);
   }
 
-  /* Purple glow effect */
-  .glow-purple {
-    box-shadow: var(--shadow-glow-purple);
-  }
+  /* Purple glow */
+  .glow-purple { box-shadow: var(--shadow-glow-purple); }
 
-  /* Animated aurora */
-  .aurora-animated {
-    background-size: 200% 200%;
-    animation: aurora 8s ease infinite;
-  }
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
+}
 
-  /* Scrollbar styling */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--border-default);
-    border-radius: 2px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--border-active);
-  }
+/* Antigravity keyframe animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: .5; }
+  50%       { opacity: 1; }
+}
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes checkmark {
+  from { stroke-dashoffset: 20; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes aurora {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
 }
