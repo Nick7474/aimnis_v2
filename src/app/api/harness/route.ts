@@ -158,9 +158,12 @@ export async function POST(req: NextRequest) {
       rawStream = await claudeStream(SONNET_MODEL, HARNESS_SYSTEM, specPrompt);
     } else if (provider === "claude-haiku") {
       rawStream = await claudeStream(HAIKU_MODEL, HARNESS_SYSTEM, specPrompt);
-    } else {
-      // Gemini Flash-Lite (디폴트)
+    } else if (process.env.GOOGLE_API_KEY) {
+      // Gemini Flash-Lite
       rawStream = await geminiStream(HARNESS_SYSTEM, specPrompt);
+    } else {
+      // Google 키 없으면 Claude Haiku fallback
+      rawStream = await claudeStream(HAIKU_MODEL, HARNESS_SYSTEM, specPrompt);
     }
 
     return new Response(rawStream, {

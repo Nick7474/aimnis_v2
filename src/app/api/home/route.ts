@@ -72,10 +72,19 @@ export async function POST(req: NextRequest) {
   const { prompt, provider = "gemini-flash-lite" } = await req.json();
   const userText = (prompt as string) ?? "";
 
-  // Gemini 경로
+  // Gemini 경로 — GOOGLE_API_KEY 없으면 Claude Haiku로 자동 fallback
   if (provider === "gemini-flash-lite") {
+    if (process.env.GOOGLE_API_KEY) {
+      try {
+        const stream = await geminiStream(userText);
+        return new Response(stream, {
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
+        });
+      } catch { /* Gemini 실패 시 Claude fallback */ }
+    }
+    // Google API 키 없으면 Claude Haiku로 대체
     try {
-      const stream = await geminiStream(userText);
+      const stream = await claudeStream(HAIKU_MODEL, userText);
       return new Response(stream, {
         headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
       });
