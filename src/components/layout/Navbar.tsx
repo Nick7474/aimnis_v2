@@ -41,26 +41,24 @@ export default function Navbar() {
         backdropFilter: "blur(8px)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", width: "100%", padding: "0 0 0 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", width: "100%", padding: "0 16px" }}>
 
-        {/* 로고 영역 — 에디터와 동일한 Aimnis_Symbol.svg 24px + text-sm font-semibold */}
+        {/* 로고 — 분리선 없이 좌측 고정 */}
         <a
           href="/home"
           onClick={handleLogoClick}
           style={{
             display: "flex", alignItems: "center", gap: 9,
-            width: 220, flexShrink: 0, textDecoration: "none",
-            borderRight: "1px solid var(--border)",
-            paddingRight: 16, height: 47, cursor: "pointer",
+            flexShrink: 0, textDecoration: "none",
+            height: 47, cursor: "pointer",
+            paddingRight: 20,
           }}
         >
-          {/* 에디터와 동일: Aimnis_Symbol.svg h-[24px] w-[24px] drop-shadow-xl */}
           <img
             src="/img/Aimnis_Symbol.svg"
             alt="AIMNIS Logo"
             style={{ width: 24, height: 24, objectFit: "contain", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.5))" }}
           />
-          {/* 에디터와 동일: text-sm(14px) font-semibold */}
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)", letterSpacing: "0.01em" }}>
             AIMNIS
           </span>
@@ -78,8 +76,8 @@ export default function Navbar() {
           </span>
         </a>
 
-        {/* 네비게이션 탭 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "0 12px", height: 47, flex: 1 }}>
+        {/* 네비게이션 탭 — 중앙 배치 */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, height: 47, flex: 1 }}>
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
