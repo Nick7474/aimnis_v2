@@ -9,7 +9,7 @@ import { MOCK_STATS } from '../mock/data';
 
 const { RangePicker } = DatePicker;
 
-const DEV_COLORS = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#D97706'];
+const DEV_COLORS = ['#2563EB', '#7C3AED', '#5a3ee1', '#059669', '#D97706'];
 
 /* ── KPI 카드 ─────────────────────────────────── */
 const KpiCard: React.FC<{

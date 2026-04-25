@@ -23,8 +23,6 @@ export default function HomePhase2() {
     isThinking,
     setIsThinking,
     selectedScenario,
-    collectedInfo,
-    updateCollectedInfo,
     blueprintMd,
     appendBlueprint,
     setBlueprint,
@@ -50,7 +48,6 @@ export default function HomePhase2() {
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: text }],
           scenario: selectedScenario ?? "energy",
-          collectedInfo,
         }),
       });
 
@@ -82,12 +79,6 @@ export default function HomePhase2() {
       });
 
       // 수집된 정보 업데이트
-      if (parsed.collectedInfo) {
-        Object.entries(parsed.collectedInfo).forEach(([k, v]) => {
-          if (v) updateCollectedInfo(k, v);
-        });
-      }
-
       // Blueprint 업데이트
       if (parsed.blueprintUpdate) {
         const { section, content } = parsed.blueprintUpdate;

@@ -89,7 +89,7 @@ export default function StitchInput({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => fileRef.current?.click()}
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/40 hover:border-cyan-500/30 hover:text-cyan-300 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/40 hover:border-brand-500/30 hover:text-brand-300 transition-colors"
           >
             <Paperclip className="h-3.5 w-3.5" />
           </motion.button>
@@ -101,8 +101,8 @@ export default function StitchInput({
             className="hidden"
           />
 
-          {/* 시나리오 칩 */}
-          <ScenarioChips onSelect={typewriterInsert} />
+          {/* 시나리오 칩 (V2: onSelect 없음) */}
+          <ScenarioChips />
         </div>
 
         {/* 전송 버튼 */}
@@ -115,13 +115,13 @@ export default function StitchInput({
           className={cn(
             "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl transition-all",
             value.trim() && !isThinking
-              ? "text-white shadow-lg shadow-cyan-500/30"
+              ? "text-white shadow-lg shadow-brand-500/30"
               : "bg-white/5 text-white/20"
           )}
           style={
             value.trim() && !isThinking
               ? {
-                  background: "linear-gradient(135deg, #0891b2, #00d4ff)",
+                  background: "linear-gradient(135deg, #5a3ee1, #735FE9)",
                   boxShadow: "0 0 16px rgba(0,212,255,0.4)",
                 }
               : undefined

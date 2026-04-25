@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMNIS — Enterprise AI Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       oklch(8% 0.025 275);
+    --s1:       oklch(11% 0.022 275);
+    --s2:       oklch(14% 0.020 275);
+    --s3:       oklch(18% 0.018 275);
+    --border:   oklch(100% 0 0 / 0.07);
+    --border2:  oklch(100% 0 0 / 0.12);
+    --primary:  oklch(60% 0.20 285);
+    --primary2: oklch(55% 0.22 295);
+    --cyan:     oklch(70% 0.14 210);
+    --t1:       oklch(96% 0.008 275);
+    --t2:       oklch(68% 0.012 275);
+    --t3:       oklch(45% 0.010 275);
+    --font: 'Plus Jakarta Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  html, body { height: 100%; background: var(--bg); font-family: var(--font); color: var(--t1); overflow: hidden; }
+  #root { height: 100%; }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+  }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+  @keyframes rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes slideRight { from{transform:translateX(-100%);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes glow { 0%,100%{box-shadow:0 0 20px oklch(60% 0.20 285 / .15)} 50%{box-shadow:0 0 40px oklch(60% 0.20 285 / .30)} }
+  @keyframes shimmer { from{background-position:-200% center} to{background-position:200% center} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+
+
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ── TWEAK DEFAULTS ───────────────────────────────── */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentHue": "285",
+  "surfaceStyle": "glass",
+  "loginLayout": "split",
+  "animSpeed": "normal"
+} /*EDITMODE-END*/;
+
+/* ── LOGO SVG ─────────────────────────────────────── */
+const Logo = ({ size = 32 }) =>
+<svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+    <defs>
+      <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#FF6B35" />
+        <stop offset="50%" stopColor="#C850C0" />
+        <stop offset="100%" stopColor="#4158D0" />
+      </linearGradient>
+    </defs>
+    <circle cx="20" cy="20" r="18" fill="url(#lg1)" opacity="0.15" />
+    <circle cx="20" cy="20" r="18" fill="none" stroke="url(#lg1)" strokeWidth="1.5" />
+    <path d="M12 28 L20 12 L28 28" stroke="url(#lg1)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <path d="M14.5 22.5 H25.5" stroke="url(#lg1)" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="20" cy="20" r="3" fill="url(#lg1)" opacity="0.8" />
+  </svg>;
+
+
+/* ── MESH BACKGROUND ──────────────────────────────── */
+const MeshBg = ({ tweaks }) => {
+  const hue = tweaks.accentHue;
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
+      {/* Grid lines */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `linear-gradient(oklch(100% 0 0 / .025) 1px, transparent 1px),
+                         linear-gradient(90deg, oklch(100% 0 0 / .025) 1px, transparent 1px)`,
+        backgroundSize: '60px 60px'
+      }}></div>
+      {/* Orbs */}
+      <div style={{
+        position: 'absolute', width: 600, height: 600, borderRadius: '50%',
+        left: '10%', top: '-10%',
+        background: `radial-gradient(circle, oklch(45% 0.22 ${hue} / .18) 0%, transparent 70%)`,
+        filter: 'blur(40px)'
+      }} />
+      <div style={{
+        position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+        right: '5%', bottom: '-5%',
+        background: `radial-gradient(circle, oklch(40% 0.18 ${parseInt(hue) + 40} / .14) 0%, transparent 70%)`,
+        filter: 'blur(40px)'
+      }} />
+      <div style={{
+        position: 'absolute', width: 300, height: 300, borderRadius: '50%',
+        left: '40%', top: '30%',
+        background: `radial-gradient(circle, oklch(60% 0.14 210 / .08) 0%, transparent 70%)`,
+        filter: 'blur(60px)'
+      }} />
+    </div>);
+
+};
+
+/* ── INPUT COMPONENT ──────────────────────────────── */
+const Input = ({ label, type = 'text', placeholder, value, onChange, icon }) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ position: 'relative' }}>
+      <label style={{
+        display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+        textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 8
+      }}>{label}</label>
+      <div style={{
+        position: 'relative',
+        border: `1px solid ${focused ? 'oklch(60% 0.20 285 / .6)' : 'var(--border2)'}`,
+        borderRadius: 10,
+        background: focused ? 'oklch(100% 0 0 / .04)' : 'oklch(100% 0 0 / .025)',
+        transition: 'all .2s',
+        boxShadow: focused ? '0 0 0 3px oklch(60% 0.20 285 / .12), inset 0 1px 0 oklch(100% 0 0 / .05)' : 'inset 0 1px 0 oklch(100% 0 0 / .04)'
+      }}>
+        {icon &&
+        <span style={{
+          position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+          color: 'var(--t3)', fontSize: 14, pointerEvents: 'none'
+        }}>{icon}</span>
+        }
+        <input
+          type={type} placeholder={placeholder} value={value} onChange={onChange}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          style={{
+            width: '100%', padding: icon ? '13px 14px 13px 40px' : '13px 14px',
+            background: 'transparent', border: 'none', outline: 'none',
+            color: 'var(--t1)', fontSize: 14, fontFamily: 'var(--font)',
+            letterSpacing: '0.01em'
+          }} />
+        
+      </div>
+    </div>);
+
+};
+
+/* ── LOGIN SCREEN ─────────────────────────────────── */
+const LoginScreen = ({ onLogin, tweaks }) => {
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [step] = useState(1);
+
+  const handleLogin = () => {
+    setLoading(true);
+    setTimeout(() => {setLoading(false);onLogin();}, 1400);
+  };
+
+  const isSplit = tweaks.loginLayout === 'split';
+
+  return (
+    <div style={{ position: 'relative', height: '100vh', display: 'flex', overflow: 'hidden' }}>
+      <MeshBg tweaks={tweaks} />
+
+      {/* LEFT — Brand panel (split only) */}
+      {isSplit &&
+      <div style={{
+        position: 'relative', zIndex: 1, flex: '0 0 46%',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: '48px 56px',
+        borderRight: '1px solid var(--border)',
+        background: 'oklch(100% 0 0 / .015)',
+        animation: 'fadeUp .7s cubic-bezier(.16,1,.3,1) both'
+      }}>
+          {/* Top logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Logo size={28} />
+            <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '0.04em' }}>AIMNIS</span>
+            <span style={{
+            fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', padding: '2px 8px',
+            border: '1px solid var(--border2)', borderRadius: 4, color: 'var(--t3)',
+            textTransform: 'uppercase'
+          }}>Enterprise</span>
+          </div>
+
+          {/* Center content */}
+          <div style={{ width: "400px" }}>
+            <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 28,
+            padding: '6px 12px', border: '1px solid var(--border2)', borderRadius: 20,
+            fontSize: 11, color: 'var(--t3)', letterSpacing: '0.05em'
+          }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--cyan)', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+              AI-Powered Enterprise Platform
+            </div>
+            <h1 style={{
+            fontSize: 42, fontWeight: 700, lineHeight: 1.12,
+            letterSpacing: '-0.025em', marginBottom: 20,
+            background: `linear-gradient(135deg, var(--t1) 0%, oklch(70% 0.14 285) 100%)`,
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+          }}>
+              AI 에이전트로<br />업무를 자동화하세요
+            </h1>
+            <p style={{ fontSize: 15, color: 'var(--t2)', lineHeight: 1.65, maxWidth: 320 }}>
+              복잡한 워크플로우를 AI 에이전트에 위임하고,<br />팀의 역량을 핵심 업무에 집중시키세요.
+            </p>
+
+            {/* Stats */}
+            <div style={{ display: 'flex', gap: 32, marginTop: 48 }}>
+              {[['99.9%', '업타임 보장'], ['3.2×', '생산성 향상'], ['500+', '엔터프라이즈 고객']].map(([n, l]) =>
+            <div key={l}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--t1)', letterSpacing: '-0.02em' }}>{n}</div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2, letterSpacing: '0.02em' }}>{l}</div>
+                </div>
+            )}
+            </div>
+          </div>
+
+          {/* Bottom */}
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+            {['AIM GUARD', 'AIM ECO', 'Gemini'].map((tag) =>
+          <span key={tag} style={{ fontSize: 11, color: 'var(--t3)', fontFamily: 'var(--mono)' }}>{tag}</span>
+          )}
+          </div>
+
+          {/* Decorative grid element */}
+          <div style={{
+          position: 'absolute', right: -1, top: '50%', transform: 'translateY(-50%)',
+          width: 1, height: '40%',
+          background: 'linear-gradient(transparent, var(--primary), transparent)',
+          opacity: 0.4
+        }} />
+        </div>
+      }
+
+      {/* RIGHT — Login form */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 40
+      }}>
+        <div style={{
+          width: '100%', maxWidth: 400,
+          animation: 'fadeUp .7s cubic-bezier(.16,1,.3,1) .1s both'
+        }}>
+          {/* Logo (centered, non-split) */}
+          {!isSplit &&
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <Logo size={44} />
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: '0.04em', marginBottom: 4 }}>AIMNIS</div>
+              <div style={{ fontSize: 12, color: 'var(--t3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Enterprise AI Platform</div>
+            </div>
+          }
+
+          {/* Form card */}
+          <div style={{
+            background: 'oklch(100% 0 0 / .045)',
+            border: '1px solid var(--border2)',
+            borderRadius: 18,
+            padding: 36,
+            backdropFilter: 'blur(24px)',
+            boxShadow: `0 32px 80px oklch(0% 0 0 / .4), 0 1px 0 oklch(100% 0 0 / .08) inset`
+          }}>
+            <div style={{ marginBottom: 28 }}>
+              {isSplit &&
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+                  <Logo size={24} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>계정에 로그인</span>
+                </div>
+              }
+              <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                {isSplit ? '안녕하세요' : '로그인'}
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--t3)' }}>
+                조직 이메일로 계속하세요
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Input label="이메일" type="email" placeholder="name@company.com"
+              icon="✉" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input label="비밀번호" type="password" placeholder="••••••••••"
+              icon="🔒" value={pw} onChange={(e) => setPw(e.target.value)} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: -4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <div style={{
+                    width: 16, height: 16, borderRadius: 4,
+                    border: '1px solid var(--border2)', background: 'transparent'
+                  }} />
+                  <span style={{ fontSize: 12, color: 'var(--t3)' }}>로그인 유지</span>
+                </label>
+                <span style={{ fontSize: 12, color: 'var(--primary)', cursor: 'pointer' }}>비밀번호 찾기</span>
+              </div>
+
+              {/* CTA */}
+              <button onClick={handleLogin} style={{
+                width: '100%', padding: '14px',
+                background: loading ?
+                'oklch(55% 0.18 285 / .6)' :
+                'linear-gradient(135deg, oklch(58% 0.22 285), oklch(52% 0.20 295))',
+                border: 'none', borderRadius: 10, cursor: loading ? 'not-allowed' : 'pointer',
+                color: 'white', fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600,
+                letterSpacing: '0.02em', marginTop: 4,
+                boxShadow: loading ? 'none' : '0 4px 24px oklch(55% 0.22 285 / .35)',
+                transition: 'all .2s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10
+              }}>
+                {loading ?
+                <>
+                    <div style={{
+                    width: 16, height: 16, borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,.3)',
+                    borderTopColor: 'white',
+                    animation: 'rotate .7s linear infinite'
+                  }} />
+                    인증 중...
+                  </> :
+                '플랫폼 접속 →'}
+              </button>
+
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <span style={{ fontSize: 11, color: 'var(--t3)' }}>또는</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              </div>
+
+              {/* SSO */}
+              <button style={{
+                width: '100%', padding: '12px',
+                background: 'transparent', border: '1px solid var(--border2)',
+                borderRadius: 10, cursor: 'pointer', color: 'var(--t2)',
+                fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500,
+                transition: 'all .2s', letterSpacing: '0.01em'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border2)'}>
+                
+                SSO로 계속하기
+              </button>
+            </div>
+          </div>
+
+          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--t3)', marginTop: 24, lineHeight: 1.7 }}>
+            계속 진행하면 <span style={{ color: 'var(--t2)' }}>이용약관</span> 및 <span style={{ color: 'var(--t2)' }}>개인정보 처리방침</span>에 동의합니다
+          </p>
+        </div>
+      </div>
+    </div>);
+
+};
+
+/* ── TOP NAV ──────────────────────────────────────── */
+const Nav = ({ tweaks }) => {
+  const [active, setActive] = useState('홈');
+  const items = ['홈', '에이전트', '코파일럿', 'AIM GUARD'];
+  return (
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+      height: 54, display: 'flex', alignItems: 'center',
+      padding: '0 20px',
+      background: 'oklch(11% 0.022 275 / .85)',
+      backdropFilter: 'blur(20px)',
+      borderBottom: '1px solid var(--border)'
+    }}>
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '0 0 auto', marginRight: 32 }}>
+        <Logo size={22} />
+        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em' }}>AIMNIS</span>
+        <span style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '2px 7px',
+          background: 'oklch(60% 0.20 285 / .15)', color: 'var(--primary)',
+          borderRadius: 4, border: '1px solid oklch(60% 0.20 285 / .25)',
+          textTransform: 'uppercase'
+        }}>Enterprise</span>
+      </div>
+
+      {/* Nav items */}
+      <div style={{ display: 'flex', gap: 2, flex: 1, justifyContent: 'center' }}>
+        {items.map((item) =>
+        <button key={item} onClick={() => setActive(item)} style={{
+          padding: '6px 16px', border: 'none', borderRadius: 8, cursor: 'pointer',
+          background: active === item ? 'oklch(100% 0 0 / .08)' : 'transparent',
+          color: active === item ? 'var(--t1)' : 'var(--t3)',
+          fontSize: 13, fontFamily: 'var(--font)', fontWeight: active === item ? 600 : 400,
+          transition: 'all .15s', letterSpacing: '0.01em'
+        }}>
+            {item === '홈' && '⌂ '}{item}
+          </button>
+        )}
+      </div>
+
+      {/* Right */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto' }}>
+        <button style={{
+          width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border)',
+          background: 'transparent', cursor: 'pointer', color: 'var(--t3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: "18px"
+        }}>⚙</button>
+        <div style={{
+          width: 32, height: 32, borderRadius: 10,
+          background: 'linear-gradient(135deg, var(--primary), oklch(52% 0.20 295))',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12, fontWeight: 700, cursor: 'pointer'
+        }}>K</div>
+      </div>
+    </nav>);
+
+};
+
+/* ── AGENT CHIP ───────────────────────────────────── */
+const AgentChip = ({ label, color, active, onClick }) =>
+<button onClick={onClick} style={{
+  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+  border: `1px solid ${active ? color + '88' : 'var(--border)'}`,
+  borderRadius: 20, background: active ? color + '18' : 'transparent',
+  color: active ? 'var(--t1)' : 'var(--t3)', fontSize: 12, fontFamily: 'var(--font)',
+  fontWeight: active ? 600 : 400, cursor: 'pointer', transition: 'all .15s'
+}}>
+    <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? color : 'transparent',
+    border: `1px solid ${active ? color : 'var(--t3)'}`, display: 'inline-block'
+  }} />
+    {label}
+  </button>;
+
+
+/* ── HOME SCREEN ──────────────────────────────────── */
+const HomeScreen = ({ tweaks }) => {
+  const [query, setQuery] = useState('');
+  const [activeTab, setActiveTab] = useState(0);
+  const [activeAgent, setActiveAgent] = useState('AIM GUARD');
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setAnimate(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  const tabs = ['국가·회사의 정책', '최도 시민 관계', '스타트업 내용'];
+  const agents = [
+  { label: 'Gemini', color: 'oklch(65% 0.18 145)' },
+  { label: 'AIM GUARD', color: 'oklch(60% 0.20 285)' },
+  { label: 'AIM ECO', color: 'oklch(65% 0.18 170)' },
+  { label: '더보기', color: 'var(--t3)' }];
+
+
+  const solutions = [
+  {
+    name: 'AIM GUARD', sub: 'Security Agent', badge: 'v1.0', badgeColor: 'var(--primary)',
+    desc: '팀을 간단·빠르게 보안하는 실무형 솔루션',
+    tags: ['내부 데이터 분류/모니터링', '월별 CCTV 분석 보고생', '예외 탐지 외 1개'],
+    cta: '시작하기', ctaColor: 'var(--primary)', ctaFill: true,
+    iconColor: 'oklch(60% 0.20 285)'
+  },
+  {
+    name: 'AIM ECO', sub: 'Customer Agent', badge: '출시 예정', badgeColor: 'var(--t3)',
+    desc: '브스스운 채널기 FAO 운영 솔루션',
+    tags: ['AI로 빠른 표준 답변 구성', '트리플 대화흐름 관리', '스트레스받지 마 외 1개'],
+    cta: '상담 신청', ctaColor: 'var(--t3)', ctaFill: false,
+    iconColor: 'oklch(65% 0.18 170)'
+  }];
+
+
+  return (
+    <div style={{ position: 'relative', minHeight: '100vh', paddingTop: 54, overflowY: 'auto', overflowX: 'hidden' }}>
+      <MeshBg tweaks={tweaks} />
+      <Nav tweaks={tweaks} />
+
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 820, margin: '0 auto', padding: '0 24px 80px' }}>
+
+        {/* Hero section */}
+        <div style={{
+          textAlign: 'center', paddingTop: 72, paddingBottom: 56,
+          animation: animate ? 'fadeUp .8s cubic-bezier(.16,1,.3,1) both' : 'none'
+        }}>
+          {/* Pill badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 28,
+            padding: '6px 16px', borderRadius: 20,
+            border: '1px solid oklch(60% 0.20 285 / .3)',
+            background: 'oklch(60% 0.20 285 / .08)',
+            fontSize: 11, color: 'oklch(75% 0.15 285)', letterSpacing: '0.06em', fontWeight: 500
+          }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--primary)', animation: 'pulse 2s infinite', display: 'inline-block' }} />
+            AI-Powered Enterprise Platform
+          </div>
+
+          <h1 style={{
+            fontSize: 52, fontWeight: 700, lineHeight: 1.1,
+            letterSpacing: '-0.035em', marginBottom: 18,
+            background: 'linear-gradient(160deg, var(--t1) 30%, oklch(65% 0.14 285) 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+          }}>
+            무엇을 만들어<br />드릴까요?
+          </h1>
+          <p style={{ fontSize: 16, color: 'var(--t2)', lineHeight: 1.65, marginBottom: 48 }}>
+            요구사항을 입력하거나 목적을 입력하면 AI가 맞춤 워크스페이스를 생성합니다
+          </p>
+        </div>
+
+        {/* Prompt card */}
+        <div style={{
+          background: 'oklch(100% 0 0 / .04)',
+          border: '1px solid var(--border2)',
+          borderRadius: 20,
+          backdropFilter: 'blur(20px)',
+          overflow: 'hidden',
+          boxShadow: `0 24px 60px oklch(0% 0 0 / .35), 0 1px 0 oklch(100% 0 0 / .07) inset`,
+          animation: animate ? 'fadeUp .8s cubic-bezier(.16,1,.3,1) .1s both' : 'none'
+        }}>
+          {/* Tabs */}
+          <div style={{
+            display: 'flex', gap: 0, padding: '0 20px',
+            borderBottom: '1px solid var(--border)',
+            background: 'oklch(100% 0 0 / .02)'
+          }}>
+            <span style={{ fontSize: 11, color: 'var(--t3)', padding: '14px 16px 14px 0', letterSpacing: '0.04em', marginRight: 8 }}>시나리오 :
+
+            </span>
+            {tabs.map((t, i) =>
+            <button key={t} onClick={() => setActiveTab(i)} style={{
+              padding: '14px 16px', border: 'none', background: 'transparent',
+              color: activeTab === i ? 'var(--t1)' : 'var(--t3)',
+              fontSize: 12, fontFamily: 'var(--font)', fontWeight: activeTab === i ? 600 : 400,
+              cursor: 'pointer', letterSpacing: '0.01em',
+              borderBottom: activeTab === i ? '2px solid var(--primary)' : '2px solid transparent',
+              transition: 'all .15s'
+            }}>
+                {i === 0 && '⚡ '}{i === 1 && '🔗 '}{i === 2 && '🚀 '}{t}
+              </button>
+            )}
+          </div>
+
+          {/* Textarea */}
+          <div style={{ padding: '20px 20px 12px' }}>
+            <textarea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="솔루션을 선택하거나 요구사항을 자유롭게 입력하세요..."
+              style={{
+                width: '100%', minHeight: 80, resize: 'none',
+                background: 'transparent', border: 'none', outline: 'none',
+                color: 'var(--t1)', fontSize: 15, fontFamily: 'var(--font)',
+                lineHeight: 1.6, letterSpacing: '0.01em'
+              }} />
+            
+          </div>
+
+          {/* Bottom bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 20px 18px'
+          }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {agents.map((a) =>
+              <AgentChip key={a.label} label={a.label} color={a.color}
+              active={activeAgent === a.label}
+              onClick={() => setActiveAgent(a.label)} />
+              )}
+            </div>
+            <button style={{
+              width: 38, height: 38, borderRadius: 10, border: 'none', cursor: 'pointer',
+              background: query.length > 0 ?
+              'linear-gradient(135deg, var(--primary), oklch(52% 0.20 295))' :
+              'var(--s3)',
+              color: 'white', fontSize: 16, transition: 'all .2s',
+              boxShadow: query.length > 0 ? '0 4px 16px oklch(55% 0.22 285 / .4)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0
+            }}>↑</button>
+          </div>
+
+          {/* Disclaimer */}
+          <div style={{
+            padding: '10px 20px 14px',
+            borderTop: '1px solid var(--border)',
+            fontSize: 11, color: 'var(--t3)', letterSpacing: '0.02em'
+          }}>
+            AI가 생성한 콘텐츠는 검토가 필요할 수 있습니다 · 개인정보 보호 정책 · 이용약관 · 사용자 지정 설정 준수
+          </div>
+        </div>
+
+        {/* Solutions section */}
+        <div style={{
+          marginTop: 56,
+          animation: animate ? 'fadeUp .8s cubic-bezier(.16,1,.3,1) .2s both' : 'none'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <span style={{ fontSize: 12, color: 'var(--t3)', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>
+              구독 중인 솔루션
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {solutions.map((sol) =>
+            <div key={sol.name} style={{
+              background: 'oklch(100% 0 0 / .035)',
+              border: '1px solid var(--border)',
+              borderRadius: 16, padding: 24,
+              backdropFilter: 'blur(12px)',
+              transition: 'all .2s',
+              cursor: 'default'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.border = '1px solid var(--border2)';
+              e.currentTarget.style.background = 'oklch(100% 0 0 / .055)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 16px 40px oklch(0% 0 0 / .25)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.border = '1px solid var(--border)';
+              e.currentTarget.style.background = 'oklch(100% 0 0 / .035)';
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = 'none';
+            }}>
+              
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    background: `${sol.iconColor}22`,
+                    border: `1px solid ${sol.iconColor}44`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 16
+                  }}>
+                      {sol.name === 'AIM GUARD' ? '🛡' : '🌿'}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.01em' }}>{sol.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{sol.sub}</div>
+                    </div>
+                  </div>
+                  <span style={{
+                  fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', padding: '3px 8px',
+                  border: `1px solid ${sol.badgeColor}44`,
+                  background: `${sol.badgeColor}15`, color: sol.badgeColor,
+                  borderRadius: 6, textTransform: 'uppercase'
+                }}>{sol.badge}</span>
+                </div>
+
+                <p style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.55, marginBottom: 14 }}>{sol.desc}</p>
+
+                {/* Tags */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 18 }}>
+                  {sol.tags.map((tag) =>
+                <div key={tag} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--t3)'
+                }}>
+                      <span style={{ color: sol.iconColor, fontSize: 10 }}>◆</span>{tag}
+                    </div>
+                )}
+                </div>
+
+                {/* CTA */}
+                <button style={{
+                width: '100%', padding: '10px',
+                background: sol.ctaFill ?
+                'linear-gradient(135deg, var(--primary), oklch(52% 0.20 295))' :
+                'transparent',
+                border: sol.ctaFill ? 'none' : `1px solid var(--border2)`,
+                borderRadius: 8, cursor: 'pointer',
+                color: sol.ctaFill ? 'white' : 'var(--t2)',
+                fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600,
+                letterSpacing: '0.02em', transition: 'all .2s',
+                boxShadow: sol.ctaFill ? '0 4px 16px oklch(55% 0.22 285 / .3)' : 'none'
+              }}>{sol.cta}</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Design note ribbon */}
+        <div style={{
+          marginTop: 48, padding: '20px 24px',
+          background: 'oklch(60% 0.20 285 / .06)',
+          border: '1px solid oklch(60% 0.20 285 / .2)',
+          borderRadius: 14,
+          animation: animate ? 'fadeUp .8s cubic-bezier(.16,1,.3,1) .3s both' : 'none'
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: 10 }}>
+            🎨 디자인 고도화 포인트
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 32px' }}>
+            {[
+            ['레이어드 서페이스', '단순 단색 대신 반투명 유리 계층으로 깊이감 형성'],
+            ['타이포그래피 스케일', '명확한 위계 — 52px 헤드라인·14px 바디·11px 레이블'],
+            ['스플릿 로그인 레이아웃', '우측 폼 + 좌측 브랜드 패널로 엔터프라이즈감 강화'],
+            ['미세 인터랙션', '호버 상태·포커스 글로우·입력시 버튼 활성화'],
+            ['그리드 텍스처 + 노이즈', '배경에 섬세한 격자와 그레인으로 질감 부여'],
+            ['색상 계층 체계', 'oklch 기반 --bg→--s1→--s2→--s3 표면 토큰화']].
+            map(([k, v]) =>
+            <div key={k} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <span style={{ color: 'var(--primary)', fontWeight: 700, flexShrink: 0, fontSize: 12 }}>→</span>
+                <div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t1)' }}>{k}</span>
+                  <span style={{ fontSize: 11, color: 'var(--t3)', marginLeft: 6 }}>{v}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>);
+
+};
+
+/* ── TWEAKS PANEL ─────────────────────────────────── */
+const TweaksPanel = ({ tweaks, setTweaks, visible }) => {
+  if (!visible) return null;
+  const update = (k, v) => {
+    const next = { ...tweaks, [k]: v };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+  return (
+    <div style={{
+      position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+      background: 'oklch(14% 0.020 275 / .95)',
+      border: '1px solid var(--border2)', borderRadius: 16,
+      backdropFilter: 'blur(20px)', padding: 20, width: 240,
+      boxShadow: '0 24px 60px oklch(0% 0 0 / .5)',
+      animation: 'fadeUp .25s ease both'
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 16 }}>Tweaks</div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>액센트 색상</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[['보라', '285'], ['청록', '210'], ['파랑', '250'], ['인디고', '265']].map(([l, h]) =>
+            <button key={h} onClick={() => update('accentHue', h)} style={{
+              flex: 1, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
+              background: `oklch(58% 0.20 ${h})`,
+              outline: tweaks.accentHue === h ? '2px solid white' : 'none',
+              outlineOffset: 2, transition: 'all .15s'
+            }} title={l} />
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>로그인 레이아웃</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[['스플릿', 'split'], ['센터', 'center']].map(([l, v]) =>
+            <button key={v} onClick={() => update('loginLayout', v)} style={{
+              flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: tweaks.loginLayout === v ? 'var(--s3)' : 'transparent',
+              color: tweaks.loginLayout === v ? 'var(--t1)' : 'var(--t3)',
+              fontSize: 12, fontFamily: 'var(--font)', transition: 'all .15s'
+            }}>{l}</button>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>표면 스타일</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[['글래스', 'glass'], ['솔리드', 'solid']].map(([l, v]) =>
+            <button key={v} onClick={() => update('surfaceStyle', v)} style={{
+              flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: tweaks.surfaceStyle === v ? 'var(--s3)' : 'transparent',
+              color: tweaks.surfaceStyle === v ? 'var(--t1)' : 'var(--t3)',
+              fontSize: 12, fontFamily: 'var(--font)', transition: 'all .15s'
+            }}>{l}</button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>);
+
+};
+
+/* ── APP ROOT ─────────────────────────────────────── */
+const App = () => {
+  const [screen, setScreen] = useState(() => localStorage.getItem('aimnis_screen') || 'login');
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+
+  useEffect(() => {localStorage.setItem('aimnis_screen', screen);}, [screen]);
+
+  // Tweaks bridge
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  // Apply hue to CSS
+  useEffect(() => {
+    document.documentElement.style.setProperty('--primary', `oklch(60% 0.20 ${tweaks.accentHue})`);
+    document.documentElement.style.setProperty('--primary2', `oklch(55% 0.22 ${parseInt(tweaks.accentHue) + 10})`);
+  }, [tweaks.accentHue]);
+
+  return (
+    <>
+      {screen === 'login' ?
+      <LoginScreen onLogin={() => setScreen('home')} tweaks={tweaks} /> :
+      <HomeScreen tweaks={tweaks} />
+      }
+      {/* Screen switcher (demo) */}
+      <div style={{
+        position: 'fixed', bottom: 24, left: 24, zIndex: 9999,
+        display: 'flex', gap: 8
+      }}>
+        {['login', 'home'].map((s) =>
+        <button key={s} onClick={() => setScreen(s)} style={{
+          padding: '7px 14px', borderRadius: 8,
+          border: '1px solid var(--border2)',
+          background: screen === s ? 'var(--s3)' : 'oklch(11% 0.022 275 / .8)',
+          color: screen === s ? 'var(--t1)' : 'var(--t3)',
+          fontSize: 11, fontFamily: 'var(--font)', fontWeight: 600,
+          cursor: 'pointer', backdropFilter: 'blur(12px)',
+          letterSpacing: '0.04em', textTransform: 'uppercase'
+        }}>
+            {s === 'login' ? '🔐 로그인' : '🏠 홈'}
+          </button>
+        )}
+      </div>
+      <TweaksPanel tweaks={tweaks} setTweaks={setTweaks} visible={tweaksOpen} />
+    </>);
+
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

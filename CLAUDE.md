@@ -41,6 +41,20 @@ AIMNIS Platform (core)
     │
     └── [추후 솔루션]/                      ← 폴더만 추가하면 끝
 ```
+**프로젝트 전략**: Claude Advisor (Cost-Efficiency)
+모든 작업은 토큰 절약과 품질 보장을 위해 아래 모델 전략을 엄격히 준수한다.
+
+Phase 1: OpusPlan (Model: Opus 4.6)
+
+고차원 아키텍처 설계, 비즈니스 로직 설계, 복잡한 리팩토링 계획 수립 시 사용.
+
+코드를 작성하기 전, 반드시 전체 구조와 하네스(Harness) 설계를 포함한 Blueprint를 먼저 제안한다.
+
+Phase 2: Execution (Model: Sonnet 4.6 / Haiku)
+
+Opus 4.6이 수립한 계획에 따른 단순 코드 구현, 보일러플레이트 작성, 유닛 테스트 생성 시 사용.
+
+Haiku + Opus 전략: 단순 루틴 작업은 Haiku로, 로직 검증이 필요한 구현은 Sonnet 4.6으로 이원화하여 $50 크레딧 소모를 최적화한다.
 
 **규칙**: 솔루션 전용 데이터/위젯은 반드시 solutions/[name]/ 안에만 존재
 **규칙**: core는 solutions/를 동적으로 읽음. 하드코딩 절대 금지

@@ -5,8 +5,8 @@ const LLM_PROVIDER = process.env.LLM_PROVIDER ?? "gemma";
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4";
 
-// Haiku: 빠른 자연어 응답 (토큰 절약)
-const HAIKU_MODEL = "claude-haiku-4-5-20251001";
+const HAIKU_MODEL   = "claude-haiku-4-5-20251001";
+const SONNET_MODEL  = "claude-sonnet-4-6";
 
 // ─── 시스템 프롬프트 (캐시 대상) ────────────────────────────────
 const NARRATIVE_SYSTEM = `당신은 AIMNIS 엔터프라이즈 플랫폼의 AI 어시스턴트입니다.
@@ -60,12 +60,12 @@ function generateMockNarrative(userText: string): string {
   return "위젯을 캔버스에 추가했습니다.";
 }
 
-// ─── Claude Haiku 스트리밍 (자연어 응답) ─────────────────────────
-// Advisor 전략: Haiku → 빠른 자연어 / widget JSON → 결정론적 생성으로 토큰 절약
+// ─── Claude 스트리밍 (Haiku / Sonnet 선택) ──────────────────────
 async function handleClaude(
   messages: { role: string; content: string }[],
   solution: string,
-  userText: string
+  userText: string,
+  model: string = HAIKU_MODEL
 ): Promise<ReadableStream<Uint8Array>> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
@@ -79,7 +79,7 @@ async function handleClaude(
       try {
         // Haiku로 자연어 스트리밍 (prompt caching으로 시스템 프롬프트 재사용)
         const stream = await client.messages.create({
-          model: HAIKU_MODEL,
+          model,
           max_tokens: 200,
           system: [
             {
@@ -116,11 +116,12 @@ export async function POST(req: NextRequest) {
   const userText = (messages[messages.length - 1]?.content as string) ?? "";
   const sol = (solution as string) ?? "guard";
 
-  // 클라이언트 선택 provider가 있으면 우선 적용 (claude-haiku → claude 모드)
-  const effectiveProvider = provider === "claude-haiku" ? "claude" : (LLM_PROVIDER as string);
+  const isClaude = provider === "claude-haiku" || provider === "claude-sonnet";
+  const effectiveProvider = isClaude ? "claude" : (LLM_PROVIDER as string);
+  const claudeModel = provider === "claude-sonnet" ? SONNET_MODEL : HAIKU_MODEL;
 
   if (effectiveProvider === "claude") {
-    const stream = await handleClaude(messages, sol, userText).catch(() => null);
+    const stream = await handleClaude(messages, sol, userText, claudeModel).catch(() => null);
     if (stream) {
       return new Response(stream, {
         headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },

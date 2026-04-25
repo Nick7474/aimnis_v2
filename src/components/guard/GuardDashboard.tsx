@@ -97,7 +97,7 @@ export default function GuardDashboard({ data }: GuardDashboardProps) {
       {/* 배경 효과 */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-20 top-1/4 h-80 w-80 rounded-full bg-teal-600/8 blur-[80px]" />
-        <div className="absolute -right-20 bottom-1/4 h-60 w-60 rounded-full bg-cyan-600/8 blur-[80px]" />
+        <div className="absolute -right-20 bottom-1/4 h-60 w-60 rounded-full bg-brand-600/8 blur-[80px]" />
       </div>
 
       {/* 상단 헤더 */}
@@ -139,11 +139,11 @@ export default function GuardDashboard({ data }: GuardDashboardProps) {
             animate
           />
           <KpiCard
-            icon={<Activity className="h-4 w-4 text-cyan-400" />}
+            icon={<Activity className="h-4 w-4 text-brand-400" />}
             label="시스템 가동률"
             value={data.overview.uptime}
             sub={`센서 ${data.overview.activeSensors}/${data.overview.totalSensors} 활성`}
-            color="cyan"
+            color="brand"
           />
           <KpiCard
             icon={<AlertTriangle className="h-4 w-4 text-amber-400" />}
@@ -352,10 +352,10 @@ function GuardCard({ title, icon, children }: { title: string; icon: React.React
 
 function KpiCard({ icon, label, value, sub, color, animate }: {
   icon: React.ReactNode; label: string; value: string; sub: string;
-  color: "teal" | "cyan" | "amber"; animate?: boolean;
+  color: "teal" | "brand" | "amber"; animate?: boolean;
 }) {
-  const borderMap = { teal: "border-teal-500/15", cyan: "border-cyan-500/15", amber: "border-amber-500/15" };
-  const bgMap = { teal: "bg-teal-500/5", cyan: "bg-cyan-500/5", amber: "bg-amber-500/5" };
+  const borderMap = { teal: "border-teal-500/15", brand: "border-brand-500/15", amber: "border-amber-500/15" };
+  const bgMap = { teal: "bg-teal-500/5", brand: "bg-brand-500/5", amber: "bg-amber-500/5" };
   return (
     <div className={cn("rounded-xl border p-4", borderMap[color], bgMap[color])}>
       <div className="mb-2 flex items-center gap-2">

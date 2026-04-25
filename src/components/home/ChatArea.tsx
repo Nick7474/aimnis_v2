@@ -20,9 +20,9 @@ export default function ChatArea() {
         <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-500/20 bg-cyan-500/10"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand-500/20 bg-brand-500/10"
         >
-          <Bot className="h-5 w-5 text-cyan-400" />
+          <Bot className="h-5 w-5 text-brand-400" />
         </motion.div>
         <p className="text-sm text-white/30">
           시나리오를 선택하거나 요구사항을 입력하면
@@ -45,8 +45,8 @@ export default function ChatArea() {
             className={cn("flex gap-2.5", msg.role === "user" ? "justify-end" : "justify-start")}
           >
             {msg.role === "assistant" && (
-              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 mt-0.5">
-                <Bot className="h-3.5 w-3.5 text-cyan-400" />
+              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-brand-500/20 bg-brand-500/10 mt-0.5">
+                <Bot className="h-3.5 w-3.5 text-brand-400" />
               </div>
             )}
             <div
@@ -78,12 +78,12 @@ export default function ChatArea() {
             exit={{ opacity: 0 }}
             className="flex items-start gap-2.5"
           >
-            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 mt-0.5">
+            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-brand-500/20 bg-brand-500/10 mt-0.5">
               <motion.div
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ repeat: Infinity, duration: 1.5 }}
               >
-                <Bot className="h-3.5 w-3.5 text-cyan-400" />
+                <Bot className="h-3.5 w-3.5 text-brand-400" />
               </motion.div>
             </div>
             <div
@@ -97,7 +97,7 @@ export default function ChatArea() {
                     key={i}
                     animate={{ opacity: [0.2, 1, 0.2] }}
                     transition={{ repeat: Infinity, duration: 0.9, delay: i * 0.3 }}
-                    className="h-1 w-1 rounded-full bg-cyan-400"
+                    className="h-1 w-1 rounded-full bg-brand-400"
                   />
                 ))}
               </div>

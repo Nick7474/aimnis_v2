@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMNIS — AIM GUARD Edit</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:       oklch(8% 0.025 275);
+  --s1:       oklch(11% 0.022 275);
+  --s2:       oklch(14% 0.020 275);
+  --s3:       oklch(18% 0.018 275);
+  --s4:       oklch(22% 0.016 275);
+  --border:   oklch(100% 0 0 / .07);
+  --border2:  oklch(100% 0 0 / .12);
+  --border3:  oklch(100% 0 0 / .18);
+  --primary:  oklch(60% 0.20 285);
+  --cyan:     oklch(70% 0.14 210);
+  --green:    oklch(65% 0.16 145);
+  --red:      oklch(58% 0.22 25);
+  --orange:   oklch(68% 0.18 55);
+  --yellow:   oklch(74% 0.16 85);
+  --t1:       oklch(96% 0.008 275);
+  --t2:       oklch(68% 0.012 275);
+  --t3:       oklch(45% 0.010 275);
+  --t4:       oklch(32% 0.008 275);
+  --font:     'Plus Jakarta Sans', sans-serif;
+  --mono:     'DM Mono', monospace;
+}
+html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--t1);overflow:hidden}
+#root{height:100%;display:flex;flex-direction:column}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:128px 128px;
+}
+/* scrollbars */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:4px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes rotate{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentHue": "285",
+  "rightTab": "alarm",
+  "showGrid": "true"
+}/*EDITMODE-END*/;
+
+/* ── LOGO ─────────────────── */
+const Logo = ({size=22}) => (
+  <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+    <defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stopColor="#FF6B35"/>
+      <stop offset="50%" stopColor="#C850C0"/>
+      <stop offset="100%" stopColor="#4158D0"/>
+    </linearGradient></defs>
+    <circle cx="20" cy="20" r="18" fill="url(#lg1)" opacity="0.15"/>
+    <circle cx="20" cy="20" r="18" fill="none" stroke="url(#lg1)" strokeWidth="1.5"/>
+    <path d="M12 28 L20 12 L28 28" stroke="url(#lg1)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M14.5 22.5 H25.5" stroke="url(#lg1)" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="20" cy="20" r="3" fill="url(#lg1)" opacity="0.8"/>
+  </svg>
+);
+
+/* ── SEVERITY BADGE ───────── */
+const Severity = ({level}) => {
+  const map = {CRITICAL:['var(--red)','위급'],HIGH:['var(--orange)','높음'],MEDIUM:['var(--yellow)','중간'],LOW:['var(--green)','낮음']};
+  const [color,label] = map[level]||['var(--t3)','없음'];
+  return (
+    <span style={{
+      fontSize:9,fontWeight:700,letterSpacing:'0.06em',padding:'2px 7px',
+      borderRadius:4,border:`1px solid ${color}55`,background:`${color}18`,color,
+      textTransform:'uppercase',flexShrink:0,
+    }}>{label}</span>
+  );
+};
+
+/* ── TOGGLE ───────────────── */
+const Toggle = ({on,onChange}) => (
+  <div onClick={()=>onChange(!on)} style={{
+    width:32,height:18,borderRadius:9,
+    background:on?'var(--primary)':'var(--s4)',
+    position:'relative',cursor:'pointer',transition:'background .2s',flexShrink:0,
+  }}>
+    <div style={{
+      position:'absolute',top:2,left:on?14:2,width:14,height:14,
+      borderRadius:'50%',background:'white',transition:'left .2s',
+      boxShadow:'0 1px 4px rgba(0,0,0,.4)',
+    }}/>
+  </div>
+);
+
+/* ── STATUS DOT ───────────── */
+const Dot = ({color,pulse:p}) => (
+  <span style={{width:7,height:7,borderRadius:'50%',background:color,flexShrink:0,
+    display:'inline-block',animation:p?'pulse 2s infinite':'none'}}/>
+);
+
+/* ── TOP BAR ──────────────── */
+const TopBar = () => {
+  const [saved, setSaved] = useState(false);
+  const save = () => { setSaved(true); setTimeout(()=>setSaved(false),2000); };
+  return (
+    <div style={{
+      height:48,display:'flex',alignItems:'center',gap:0,flexShrink:0,
+      background:'var(--s1)',borderBottom:'1px solid var(--border)',
+      position:'relative',zIndex:10,
+    }}>
+      {/* Logo area */}
+      <div style={{
+        width:200,flexShrink:0,display:'flex',alignItems:'center',gap:9,
+        padding:'0 16px',borderRight:'1px solid var(--border)',height:'100%',
+      }}>
+        <Logo size={20}/>
+        <span style={{fontWeight:700,fontSize:12,letterSpacing:'0.04em'}}>AIMNIS</span>
+        <span style={{
+          fontSize:9,fontWeight:700,letterSpacing:'0.08em',padding:'2px 6px',
+          background:'oklch(60% 0.20 285 / .15)',color:'var(--primary)',
+          borderRadius:4,border:'1px solid oklch(60% 0.20 285 / .25)',textTransform:'uppercase',
+        }}>Enterprise</span>
+      </div>
+
+      {/* Solution tabs */}
+      <div style={{display:'flex',alignItems:'center',gap:2,padding:'0 12px',height:'100%'}}>
+        {[{name:'AIM GUARD',active:true,color:'var(--primary)'},{name:'AIM ECO',active:false,color:'var(--green)'}].map(t=>(
+          <div key={t.name} style={{
+            display:'flex',alignItems:'center',gap:7,padding:'0 14px',height:'100%',
+            borderBottom:`2px solid ${t.active?t.color:'transparent'}`,
+            cursor:'pointer',
+          }}>
+            <Dot color={t.active?t.color:'var(--t4)'}/>
+            <span style={{fontSize:12,fontWeight:t.active?600:400,color:t.active?'var(--t1)':'var(--t3)',whiteSpace:'nowrap'}}>
+              {t.name}
+            </span>
+            {t.active && (
+              <span style={{
+                fontSize:10,color:'var(--t3)',background:'var(--s3)',
+                padding:'1px 6px',borderRadius:4,fontFamily:'var(--mono)',
+              }}>현황 · 프로세스 모드</span>
+            )}
+            {t.active && (
+              <span style={{fontSize:12,color:'var(--t4)',cursor:'pointer',marginLeft:2}}>✕</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Spacer */}
+      <div style={{flex:1}}/>
+
+      {/* Right actions */}
+      <div style={{display:'flex',alignItems:'center',gap:8,padding:'0 16px'}}>
+        {/* Undo/Redo */}
+        <div style={{display:'flex',gap:1,background:'var(--s2)',borderRadius:7,padding:2,border:'1px solid var(--border)'}}>
+          {['↩','↪'].map(ic=>(
+            <button key={ic} style={{
+              width:28,height:28,borderRadius:5,border:'none',background:'transparent',
+              color:'var(--t3)',cursor:'pointer',fontSize:12,fontFamily:'var(--font)',
+              display:'flex',alignItems:'center',justifyContent:'center',
+            }}>{ic}</button>
+          ))}
+        </div>
+
+        {/* Notifications */}
+        <button style={{
+          position:'relative',width:32,height:32,borderRadius:8,
+          border:'1px solid var(--border)',background:'transparent',
+          cursor:'pointer',color:'var(--t2)',fontSize:14,
+          display:'flex',alignItems:'center',justifyContent:'center',
+        }}>
+          🔔
+          <span style={{
+            position:'absolute',top:4,right:4,width:7,height:7,borderRadius:'50%',
+            background:'var(--red)',border:'1.5px solid var(--s1)',
+          }}/>
+        </button>
+
+        {/* Save */}
+        <button onClick={save} style={{
+          display:'flex',alignItems:'center',gap:7,padding:'6px 16px',
+          background:saved?'oklch(65% 0.16 145 / .15)':'linear-gradient(135deg,oklch(58% 0.22 285),oklch(52% 0.20 295))',
+          border:saved?'1px solid oklch(65% 0.16 145 / .4)':'none',
+          borderRadius:8,cursor:'pointer',color:'white',
+          fontFamily:'var(--font)',fontSize:12,fontWeight:600,letterSpacing:'0.02em',
+          transition:'all .2s',
+          boxShadow:saved?'none':'0 2px 12px oklch(55% 0.22 285 / .35)',
+        }}>
+          {saved ? <><Dot color="var(--green)"/>저장됨</> : <>💾 저장</>}
+        </button>
+
+        {/* User */}
+        <div style={{
+          width:30,height:30,borderRadius:8,
+          background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+          display:'flex',alignItems:'center',justifyContent:'center',
+          fontSize:11,fontWeight:700,cursor:'pointer',
+        }}>K</div>
+      </div>
+    </div>
+  );
+};
+
+/* ── LEFT PANEL — AI AGENT + NAV ── */
+const LeftPanel = () => {
+  const [navItem, setNavItem] = useState('map');
+  const [messages, setMessages] = useState([
+    {role:'ai',text:'안녕하세요! AIMNIS 입니다! 제가 추가하거나 변경하고 싶은 사항을 입력해 주세요.'},
+    {role:'user',text:'현재 구역에 카메라 추가해줘. "등록 해 줘"'},
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
+
+  const navItems = [
+    {id:'map',icon:'▦',label:'Map 대시보드'},
+    {id:'campus',icon:'🏢',label:'캠퍼스'},
+    {id:'report',icon:'📊',label:'리포트'},
+    {id:'rules',icon:'⚙',label:'규칙 관리'},
+    {id:'settings',icon:'🔧',label:'설정'},
+  ];
+
+  const send = () => {
+    if(!input.trim()) return;
+    const msg = input.trim();
+    setMessages(m=>[...m,{role:'user',text:msg}]);
+    setInput('');
+    setLoading(true);
+    setTimeout(()=>{
+      setMessages(m=>[...m,{role:'ai',text:'구역 내 CCTV 카메라 위치를 분석하고 있습니다. 최적 배치 포인트 3곳을 식별했습니다. 맵에 마커를 추가할까요?'}]);
+      setLoading(false);
+    },1200);
+  };
+
+  useEffect(()=>{
+    if(bottomRef.current) bottomRef.current.scrollTop = bottomRef.current.scrollHeight;
+  },[messages,loading]);
+
+  return (
+    <div style={{
+      width:200,flexShrink:0,display:'flex',flexDirection:'column',
+      background:'var(--s1)',borderRight:'1px solid var(--border)',
+      position:'relative',zIndex:5,height:'100%',
+    }}>
+      {/* Nav section */}
+      <div style={{padding:'12px 0',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+        <div style={{padding:'0 14px 8px',fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+          솔루션 메뉴
+        </div>
+        {navItems.map(n=>(
+          <button key={n.id} onClick={()=>setNavItem(n.id)} style={{
+            width:'100%',display:'flex',alignItems:'center',gap:9,
+            padding:'9px 14px',border:'none',cursor:'pointer',
+            background:navItem===n.id?'oklch(60% 0.20 285 / .10)':'transparent',
+            color:navItem===n.id?'var(--t1)':'var(--t3)',
+            fontSize:12,fontFamily:'var(--font)',fontWeight:navItem===n.id?600:400,
+            borderLeft:`2px solid ${navItem===n.id?'var(--primary)':'transparent'}`,
+            transition:'all .15s',textAlign:'left',
+          }}>
+            <span style={{fontSize:11,width:16,textAlign:'center',flexShrink:0}}>{n.icon}</span>
+            {n.label}
+          </button>
+        ))}
+      </div>
+
+      {/* AI Agent chat */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
+        {/* Agent header */}
+        <div style={{
+          padding:'10px 14px',borderBottom:'1px solid var(--border)',flexShrink:0,
+          display:'flex',alignItems:'center',justifyContent:'space-between',
+        }}>
+          <div style={{display:'flex',alignItems:'center',gap:7}}>
+            <div style={{
+              width:22,height:22,borderRadius:6,
+              background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+              display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,
+            }}>✦</div>
+            <span style={{fontSize:11,fontWeight:600,color:'var(--t2)'}}>AI 어시스턴트</span>
+          </div>
+          <span style={{
+            fontSize:9,fontWeight:600,letterSpacing:'0.06em',padding:'2px 6px',
+            background:'oklch(65% 0.16 145 / .12)',color:'var(--green)',
+            borderRadius:4,border:'1px solid oklch(65% 0.16 145 / .3)',textTransform:'uppercase',
+          }}>활성</span>
+        </div>
+
+        {/* Messages */}
+        <div ref={bottomRef} style={{flex:1,overflowY:'auto',padding:'12px 12px 8px',display:'flex',flexDirection:'column',gap:10}}>
+          {messages.map((m,i)=>(
+            <div key={i} style={{
+              display:'flex',flexDirection:'column',
+              alignItems:m.role==='user'?'flex-end':'flex-start',
+              animation:'slideIn .25s ease both',
+            }}>
+              {m.role==='ai' && (
+                <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:4}}>
+                  <div style={{
+                    width:14,height:14,borderRadius:4,
+                    background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:7,flexShrink:0,
+                  }}>✦</div>
+                  <span style={{fontSize:9,color:'var(--t4)',fontWeight:600}}>AIMNIS</span>
+                </div>
+              )}
+              <div style={{
+                maxWidth:'85%',padding:'9px 11px',borderRadius:10,
+                background:m.role==='user'
+                  ?'oklch(60% 0.20 285 / .2)'
+                  :'var(--s3)',
+                border:`1px solid ${m.role==='user'?'oklch(60% 0.20 285 / .35)':'var(--border)'}`,
+                fontSize:11,lineHeight:1.6,color:'var(--t2)',
+                borderBottomRightRadius:m.role==='user'?2:10,
+                borderBottomLeftRadius:m.role==='ai'?2:10,
+              }}>{m.text}</div>
+            </div>
+          ))}
+          {loading && (
+            <div style={{display:'flex',alignItems:'center',gap:5}}>
+              <div style={{
+                width:14,height:14,borderRadius:4,
+                background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                display:'flex',alignItems:'center',justifyContent:'center',fontSize:7,flexShrink:0,
+              }}>✦</div>
+              <div style={{display:'flex',gap:3,padding:'8px 10px',background:'var(--s3)',borderRadius:10,border:'1px solid var(--border)'}}>
+                {[0,1,2].map(i=>(
+                  <div key={i} style={{
+                    width:5,height:5,borderRadius:'50%',background:'var(--primary)',
+                    animation:`pulse 1.2s ease ${i*0.2}s infinite`,
+                  }}/>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Suggestion chips */}
+        <div style={{padding:'0 10px 8px',display:'flex',flexWrap:'wrap',gap:5,flexShrink:0}}>
+          {['카메라 추가','구역 설정','알람 분석'].map(chip=>(
+            <button key={chip} onClick={()=>setInput(chip)} style={{
+              fontSize:10,padding:'4px 9px',borderRadius:12,border:'1px solid var(--border2)',
+              background:'var(--s2)',color:'var(--t3)',cursor:'pointer',fontFamily:'var(--font)',
+              transition:'all .15s',
+            }}>{chip}</button>
+          ))}
+        </div>
+
+        {/* Input */}
+        <div style={{
+          padding:'8px 10px 10px',borderTop:'1px solid var(--border)',flexShrink:0,
+          display:'flex',gap:6,alignItems:'flex-end',
+        }}>
+          <textarea
+            value={input} onChange={e=>setInput(e.target.value)}
+            onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
+            placeholder="명령을 입력하세요..."
+            style={{
+              flex:1,resize:'none',background:'var(--s2)',border:'1px solid var(--border2)',
+              borderRadius:8,padding:'8px 10px',color:'var(--t1)',fontSize:11,
+              fontFamily:'var(--font)',lineHeight:1.5,outline:'none',minHeight:36,maxHeight:80,
+            }}
+          />
+          <button onClick={send} style={{
+            width:32,height:32,borderRadius:8,border:'none',cursor:'pointer',
+            background:input.length>0?'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))':'var(--s3)',
+            color:'white',fontSize:13,transition:'all .2s',flexShrink:0,
+            boxShadow:input.length>0?'0 2px 10px oklch(55% 0.22 285 / .35)':'none',
+          }}>↑</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── CENTER — MAP CANVAS ──── */
+const MapCanvas = ({showGrid}) => {
+  const [zoom, setZoom] = useState(94);
+  const [viewMode, setViewMode] = useState('위성');
+  const [selectedMarker, setSelectedMarker] = useState(null);
+
+  const alarms = [
+    {id:'A1',x:'28%',y:'38%',type:'CRITICAL',label:'Zone 7'},
+    {id:'A2',x:'55%',y:'25%',type:'HIGH',label:'출입-A'},
+    {id:'A3',x:'70%',y:'60%',type:'MEDIUM',label:'Sensor-1'},
+    {id:'A4',x:'42%',y:'65%',type:'LOW',label:'ADAM-1'},
+  ];
+
+  const cameras = [
+    {id:'C1',x:'35%',y:'45%',label:'CAM-4-33'},
+    {id:'C2',x:'62%',y:'40%',label:'CAM-B-21'},
+    {id:'C3',x:'48%',y:'58%',label:'CAM-R-12'},
+  ];
+
+  return (
+    <div style={{flex:1,display:'flex',flexDirection:'column',position:'relative',background:'var(--bg)',minWidth:0}}>
+      {/* Canvas toolbar */}
+      <div style={{
+        height:40,display:'flex',alignItems:'center',gap:8,padding:'0 14px',
+        background:'var(--s1)',borderBottom:'1px solid var(--border)',flexShrink:0,
+        justifyContent:'space-between',
+      }}>
+        {/* Left: breadcrumb */}
+        <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--t3)'}}>
+          <span>AIM GUARD</span>
+          <span style={{color:'var(--t4)'}}>›</span>
+          <span style={{color:'var(--t1)',fontWeight:600}}>Map 대시보드</span>
+          <span style={{color:'var(--t4)'}}>›</span>
+          <span>캠퍼스 A</span>
+        </div>
+
+        {/* Center: view mode */}
+        <div style={{display:'flex',gap:2,background:'var(--s2)',borderRadius:7,padding:2,border:'1px solid var(--border)'}}>
+          {['위성','지도','레이어'].map(m=>(
+            <button key={m} onClick={()=>setViewMode(m)} style={{
+              padding:'4px 12px',borderRadius:5,border:'none',cursor:'pointer',
+              background:viewMode===m?'var(--s4)':'transparent',
+              color:viewMode===m?'var(--t1)':'var(--t3)',
+              fontSize:11,fontFamily:'var(--font)',fontWeight:viewMode===m?600:400,transition:'all .15s',
+            }}>{m}</button>
+          ))}
+        </div>
+
+        {/* Right: controls */}
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          {/* Zoom */}
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <button onClick={()=>setZoom(z=>Math.max(10,z-10))} style={{
+              width:22,height:22,borderRadius:5,border:'1px solid var(--border)',
+              background:'var(--s2)',color:'var(--t2)',cursor:'pointer',fontSize:14,
+              display:'flex',alignItems:'center',justifyContent:'center',
+            }}>−</button>
+            <span style={{fontSize:11,fontFamily:'var(--mono)',color:'var(--t2)',minWidth:36,textAlign:'center'}}>{zoom}%</span>
+            <button onClick={()=>setZoom(z=>Math.min(200,z+10))} style={{
+              width:22,height:22,borderRadius:5,border:'1px solid var(--border)',
+              background:'var(--s2)',color:'var(--t2)',cursor:'pointer',fontSize:14,
+              display:'flex',alignItems:'center',justifyContent:'center',
+            }}>+</button>
+          </div>
+
+          {/* Layer toggles */}
+          {['알람','CCTV','구역'].map(l=>(
+            <button key={l} style={{
+              fontSize:11,padding:'4px 10px',borderRadius:6,border:'1px solid var(--border)',
+              background:'var(--s2)',color:'var(--t2)',cursor:'pointer',fontFamily:'var(--font)',
+              transition:'all .15s',
+            }}>{l}</button>
+          ))}
+
+          <button style={{
+            fontSize:11,padding:'4px 10px',borderRadius:6,
+            border:'1px solid oklch(60% 0.20 285 / .4)',
+            background:'oklch(60% 0.20 285 / .1)',color:'var(--primary)',cursor:'pointer',
+            fontFamily:'var(--font)',fontWeight:600,
+          }}>내보내기</button>
+        </div>
+      </div>
+
+      {/* Map area */}
+      <div style={{flex:1,position:'relative',overflow:'hidden'}}>
+        {/* Satellite map placeholder */}
+        <div style={{
+          position:'absolute',inset:0,
+          background:`
+            radial-gradient(ellipse at 30% 40%, oklch(18% 0.03 180) 0%, transparent 60%),
+            radial-gradient(ellipse at 70% 70%, oklch(15% 0.02 220) 0%, transparent 50%),
+            linear-gradient(160deg, oklch(10% 0.03 250) 0%, oklch(8% 0.02 280) 50%, oklch(9% 0.025 260) 100%)
+          `,
+        }}>
+          {/* Grid */}
+          {showGrid==='true' && (
+            <div style={{
+              position:'absolute',inset:0,
+              backgroundImage:`
+                linear-gradient(oklch(100% 0 0 / .03) 1px, transparent 1px),
+                linear-gradient(90deg, oklch(100% 0 0 / .03) 1px, transparent 1px)
+              `,
+              backgroundSize:'40px 40px',
+            }}/>
+          )}
+
+          {/* Mock building blocks */}
+          {[
+            {x:'15%',y:'20%',w:120,h:80,opacity:.5},
+            {x:'32%',y:'15%',w:90,h:60,opacity:.4},
+            {x:'50%',y:'10%',w:150,h:100,opacity:.45},
+            {x:'68%',y:'22%',w:110,h:70,opacity:.35},
+            {x:'20%',y:'45%',w:80,h:90,opacity:.5},
+            {x:'38%',y:'40%',w:200,h:130,opacity:.4},
+            {x:'62%',y:'45%',w:130,h:85,opacity:.42},
+            {x:'75%',y:'55%',w:100,h:140,opacity:.38},
+            {x:'10%',y:'65%',w:160,h:70,opacity:.44},
+            {x:'30%',y:'70%',w:90,h:60,opacity:.46},
+            {x:'48%',y:'72%',w:120,h:80,opacity:.35},
+          ].map((b,i)=>(
+            <div key={i} style={{
+              position:'absolute',left:b.x,top:b.y,width:b.w,height:b.h,
+              background:`oklch(22% 0.015 ${240+i*5} / ${b.opacity})`,
+              border:`1px solid oklch(40% 0.02 260 / .3)`,
+              borderRadius:2,
+            }}/>
+          ))}
+
+          {/* Zone overlay */}
+          <div style={{
+            position:'absolute',left:'25%',top:'30%',width:'40%',height:'45%',
+            border:'1.5px dashed oklch(60% 0.20 285 / .4)',
+            borderRadius:4,background:'oklch(60% 0.20 285 / .04)',
+          }}>
+            <span style={{
+              position:'absolute',top:-10,left:8,fontSize:9,color:'var(--primary)',
+              background:'var(--bg)',padding:'0 4px',fontFamily:'var(--mono)',fontWeight:600,
+            }}>Zone A — 보안구역</span>
+          </div>
+
+          {/* Alarm markers */}
+          {alarms.map(a=>{
+            const colors = {CRITICAL:'var(--red)',HIGH:'var(--orange)',MEDIUM:'var(--yellow)',LOW:'var(--green)'};
+            const c = colors[a.type];
+            return (
+              <div key={a.id} onClick={()=>setSelectedMarker(a.id===selectedMarker?null:a.id)}
+                style={{
+                  position:'absolute',left:a.x,top:a.y,
+                  transform:'translate(-50%,-50%)',cursor:'pointer',zIndex:5,
+                }}>
+                <div style={{
+                  width:28,height:28,borderRadius:'50%',
+                  background:`${c}22`,border:`2px solid ${c}`,
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  boxShadow:`0 0 12px ${c}55`,
+                  animation:a.type==='CRITICAL'?'pulse 1.5s infinite':'none',
+                }}>
+                  <span style={{fontSize:10}}>⚠</span>
+                </div>
+                {/* Tooltip */}
+                {selectedMarker===a.id && (
+                  <div style={{
+                    position:'absolute',bottom:'calc(100% + 8px)',left:'50%',
+                    transform:'translateX(-50%)',
+                    background:'var(--s2)',border:'1px solid var(--border2)',
+                    borderRadius:8,padding:'8px 12px',minWidth:140,
+                    boxShadow:'0 8px 24px rgba(0,0,0,.4)',zIndex:10,
+                    animation:'fadeUp .15s ease both',
+                  }}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                      <span style={{fontSize:12,fontWeight:700}}>{a.label}</span>
+                      <Severity level={a.type}/>
+                    </div>
+                    <div style={{fontSize:10,color:'var(--t3)'}}>09:12 · 자동 감지됨</div>
+                    <div style={{display:'flex',gap:6,marginTop:8}}>
+                      <button style={{
+                        flex:1,fontSize:10,padding:'4px',borderRadius:5,border:'none',
+                        background:'var(--primary)',color:'white',cursor:'pointer',fontFamily:'var(--font)',fontWeight:600,
+                      }}>처리</button>
+                      <button style={{
+                        flex:1,fontSize:10,padding:'4px',borderRadius:5,
+                        border:'1px solid var(--border2)',background:'transparent',
+                        color:'var(--t2)',cursor:'pointer',fontFamily:'var(--font)',
+                      }}>무시</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Camera markers */}
+          {cameras.map(cam=>(
+            <div key={cam.id} style={{
+              position:'absolute',left:cam.x,top:cam.y,
+              transform:'translate(-50%,-50%)',cursor:'pointer',zIndex:4,
+            }}>
+              <div style={{
+                width:22,height:22,borderRadius:5,
+                background:'oklch(70% 0.14 210 / .2)',
+                border:'1.5px solid var(--cyan)',
+                display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,
+              }}>📷</div>
+              <div style={{
+                fontSize:8,color:'var(--t3)',textAlign:'center',marginTop:2,
+                fontFamily:'var(--mono)',whiteSpace:'nowrap',
+              }}>{cam.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div style={{
+          position:'absolute',left:14,bottom:14,
+          background:'oklch(11% 0.022 275 / .9)',
+          border:'1px solid var(--border2)',borderRadius:10,
+          padding:'10px 14px',backdropFilter:'blur(12px)',
+        }}>
+          <div style={{fontSize:9,fontWeight:700,color:'var(--t4)',letterSpacing:'0.08em',marginBottom:7,textTransform:'uppercase'}}>범례</div>
+          {[['var(--red)','위급 알람'],['var(--orange)','높음 알람'],['var(--yellow)','중간 알람'],['var(--cyan)','CCTV'],['var(--primary)','보안 구역']].map(([c,l])=>(
+            <div key={l} style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
+              <div style={{width:8,height:8,borderRadius:'50%',background:c,flexShrink:0}}/>
+              <span style={{fontSize:10,color:'var(--t3)'}}>{l}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Status bar */}
+      <div style={{
+        height:34,display:'flex',alignItems:'center',gap:0,
+        background:'var(--s1)',borderTop:'1px solid var(--border)',flexShrink:0,
+        padding:'0 16px',
+      }}>
+        <div style={{display:'flex',gap:20,flex:1}}>
+          {[
+            ['노드 아이템','142','var(--t2)'],
+            ['알람','2','var(--red)'],
+            ['처리중','0','var(--orange)'],
+            ['포스트','1','var(--green)'],
+          ].map(([l,v,c])=>(
+            <div key={l} style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{fontSize:10,color:'var(--t4)'}}>{l}</span>
+              <span style={{fontSize:11,fontWeight:700,color:c,fontFamily:'var(--mono)'}}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <Dot color="var(--green)" pulse/>
+          <span style={{fontSize:10,color:'var(--t3)'}}>실시간 동기화 중</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── RIGHT PANEL ─────────── */
+const RightPanel = ({tweaks,setTweaks}) => {
+  const [tab,setTab] = useState(tweaks.rightTab||'alarm');
+  const [toggles,setToggles] = useState({ai:true,cctv:true,except:false,quality:true,boundary:false,auto:true});
+
+  const alarms = [
+    {time:'09:13:08',label:'경비 구역 침입',level:'CRITICAL'},
+    {time:'09:11:22',label:'출입-A 이상 감지',level:'HIGH'},
+    {time:'09:05:03',label:'수작업 주차',level:'LOW'},
+    {time:'09:02:22',label:'2층 보도',level:'MEDIUM'},
+    {time:'09:01:44',label:'목재 등원',level:'CRITICAL'},
+    {time:'09:10:12',label:'전체 접근수',level:'HIGH'},
+  ];
+
+  const devices = [
+    {type:'cctv',name:'정문 유력 CCTV',id:'CAM-A-33',status:'온라인',detail:'Main VMS',level:'HIGH'},
+    {type:'cctv',name:'정문 후문 CCTV',id:'CAM-B-21',status:'온라인',detail:'Main VMS',level:null},
+    {type:'cctv',name:'주차장 입구',id:'CAM-R-12',status:'온라인',detail:'Main VMS',level:null},
+    {type:'sensor',name:'출입-A',id:'192.168.1.30:8080',status:'온라인',detail:'출력채널',level:null},
+    {type:'server',name:'Sensor-1',id:'192.168.1.32:002',status:'온라인',detail:'192.168.110.0/21',level:null},
+    {type:'server',name:'ADAM-1',id:'192.168.1.32:002',status:'온라인',detail:'AdamMoritus',level:null},
+    {type:'sensor',name:'Sensor-2',id:'192.168.1.32:002',status:'온라인',detail:'SensorZone',level:null},
+  ];
+
+  const tabs = [
+    {id:'alarm',label:'알람 현황'},
+    {id:'devices',label:'CCTV 관제'},
+    {id:'props',label:'속성'},
+    {id:'settings',label:'설정'},
+  ];
+
+  return (
+    <div style={{
+      width:300,flexShrink:0,display:'flex',flexDirection:'column',
+      background:'var(--s1)',borderLeft:'1px solid var(--border)',
+      position:'relative',zIndex:5,height:'100%',
+    }}>
+      {/* Panel header with tabs */}
+      <div style={{
+        borderBottom:'1px solid var(--border)',flexShrink:0,
+        background:'var(--s2)',
+      }}>
+        {/* Title */}
+        <div style={{padding:'10px 16px 0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span style={{fontSize:11,fontWeight:700,color:'var(--t2)',letterSpacing:'0.02em'}}>속성 패널</span>
+          <button style={{
+            fontSize:10,padding:'3px 9px',borderRadius:5,border:'1px solid var(--border)',
+            background:'transparent',color:'var(--t3)',cursor:'pointer',fontFamily:'var(--font)',
+          }}>일괄 편집</button>
+        </div>
+        {/* Tabs */}
+        <div style={{display:'flex',padding:'0 8px'}}>
+          {tabs.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{
+              flex:1,padding:'9px 4px',border:'none',background:'transparent',cursor:'pointer',
+              fontSize:10,fontFamily:'var(--font)',fontWeight:tab===t.id?700:400,
+              color:tab===t.id?'var(--t1)':'var(--t4)',
+              borderBottom:`2px solid ${tab===t.id?'var(--primary)':'transparent'}`,
+              transition:'all .15s',whiteSpace:'nowrap',
+            }}>{t.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Panel body */}
+      <div style={{flex:1,overflowY:'auto',minHeight:0}}>
+
+        {/* ALARM TAB */}
+        {tab==='alarm' && (
+          <div>
+            {/* Summary chips */}
+            <div style={{padding:'12px 14px 10px',display:'flex',gap:6}}>
+              {[['위급','2','var(--red)'],['높음','3','var(--orange)'],['중간','1','var(--yellow)'],['낮음','1','var(--green)']].map(([l,n,c])=>(
+                <div key={l} style={{
+                  flex:1,textAlign:'center',padding:'7px 4px',
+                  background:`${c}12`,border:`1px solid ${c}33`,borderRadius:8,
+                }}>
+                  <div style={{fontSize:15,fontWeight:700,color:c,fontFamily:'var(--mono)'}}>{n}</div>
+                  <div style={{fontSize:9,color:'var(--t4)',marginTop:1}}>{l}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{padding:'0 14px 6px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.06em',textTransform:'uppercase'}}>최근 알람</span>
+              <button style={{fontSize:10,color:'var(--primary)',background:'none',border:'none',cursor:'pointer',fontFamily:'var(--font)'}}>전체 보기</button>
+            </div>
+
+            {alarms.map((a,i)=>(
+              <div key={i} style={{
+                display:'flex',alignItems:'center',gap:10,padding:'9px 14px',
+                borderBottom:'1px solid var(--border)',cursor:'pointer',transition:'background .15s',
+              }}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--s2)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+              >
+                <div style={{
+                  width:6,flexShrink:0,height:6,borderRadius:'50%',
+                  background:{CRITICAL:'var(--red)',HIGH:'var(--orange)',MEDIUM:'var(--yellow)',LOW:'var(--green)'}[a.level],
+                }}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'var(--t1)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{a.label}</div>
+                  <div style={{fontSize:9,color:'var(--t4)',fontFamily:'var(--mono)',marginTop:1}}>{a.time}</div>
+                </div>
+                <Severity level={a.level}/>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* DEVICES TAB */}
+        {tab==='devices' && (
+          <div>
+            {/* Search */}
+            <div style={{padding:'12px 14px 8px'}}>
+              <div style={{
+                display:'flex',alignItems:'center',gap:8,
+                background:'var(--s3)',border:'1px solid var(--border)',borderRadius:8,
+                padding:'7px 10px',
+              }}>
+                <span style={{fontSize:11,color:'var(--t4)'}}>🔍</span>
+                <input placeholder="이름 또는 ID 검색..." style={{
+                  flex:1,background:'transparent',border:'none',outline:'none',
+                  fontSize:11,color:'var(--t1)',fontFamily:'var(--font)',
+                }}/>
+              </div>
+            </div>
+
+            <div style={{padding:'0 14px 6px',fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.06em',textTransform:'uppercase'}}>
+              CCTV ({devices.filter(d=>d.type==='cctv').length})
+            </div>
+            {devices.map((d,i)=>(
+              <div key={i} style={{
+                display:'flex',alignItems:'center',gap:9,padding:'9px 14px',
+                borderBottom:'1px solid var(--border)',cursor:'pointer',transition:'background .15s',
+              }}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--s2)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+              >
+                <div style={{
+                  width:28,height:28,borderRadius:7,flexShrink:0,
+                  background:'var(--s3)',border:'1px solid var(--border)',
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,
+                }}>
+                  {d.type==='cctv'?'📷':d.type==='server'?'🖥':'📡'}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:5}}>
+                    <span style={{fontSize:11,fontWeight:600,color:'var(--t1)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{d.name}</span>
+                    {d.level && <Severity level={d.level}/>}
+                  </div>
+                  <div style={{fontSize:9,color:'var(--t4)',fontFamily:'var(--mono)',marginTop:1}}>{d.id} · {d.detail}</div>
+                </div>
+                <Dot color="var(--green)"/>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* PROPS TAB */}
+        {tab==='props' && (
+          <div style={{padding:'16px 16px'}}>
+            <div style={{
+              background:'var(--s2)',border:'1px solid var(--border)',borderRadius:10,
+              padding:'12px 14px',marginBottom:14,
+            }}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--t1)',marginBottom:3}}>중앙 보안 감시 시스템</div>
+              <div style={{fontSize:10,color:'var(--t3)'}}>AIM GUARD v1.0 · 캠퍼스 A</div>
+            </div>
+
+            {[['스크린 모드','전체 화면'],['전 구간','2178개'],['보도 단추','+8064개']].map(([k,v])=>(
+              <div key={k} style={{
+                display:'flex',justifyContent:'space-between',alignItems:'center',
+                padding:'10px 0',borderBottom:'1px solid var(--border)',
+              }}>
+                <span style={{fontSize:11,color:'var(--t3)'}}>{k}</span>
+                <span style={{fontSize:11,fontWeight:600,color:'var(--t1)',fontFamily:'var(--mono)'}}>{v}</span>
+              </div>
+            ))}
+
+            <div style={{marginTop:14}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:10}}>소스</div>
+              {['Jabe','Perelman','Nas Network Kit','384 Play Beer','JetBooster Store'].map(s=>(
+                <div key={s} style={{
+                  display:'flex',alignItems:'center',gap:8,padding:'7px 10px',
+                  background:'var(--s2)',border:'1px solid var(--border)',borderRadius:7,marginBottom:5,cursor:'pointer',
+                  transition:'all .15s',
+                }}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor='var(--border2)'}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}
+                >
+                  <div style={{
+                    width:20,height:20,borderRadius:4,background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                    flexShrink:0,
+                  }}/>
+                  <span style={{fontSize:11,color:'var(--t2)'}}>{s}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SETTINGS TAB */}
+        {tab==='settings' && (
+          <div style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:10}}>기능 설정</div>
+            {[
+              ['ai','보안지점 AI 분석 시작'],
+              ['cctv','CCTV 파일 저장'],
+              ['except','파일 압축 설정'],
+              ['quality','집집이 안전 판별'],
+              ['boundary','경계 지수'],
+              ['auto','새로운 리뷰 알림서'],
+            ].map(([k,label])=>(
+              <div key={k} style={{
+                display:'flex',alignItems:'center',justifyContent:'space-between',
+                padding:'12px 0',borderBottom:'1px solid var(--border)',
+              }}>
+                <span style={{fontSize:12,color:'var(--t2)'}}>{label}</span>
+                <Toggle on={toggles[k]} onChange={v=>setToggles(t=>({...t,[k]:v}))}/>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom action */}
+      <div style={{
+        padding:'10px 14px',borderTop:'1px solid var(--border)',flexShrink:0,
+        background:'var(--s2)',
+      }}>
+        <div style={{display:'flex',gap:8}}>
+          <button style={{
+            flex:2,padding:'9px',borderRadius:8,border:'none',cursor:'pointer',
+            background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+            color:'white',fontFamily:'var(--font)',fontSize:12,fontWeight:600,
+            boxShadow:'0 2px 12px oklch(55% 0.22 285 / .35)',
+          }}>변경사항 적용</button>
+          <button style={{
+            flex:1,padding:'9px',borderRadius:8,
+            border:'1px solid var(--border2)',background:'transparent',
+            color:'var(--t3)',fontFamily:'var(--font)',fontSize:12,cursor:'pointer',
+          }}>초기화</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── TWEAKS PANEL ─────────── */
+const TweaksPanel = ({tweaks,setTweaks,visible}) => {
+  if(!visible) return null;
+  const update = (k,v) => {
+    const next = {...tweaks,[k]:v};
+    setTweaks(next);
+    window.parent.postMessage({type:'__edit_mode_set_keys',edits:next},'*');
+  };
+  return (
+    <div style={{
+      position:'fixed',bottom:24,right:24,zIndex:9999,
+      background:'oklch(14% 0.020 275 / .95)',
+      border:'1px solid var(--border2)',borderRadius:16,
+      backdropFilter:'blur(20px)',padding:20,width:230,
+      boxShadow:'0 24px 60px oklch(0% 0 0 / .5)',
+      animation:'fadeUp .25s ease both',
+    }}>
+      <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--t3)',marginBottom:16}}>Tweaks</div>
+      <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        <div>
+          <div style={{fontSize:11,color:'var(--t3)',marginBottom:8}}>액센트 색상</div>
+          <div style={{display:'flex',gap:7}}>
+            {[['285'],['210'],['250'],['145']].map(([h])=>(
+              <button key={h} onClick={()=>update('accentHue',h)} style={{
+                flex:1,height:26,borderRadius:6,border:'none',cursor:'pointer',
+                background:`oklch(58% 0.20 ${h})`,
+                outline:tweaks.accentHue===h?'2px solid white':'none',
+                outlineOffset:2,transition:'all .15s',
+              }}/>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:11,color:'var(--t3)',marginBottom:8}}>그리드 표시</div>
+          <div style={{display:'flex',gap:6}}>
+            {[['표시','true'],['숨김','false']].map(([l,v])=>(
+              <button key={v} onClick={()=>update('showGrid',v)} style={{
+                flex:1,padding:'7px 4px',borderRadius:8,border:'none',cursor:'pointer',
+                background:tweaks.showGrid===v?'var(--s3)':'transparent',
+                color:tweaks.showGrid===v?'var(--t1)':'var(--t4)',
+                fontSize:12,fontFamily:'var(--font)',transition:'all .15s',
+              }}>{l}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── APP ─────────────────── */
+const App = () => {
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--primary', `oklch(60% 0.20 ${tweaks.accentHue})`);
+  }, [tweaks.accentHue]);
+
+  useEffect(() => {
+    const handler = e => {
+      if(e.data?.type==='__activate_edit_mode') setTweaksOpen(true);
+      if(e.data?.type==='__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({type:'__edit_mode_available'},'*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  return (
+    <div style={{height:'100vh',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden'}}>
+      {/* noise overlay */}
+      <div style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',opacity:.03,
+        backgroundImage:'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")',
+        backgroundSize:'128px 128px',
+      }}/>
+
+      <TopBar/>
+      <div style={{flex:1,display:'flex',minHeight:0,position:'relative',zIndex:1}}>
+        <LeftPanel/>
+        <MapCanvas showGrid={tweaks.showGrid}/>
+        <RightPanel tweaks={tweaks} setTweaks={setTweaks}/>
+      </div>
+      <TweaksPanel tweaks={tweaks} setTweaks={setTweaks} visible={tweaksOpen}/>
+
+      {/* Nav back to main */}
+      <a href="AIMNIS Redesign.html" style={{
+        position:'fixed',bottom:16,left:220,zIndex:9999,
+        fontSize:10,color:'var(--t4)',textDecoration:'none',
+        padding:'5px 10px',background:'var(--s2)',
+        border:'1px solid var(--border)',borderRadius:6,
+        fontFamily:'var(--mono)',
+      }}>← 메인으로</a>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,7 +1,75 @@
 import { create } from "zustand";
+import { arrayMove } from "@dnd-kit/sortable";
 import type { Node, Edge } from "reactflow";
 
-// ─── 타입 ─────────────────────────────────────────────────────
+// ─── 오버레이 위젯 (MonitorWrapper 위에 float) ─────────────────
+
+export interface OverlayWidget {
+  id: string;
+  type: string;
+  title: string;
+  data: WidgetData;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+// ─── 양방향 바인딩: 위젯 프로퍼티 ────────────────────────────────
+
+export interface WidgetProperties {
+  title?: string;
+  themeColor?: string;
+  // Gauge
+  value?: number;
+  min?: number;
+  max?: number;
+  threshold?: number;
+  // Chart
+  dataSource?: string;
+  refreshInterval?: number;
+  // CCTV
+  streamUrl?: string;
+  channelId?: string;
+  ptzControl?: boolean;
+  // 공통
+  label?: string;
+  visible?: boolean;
+}
+
+export interface ActiveWidget {
+  id: string;
+  type: string;
+  properties: WidgetProperties;
+}
+
+// ─── EditableSection 타입 ──────────────────────────────────────
+
+export type SectionType =
+  | "header"
+  | "sidebar"
+  | "map"
+  | "alarm-panel"
+  | "floor-status"
+  | "widget";
+
+export type PanelType =
+  | "brand"
+  | "navigation"
+  | "gis"
+  | "alarm"
+  | "widget"
+  | "empty";
+
+export interface SelectedElement {
+  sectionId: string;
+  type: SectionType;
+  label: string;
+  panelType: PanelType;
+  rect: { top: number; left: number; width: number; height: number };
+}
+
+// ─── 기존 타입 ────────────────────────────────────────────────
 
 export interface WidgetData {
   value?: string;
@@ -36,15 +104,41 @@ export interface NodeMapping {
   fieldBindings: Record<string, string>;
 }
 
-type RightPanel = "mapping" | "settings";
+type RightPanel = "mapping" | "settings" | "brand" | "gis" | "alarm" | "navigation";
+
+// ─── 스왑 패널 위젯 ───────────────────────────────────────────
+
+export interface SwappedPanelWidget {
+  id: string;
+  type: string;
+  title: string;
+  data: WidgetData;
+  visible: boolean;
+  originalWidget: OverlayWidget; // "원래대로" 복원용
+}
 
 // ─── 스토어 ───────────────────────────────────────────────────
 
 interface EditorState {
-  // 캔버스
+  // 캔버스 (ReactFlow 레거시)
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string | null;
+
+  // 오버레이 위젯
+  overlayWidgets: OverlayWidget[];
+  canvasSize: { w: number; h: number };
+  addOverlayWidget: (w: OverlayWidget) => void;
+  removeOverlayWidget: (id: string) => void;
+  updateOverlayWidgetData: (id: string, data: Partial<WidgetData>) => void;
+  updateOverlayWidgetPosition: (id: string, x: number, y: number) => void;
+  setCanvasSize: (size: { w: number; h: number }) => void;
+
+  // 양방향 바인딩
+  activeWidgets: ActiveWidget[];
+  systemTitle: string;
+  updateWidgetProperty: (id: string, key: keyof WidgetProperties, value: unknown) => void;
+  setSystemTitle: (v: string) => void;
 
   // 채팅
   messages: ChatMessage[];
@@ -63,6 +157,10 @@ interface EditorState {
   // 퍼블리시
   publishedUrl: string | null;
   isFullscreen: boolean;
+
+  // EditableSection
+  selectedElement: SelectedElement | null;
+  setSelectedElement: (el: SelectedElement | null) => void;
 
   // 액션 — 캔버스
   setNodes: (nodes: Node[]) => void;
@@ -89,12 +187,92 @@ interface EditorState {
   // 액션 — 퍼블리시
   setPublishedUrl: (url: string | null) => void;
   setFullscreen: (v: boolean) => void;
+
+  // 우측 패널 (중앙에서 드래그해서 보낸 위젯들)
+  rightPanelWidgets: SwappedPanelWidget[];
+  addToRightPanel: (widget: OverlayWidget) => void;
+  insertToRightPanel: (widget: OverlayWidget, index: number) => void;
+  removeFromRightPanel: (id: string) => void;
+  toggleRightPanelWidget: (id: string) => void;
+  reorderRightPanel: (activeId: string, overId: string) => void;
+  resetRightPanel: () => void;
+
+  // AIM GUARD 기존 패널 가시성
+  hiddenMonitorPanels: string[];
+  toggleMonitorPanel: (panelId: string) => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+
+  // 오버레이 위젯
+  overlayWidgets: [],
+  canvasSize: { w: 800, h: 600 },
+  addOverlayWidget: (w) =>
+    set((s) => ({
+      overlayWidgets: [...s.overlayWidgets, w],
+      // activeWidget 동시 생성
+      activeWidgets: [
+        ...s.activeWidgets,
+        {
+          id: w.id,
+          type: w.type,
+          properties: {
+            title: w.title,
+            themeColor: w.data.color ?? "#14b8a6",
+            value: w.data.gaugeValue,
+          },
+        },
+      ],
+    })),
+  removeOverlayWidget: (id) =>
+    set((s) => ({
+      overlayWidgets: s.overlayWidgets.filter((w) => w.id !== id),
+      activeWidgets: s.activeWidgets.filter((aw) => aw.id !== id),
+    })),
+  updateOverlayWidgetData: (id, data) =>
+    set((s) => ({
+      overlayWidgets: s.overlayWidgets.map((w) =>
+        w.id === id ? { ...w, data: { ...w.data, ...data } } : w
+      ),
+    })),
+  updateOverlayWidgetPosition: (id, x, y) =>
+    set((s) => ({
+      overlayWidgets: s.overlayWidgets.map((w) =>
+        w.id === id ? { ...w, x, y } : w
+      ),
+    })),
+  setCanvasSize: (canvasSize) => set({ canvasSize }),
+
+  // 양방향 바인딩
+  activeWidgets: [],
+  systemTitle: "통합 보안 모니터링 시스템",
+  updateWidgetProperty: (id, key, value) =>
+    set((s) => ({
+      // 1. activeWidgets 업데이트
+      activeWidgets: s.activeWidgets.map((aw) =>
+        aw.id === id
+          ? { ...aw, properties: { ...aw.properties, [key]: value } }
+          : aw
+      ),
+      // 2. overlayWidgets 동기화 (표시 데이터에 영향 있는 키)
+      overlayWidgets: s.overlayWidgets.map((ow) => {
+        if (ow.id !== id) return ow;
+        switch (key) {
+          case "title":
+            return { ...ow, title: value as string };
+          case "themeColor":
+            return { ...ow, data: { ...ow.data, color: value as string } };
+          case "value":
+            return { ...ow, data: { ...ow.data, gaugeValue: value as number } };
+          default:
+            return ow;
+        }
+      }),
+    })),
+  setSystemTitle: (systemTitle) => set({ systemTitle }),
 
   messages: [
     {
@@ -117,7 +295,6 @@ export const useEditorStore = create<EditorState>((set) => ({
   },
 
   lastCommand: null,
-
   publishedUrl: null,
   isFullscreen: false,
 
@@ -160,4 +337,79 @@ export const useEditorStore = create<EditorState>((set) => ({
   // 퍼블리시
   setPublishedUrl: (publishedUrl) => set({ publishedUrl }),
   setFullscreen: (isFullscreen) => set({ isFullscreen }),
+
+  selectedElement: null,
+  setSelectedElement: (selectedElement) => set({ selectedElement }),
+
+  // 우측 패널
+  rightPanelWidgets: [],
+  addToRightPanel: (widget) =>
+    set((s) => {
+      if (s.rightPanelWidgets.some((w) => w.id === widget.id)) return s;
+      return {
+        overlayWidgets: s.overlayWidgets.filter((w) => w.id !== widget.id),
+        activeWidgets: s.activeWidgets.filter((aw) => aw.id !== widget.id),
+        rightPanelWidgets: [
+          ...s.rightPanelWidgets,
+          { id: widget.id, type: widget.type, title: widget.title, data: widget.data, visible: true, originalWidget: widget },
+        ],
+      };
+    }),
+  insertToRightPanel: (widget, index) =>
+    set((s) => {
+      if (s.rightPanelWidgets.some((w) => w.id === widget.id)) return s;
+      const newItem: SwappedPanelWidget = {
+        id: widget.id, type: widget.type, title: widget.title,
+        data: widget.data, visible: true, originalWidget: widget,
+      };
+      const updated = [...s.rightPanelWidgets];
+      updated.splice(index, 0, newItem);
+      return {
+        overlayWidgets: s.overlayWidgets.filter((w) => w.id !== widget.id),
+        activeWidgets: s.activeWidgets.filter((aw) => aw.id !== widget.id),
+        rightPanelWidgets: updated,
+      };
+    }),
+  removeFromRightPanel: (id) =>
+    set((s) => ({
+      rightPanelWidgets: s.rightPanelWidgets.filter((w) => w.id !== id),
+    })),
+  toggleRightPanelWidget: (id) =>
+    set((s) => ({
+      rightPanelWidgets: s.rightPanelWidgets.map((w) =>
+        w.id === id ? { ...w, visible: !w.visible } : w
+      ),
+    })),
+  reorderRightPanel: (activeId, overId) =>
+    set((s) => {
+      const oldIndex = s.rightPanelWidgets.findIndex((w) => w.id === activeId);
+      const newIndex = s.rightPanelWidgets.findIndex((w) => w.id === overId);
+      if (oldIndex === -1 || newIndex === -1) return s;
+      return { rightPanelWidgets: arrayMove(s.rightPanelWidgets, oldIndex, newIndex) };
+    }),
+  // 원래대로: 우측 패널 위젯을 중앙에 복원
+  resetRightPanel: () =>
+    set((s) => ({
+      rightPanelWidgets: [],
+      overlayWidgets: [
+        ...s.overlayWidgets,
+        ...s.rightPanelWidgets.map((w) => w.originalWidget),
+      ],
+      activeWidgets: [
+        ...s.activeWidgets,
+        ...s.rightPanelWidgets.map((w) => ({
+          id: w.id, type: w.type,
+          properties: { title: w.title, themeColor: w.data.color ?? "#14b8a6" },
+        })),
+      ],
+    })),
+
+  // AIM GUARD 기존 패널 가시성
+  hiddenMonitorPanels: [],
+  toggleMonitorPanel: (panelId) =>
+    set((s) => ({
+      hiddenMonitorPanels: s.hiddenMonitorPanels.includes(panelId)
+        ? s.hiddenMonitorPanels.filter((id) => id !== panelId)
+        : [...s.hiddenMonitorPanels, panelId],
+    })),
 }));

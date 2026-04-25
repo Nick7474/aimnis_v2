@@ -5,8 +5,9 @@ const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:e2b";
 
 // Advisor 전략: Haiku(빠른 인터뷰 Q&A) + Opus(최종 설계 계획)
-const HAIKU_MODEL = "claude-haiku-4-5-20251001";
-const OPUS_MODEL = "claude-opus-4-7";
+const HAIKU_MODEL  = "claude-haiku-4-5-20251001";
+const SONNET_MODEL = "claude-sonnet-4-6";
+const OPUS_MODEL   = "claude-opus-4-7";
 
 // 캐싱 대상 시스템 프롬프트 (변경 빈도 낮음)
 const SYSTEM_PROMPT = `당신은 20년 경력의 엔터프라이즈 서비스 아키텍트입니다.
@@ -112,7 +113,8 @@ async function handleClaudeInterview(
   scenario: string,
   turnCount: number,
   lastUserMsg: string,
-  isSkip: boolean
+  isSkip: boolean,
+  qaModel: string = HAIKU_MODEL
 ): Promise<string> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
@@ -157,7 +159,7 @@ async function handleClaudeInterview(
   // 일반 턴: Haiku로 빠른 Q&A (prompt caching)
   try {
     const resp = await client.messages.create({
-      model: HAIKU_MODEL,
+      model: qaModel,
       max_tokens: 400,
       system: [
         {
@@ -196,12 +198,14 @@ export async function POST(req: NextRequest) {
   const lastUserMsg = msgList.filter((m) => m.role === "user").slice(-1)[0]?.content ?? "";
   const isSkip = lastUserMsg.includes("대충") || lastUserMsg.includes("그냥 해줘") || lastUserMsg.includes("건너뛰");
 
-  // 클라이언트 provider 우선 적용
-  const effectiveProvider = provider === "claude-haiku" ? "claude" : (LLM_PROVIDER as string);
+  const isClaude = provider === "claude-haiku" || provider === "claude-sonnet";
+  const effectiveProvider = isClaude ? "claude" : (LLM_PROVIDER as string);
+  // Sonnet이면 Q&A도 Sonnet, 완료 턴은 항상 Opus
+  const interviewModel = provider === "claude-sonnet" ? SONNET_MODEL : HAIKU_MODEL;
 
   if (effectiveProvider === "claude") {
     try {
-      const result = await handleClaudeInterview(msgList, scenario, turnCount, lastUserMsg, isSkip);
+      const result = await handleClaudeInterview(msgList, scenario, turnCount, lastUserMsg, isSkip, interviewModel);
       return new Response(result, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     } catch {
       // fallback to mock

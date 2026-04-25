@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMNIS Design System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:      oklch(8% 0.025 275);
+  --s1:      oklch(11% 0.022 275);
+  --s2:      oklch(14% 0.020 275);
+  --s3:      oklch(18% 0.018 275);
+  --s4:      oklch(22% 0.016 275);
+  --border:  oklch(100% 0 0 / .07);
+  --border2: oklch(100% 0 0 / .12);
+  --border3: oklch(100% 0 0 / .18);
+  --primary: oklch(60% 0.20 285);
+  --cyan:    oklch(70% 0.14 210);
+  --green:   oklch(65% 0.16 145);
+  --red:     oklch(58% 0.22 25);
+  --orange:  oklch(68% 0.18 55);
+  --yellow:  oklch(74% 0.16 85);
+  --t1:      oklch(96% 0.008 275);
+  --t2:      oklch(68% 0.012 275);
+  --t3:      oklch(45% 0.010 275);
+  --t4:      oklch(30% 0.008 275);
+  --font:    'Plus Jakarta Sans', sans-serif;
+  --mono:    'DM Mono', monospace;
+}
+html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var(--t1)}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:128px 128px;
+}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:4px}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useEffect} = React;
+
+/* ── ICONS ─────────────────────────────────────── */
+const ICONS = {
+  shield:<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>,
+  camera:<><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></>,
+  bell:<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
+  users:<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+  warning:<><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
+  settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+  check:<polyline points="20 6 9 17 4 12"/>,
+  sparkle:<><path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z"/><path d="M19 2L19.7 4.3L22 5L19.7 5.7L19 8L18.3 5.7L16 5L18.3 4.3L19 2Z"/></>,
+  close:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+  plus:<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+  arrowUp:<><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></>,
+  home:<><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+};
+const Ic = ({n,s=16,c='currentColor',stroke=1.8,fill='none'}) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill={fill} stroke={c} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+    {ICONS[n]}
+  </svg>
+);
+
+/* ── LOGO ──────────────────────────────────────── */
+const Logo = ({size=28}) => (
+  <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+    <defs><linearGradient id="lgDS" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stopColor="#FF6B35"/>
+      <stop offset="50%" stopColor="#C850C0"/>
+      <stop offset="100%" stopColor="#4158D0"/>
+    </linearGradient></defs>
+    <circle cx="20" cy="20" r="18" fill="url(#lgDS)" opacity="0.15"/>
+    <circle cx="20" cy="20" r="18" fill="none" stroke="url(#lgDS)" strokeWidth="1.5"/>
+    <path d="M12 28L20 12L28 28" stroke="url(#lgDS)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M14.5 22.5H25.5" stroke="url(#lgDS)" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="20" cy="20" r="3" fill="url(#lgDS)" opacity="0.8"/>
+  </svg>
+);
+
+/* ── SECTION WRAPPER ───────────────────────────── */
+const Section = ({id, title, subtitle, children}) => (
+  <section id={id} style={{marginBottom:72, animation:'fadeUp .5s ease both'}}>
+    <div style={{marginBottom:28}}>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:6}}>
+        <div style={{width:3,height:20,borderRadius:2,background:'var(--primary)'}}/>
+        <h2 style={{fontSize:20,fontWeight:700,letterSpacing:'-0.02em'}}>{title}</h2>
+      </div>
+      {subtitle && <p style={{fontSize:13,color:'var(--t3)',paddingLeft:15,lineHeight:1.6}}>{subtitle}</p>}
+    </div>
+    {children}
+  </section>
+);
+
+/* ── TOKEN ROW ─────────────────────────────────── */
+const TokenRow = ({name, value, preview, desc}) => (
+  <div style={{
+    display:'grid', gridTemplateColumns:'180px 200px 1fr auto',
+    alignItems:'center', gap:16,
+    padding:'10px 16px', borderBottom:'1px solid var(--border)',
+  }}>
+    <code style={{fontSize:11,color:'var(--primary)',fontFamily:'var(--mono)'}}>{name}</code>
+    <code style={{fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>{value}</code>
+    <span style={{fontSize:11,color:'var(--t4)'}}>{desc}</span>
+    {preview}
+  </div>
+);
+
+/* ── CARD WRAPPER ──────────────────────────────── */
+const Card = ({children, style={}}) => (
+  <div style={{
+    background:'var(--s1)',border:'1px solid var(--border)',
+    borderRadius:14,padding:24,...style,
+  }}>{children}</div>
+);
+
+/* ── LABEL ─────────────────────────────────────── */
+const Label = ({children}) => (
+  <div style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.1em',
+    textTransform:'uppercase',marginBottom:14}}>{children}</div>
+);
+
+/* ── APP ───────────────────────────────────────── */
+const App = () => {
+  const [activeNav, setActiveNav] = useState('foundation');
+  const [btnHover, setBtnHover] = useState(null);
+  const [chipSel, setChipSel] = useState(['Full HD (1080p)']);
+  const [toggleOn, setToggleOn] = useState(true);
+  const [inputFocus, setInputFocus] = useState(false);
+  const [copied, setCopied] = useState(null);
+
+  const copy = (text) => {
+    navigator.clipboard?.writeText(text);
+    setCopied(text);
+    setTimeout(()=>setCopied(null), 1500);
+  };
+
+  const navItems = [
+    {id:'foundation', label:'Foundation'},
+    {id:'colors', label:'Colors'},
+    {id:'typography', label:'Typography'},
+    {id:'spacing', label:'Spacing'},
+    {id:'components', label:'Components'},
+    {id:'icons', label:'Icons'},
+    {id:'patterns', label:'Patterns'},
+  ];
+
+  const scrollTo = (id) => {
+    setActiveNav(id);
+    document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+
+  return (
+    <div style={{display:'flex',minHeight:'100vh'}}>
+
+      {/* ── SIDEBAR ── */}
+      <aside style={{
+        width:220,flexShrink:0,position:'sticky',top:0,height:'100vh',
+        background:'var(--s1)',borderRight:'1px solid var(--border)',
+        display:'flex',flexDirection:'column',overflow:'auto',zIndex:10,
+      }}>
+        {/* Logo */}
+        <div style={{padding:'20px 20px 16px',borderBottom:'1px solid var(--border)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+            <Logo size={26}/>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em'}}>AIMNIS</div>
+              <div style={{fontSize:9,color:'var(--t4)',marginTop:1,letterSpacing:'0.04em'}}>Design System</div>
+            </div>
+          </div>
+          <div style={{
+            display:'inline-flex',alignItems:'center',gap:6,
+            padding:'4px 10px',borderRadius:6,
+            background:'oklch(60% 0.20 285 / .1)',border:'1px solid oklch(60% 0.20 285 / .25)',
+          }}>
+            <div style={{width:5,height:5,borderRadius:'50%',background:'var(--green)',animation:'pulse 2s infinite'}}/>
+            <span style={{fontSize:10,color:'var(--primary)',fontWeight:600,letterSpacing:'0.04em'}}>v1.0 · Enterprise</span>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav style={{padding:'12px 8px',flex:1}}>
+          {navItems.map(n => (
+            <button key={n.id} onClick={()=>scrollTo(n.id)} style={{
+              width:'100%',display:'flex',alignItems:'center',gap:8,padding:'9px 12px',
+              border:'none',cursor:'pointer',borderRadius:8,
+              background:activeNav===n.id?'oklch(60% 0.20 285 / .1)':'transparent',
+              color:activeNav===n.id?'var(--t1)':'var(--t3)',
+              fontSize:12,fontFamily:'var(--font)',fontWeight:activeNav===n.id?600:400,
+              borderLeft:`2px solid ${activeNav===n.id?'var(--primary)':'transparent'}`,
+              transition:'all .15s',textAlign:'left',marginBottom:2,
+            }}>{n.label}</button>
+          ))}
+        </nav>
+
+        <div style={{padding:'14px 16px',borderTop:'1px solid var(--border)'}}>
+          <div style={{fontSize:10,color:'var(--t4)'}}>AIMNIS · 2026</div>
+          <div style={{fontSize:10,color:'var(--t4)',marginTop:2}}>Plus Jakarta Sans · DM Mono</div>
+        </div>
+      </aside>
+
+      {/* ── MAIN ── */}
+      <main style={{flex:1,padding:'56px 64px 120px',maxWidth:1100,minWidth:0}}>
+
+        {/* Header */}
+        <div style={{marginBottom:64}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+            <span style={{fontSize:10,fontWeight:700,letterSpacing:'0.1em',color:'var(--primary)',
+              textTransform:'uppercase',padding:'3px 10px',
+              background:'oklch(60% 0.20 285 / .1)',border:'1px solid oklch(60% 0.20 285 / .25)',borderRadius:5}}>
+              Design System
+            </span>
+          </div>
+          <h1 style={{fontSize:40,fontWeight:700,letterSpacing:'-0.03em',lineHeight:1.1,marginBottom:14,
+            background:'linear-gradient(135deg,var(--t1) 30%,oklch(65% 0.14 285) 100%)',
+            WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
+            AIMNIS<br/>Design System
+          </h1>
+          <p style={{fontSize:15,color:'var(--t2)',lineHeight:1.7,maxWidth:520}}>
+            엔터프라이즈 AI 플랫폼을 위한 디자인 언어. 색상 토큰, 타이포그래피, 간격 체계, 컴포넌트 패턴을 정의합니다.
+          </p>
+        </div>
+
+        {/* ══ FOUNDATION ══════════════════════════════════ */}
+        <Section id="foundation" title="Foundation" subtitle="디자인 시스템의 핵심 원칙과 설계 방향">
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+            {[
+              {icon:'shield',title:'Precision Dark',desc:'단일 다크 테마. 8%~22%의 명도 계층으로 깊이를 형성하며, 색상 노이즈 텍스처로 질감을 부여합니다.'},
+              {icon:'sparkle',title:'AI-First',desc:'모든 인터페이스는 AI 에이전트와의 협업을 전제로 설계됩니다. 입력·응답·상태가 명확히 시각화됩니다.'},
+              {icon:'users',title:'Enterprise UX',desc:'보안 현장 담당자를 위한 고밀도 UI. 정보 계층과 동작 가능한 요소의 명확한 위계를 유지합니다.'},
+            ].map(p=>(
+              <Card key={p.title}>
+                <div style={{
+                  width:36,height:36,borderRadius:10,marginBottom:14,
+                  background:'oklch(60% 0.20 285 / .12)',border:'1px solid oklch(60% 0.20 285 / .25)',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                }}>
+                  <Ic n={p.icon} s={16} c='var(--primary)' stroke={1.8}/>
+                </div>
+                <div style={{fontSize:13,fontWeight:700,marginBottom:6}}>{p.title}</div>
+                <div style={{fontSize:11,color:'var(--t3)',lineHeight:1.65}}>{p.desc}</div>
+              </Card>
+            ))}
+          </div>
+        </Section>
+
+        {/* ══ COLORS ══════════════════════════════════════ */}
+        <Section id="colors" title="Colors" subtitle="oklch 색공간 기반 토큰 시스템. 지각적으로 균일한 색상을 보장합니다.">
+
+          {/* Surface scale */}
+          <Label>Surface Scale — 배경 레이어</Label>
+          <Card style={{padding:0,overflow:'hidden',marginBottom:24}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)'}}>
+              {[
+                {n:'--bg',   v:'oklch(8% 0.025 275)',  lbl:'Base BG'},
+                {n:'--s1',   v:'oklch(11% 0.022 275)', lbl:'Surface 1'},
+                {n:'--s2',   v:'oklch(14% 0.020 275)', lbl:'Surface 2'},
+                {n:'--s3',   v:'oklch(18% 0.018 275)', lbl:'Surface 3'},
+                {n:'--s4',   v:'oklch(22% 0.016 275)', lbl:'Surface 4'},
+              ].map(s=>(
+                <div key={s.n} style={{cursor:'pointer'}} onClick={()=>copy(s.v)}
+                  title={`복사: ${s.v}`}>
+                  <div style={{height:80,background:`var(${s.n})`,border:'1px solid var(--border)'}}/>
+                  <div style={{padding:'10px 14px',borderBottom:'1px solid var(--border)',background:'var(--s1)'}}>
+                    <code style={{fontSize:10,color:'var(--primary)',fontFamily:'var(--mono)',display:'block',marginBottom:3}}>{s.n}</code>
+                    <div style={{fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)'}}>{s.lbl}</div>
+                    <div style={{fontSize:9,color:'var(--t4)',fontFamily:'var(--mono)',marginTop:2,opacity:.7}}>{s.v}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Brand + Status colors */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:24}}>
+            <div>
+              <Label>Brand Colors</Label>
+              <Card style={{padding:0,overflow:'hidden'}}>
+                {[
+                  {n:'--primary', v:'oklch(60% 0.20 285)', lbl:'Primary — 보라 계열', hex:'#7C5AED'},
+                  {n:'--cyan',    v:'oklch(70% 0.14 210)', lbl:'Cyan — 정보 강조',    hex:'#38B2D8'},
+                  {n:'--green',   v:'oklch(65% 0.16 145)', lbl:'Green — 성공·활성',   hex:'#34D399'},
+                ].map((c,i)=>(
+                  <div key={c.n} onClick={()=>copy(c.v)} style={{
+                    display:'flex',alignItems:'center',gap:14,padding:'12px 16px',
+                    borderBottom:i<2?'1px solid var(--border)':'none',cursor:'pointer',
+                    transition:'background .15s',
+                  }}
+                    onMouseEnter={e=>e.currentTarget.style.background='var(--s2)'}
+                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                  >
+                    <div style={{width:32,height:32,borderRadius:8,background:`var(${c.n})`,flexShrink:0,
+                      boxShadow:`0 4px 12px ${c.hex}44`}}/>
+                    <div style={{flex:1}}>
+                      <code style={{fontSize:11,color:'var(--t1)',fontFamily:'var(--mono)',display:'block',marginBottom:2}}>{c.n}</code>
+                      <div style={{fontSize:10,color:'var(--t3)'}}>{c.lbl}</div>
+                    </div>
+                    <code style={{fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)'}}>{c.hex}</code>
+                  </div>
+                ))}
+              </Card>
+            </div>
+            <div>
+              <Label>Semantic / Status Colors</Label>
+              <Card style={{padding:0,overflow:'hidden'}}>
+                {[
+                  {n:'--red',    v:'oklch(58% 0.22 25)', lbl:'Critical — 위급',    hex:'#EF4444'},
+                  {n:'--orange', v:'oklch(68% 0.18 55)', lbl:'High — 높음',        hex:'#F97316'},
+                  {n:'--yellow', v:'oklch(74% 0.16 85)', lbl:'Medium — 중간',      hex:'#EAB308'},
+                  {n:'--green',  v:'oklch(65% 0.16 145)',lbl:'Low / OK — 낮음·정상',hex:'#22C55E'},
+                ].map((c,i)=>(
+                  <div key={c.n+i} onClick={()=>copy(c.v)} style={{
+                    display:'flex',alignItems:'center',gap:14,padding:'10px 16px',
+                    borderBottom:i<3?'1px solid var(--border)':'none',cursor:'pointer',
+                    transition:'background .15s',
+                  }}
+                    onMouseEnter={e=>e.currentTarget.style.background='var(--s2)'}
+                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                  >
+                    <div style={{width:10,height:10,borderRadius:'50%',background:`var(${c.n})`,flexShrink:0}}/>
+                    <div style={{flex:1}}>
+                      <code style={{fontSize:11,color:'var(--t1)',fontFamily:'var(--mono)',display:'block'}}>{c.n}</code>
+                      <div style={{fontSize:10,color:'var(--t3)'}}>{c.lbl}</div>
+                    </div>
+                    <code style={{fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)'}}>{c.hex}</code>
+                  </div>
+                ))}
+              </Card>
+            </div>
+          </div>
+
+          {/* Text scale */}
+          <Label>Text Scale — 텍스트 토큰</Label>
+          <Card style={{padding:0,overflow:'hidden'}}>
+            {[
+              {n:'--t1',v:'oklch(96% 0.008 275)',lbl:'Primary text — 헤드라인, 강조'},
+              {n:'--t2',v:'oklch(68% 0.012 275)',lbl:'Secondary text — 바디, 설명'},
+              {n:'--t3',v:'oklch(45% 0.010 275)',lbl:'Muted text — 레이블, 힌트'},
+              {n:'--t4',v:'oklch(30% 0.008 275)',lbl:'Disabled text — 비활성, 구분선'},
+            ].map((t,i)=>(
+              <div key={t.n} style={{
+                display:'flex',alignItems:'center',gap:14,padding:'12px 16px',
+                borderBottom:i<3?'1px solid var(--border)':'none',
+              }}>
+                <div style={{width:28,height:28,borderRadius:6,background:'var(--s3)',
+                  display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <span style={{fontSize:13,fontWeight:700,color:`var(${t.n})`}}>Aa</span>
+                </div>
+                <div style={{flex:1}}>
+                  <code style={{fontSize:11,fontFamily:'var(--mono)',color:`var(${t.n})`}}>{t.n}</code>
+                  <div style={{fontSize:10,color:'var(--t4)',marginTop:2}}>{t.lbl}</div>
+                </div>
+                <code style={{fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)'}}>{t.v}</code>
+              </div>
+            ))}
+          </Card>
+
+          {/* Border scale */}
+          <div style={{marginTop:24}}>
+            <Label>Border Tokens</Label>
+            <Card style={{padding:0,overflow:'hidden'}}>
+              {[
+                {n:'--border', v:'oklch(100% 0 0 / .07)', lbl:'Default — 패널 구분선'},
+                {n:'--border2',v:'oklch(100% 0 0 / .12)', lbl:'Elevated — 카드, 인풋'},
+                {n:'--border3',v:'oklch(100% 0 0 / .18)', lbl:'Strong — 호버, 포커스'},
+              ].map((b,i)=>(
+                <div key={b.n} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',
+                  borderBottom:i<2?'1px solid var(--border)':'none'}}>
+                  <div style={{width:48,height:1,background:`var(${b.n})`,flexShrink:0}}/>
+                  <code style={{fontSize:11,fontFamily:'var(--mono)',color:'var(--t2)',minWidth:100}}>{b.n}</code>
+                  <div style={{flex:1,fontSize:10,color:'var(--t3)'}}>{b.lbl}</div>
+                  <code style={{fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)'}}>{b.v}</code>
+                </div>
+              ))}
+            </Card>
+          </div>
+        </Section>
+
+        {/* ══ TYPOGRAPHY ══════════════════════════════════ */}
+        <Section id="typography" title="Typography" subtitle="Plus Jakarta Sans (UI) + DM Mono (코드·수치)">
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:24}}>
+            <Card>
+              <Label>Plus Jakarta Sans — UI Font</Label>
+              {[
+                {label:'Display',size:40,weight:700,ls:'-0.035em',sample:'에이전트'},
+                {label:'Heading 1',size:28,weight:700,ls:'-0.025em',sample:'보안 대시보드'},
+                {label:'Heading 2',size:20,weight:700,ls:'-0.02em',sample:'Spec Board'},
+                {label:'Heading 3',size:16,weight:600,ls:'-0.01em',sample:'알람 현황'},
+                {label:'Body',size:13,weight:400,ls:'0.01em',sample:'현장 환경에 맞는 솔루션을 구성합니다.'},
+                {label:'Caption',size:11,weight:500,ls:'0.02em',sample:'2,000~5,000㎡ · 현재 진행 중'},
+                {label:'Label',size:10,weight:700,ls:'0.08em',sample:'ENTERPRISE · 복수 선택'},
+              ].map(t=>(
+                <div key={t.label} style={{
+                  display:'flex',alignItems:'baseline',gap:16,padding:'8px 0',
+                  borderBottom:'1px solid var(--border)',
+                }}>
+                  <div style={{minWidth:80,fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)'}}>{t.label}</div>
+                  <div style={{flex:1,fontSize:t.size,fontWeight:t.weight,letterSpacing:t.ls,
+                    lineHeight:1.2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',
+                    color:'var(--t1)'}}>{t.sample}</div>
+                  <code style={{fontSize:9,color:'var(--t4)',fontFamily:'var(--mono)',flexShrink:0}}>{t.size}px/{t.weight}</code>
+                </div>
+              ))}
+            </Card>
+            <Card>
+              <Label>DM Mono — Code / Numeric Font</Label>
+              {[
+                {label:'Mono LG',size:20,weight:500,sample:'99.9%'},
+                {label:'Mono MD',size:14,weight:400,sample:'CAM-A-33 · 192.168.1.30'},
+                {label:'Mono SM',size:12,weight:400,sample:'energy_test_v1.4'},
+                {label:'Mono XS',size:10,weight:400,sample:'09:13:08 · 3/12 답변'},
+              ].map(t=>(
+                <div key={t.label} style={{padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
+                  <div style={{fontSize:9,color:'var(--t4)',fontFamily:'var(--mono)',marginBottom:6}}>{t.label} · {t.size}px</div>
+                  <div style={{fontSize:t.size,fontWeight:t.weight,fontFamily:'var(--mono)',color:'var(--t1)'}}>{t.sample}</div>
+                </div>
+              ))}
+              <div style={{marginTop:20}}>
+                <Label>Gradient Text</Label>
+                <div style={{
+                  fontSize:32,fontWeight:700,letterSpacing:'-0.03em',
+                  background:'linear-gradient(135deg,var(--t1) 30%,oklch(65% 0.14 285) 100%)',
+                  WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',
+                }}>무엇을 만들어<br/>드릴까요?</div>
+                <code style={{fontSize:9,color:'var(--t4)',fontFamily:'var(--mono)',marginTop:8,display:'block'}}>
+                  background: linear-gradient(135deg, --t1 30%, oklch(65% 0.14 285))
+                </code>
+              </div>
+            </Card>
+          </div>
+        </Section>
+
+        {/* ══ SPACING ══════════════════════════════════════ */}
+        <Section id="spacing" title="Spacing & Shape" subtitle="4px 베이스 그리드. 보더 래디우스는 컴포넌트 크기에 비례합니다.">
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <Card>
+              <Label>Spacing Scale</Label>
+              {[2,4,6,8,10,12,14,16,20,24,28,32,40,48,56,64].map(s=>(
+                <div key={s} style={{display:'flex',alignItems:'center',gap:12,marginBottom:6}}>
+                  <code style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--t4)',minWidth:36}}>{s}px</code>
+                  <div style={{height:8,borderRadius:2,background:'var(--primary)',width:s*2,maxWidth:200,
+                    opacity:.6+s/80}}/>
+                </div>
+              ))}
+            </Card>
+            <Card>
+              <Label>Border Radius Scale</Label>
+              <div style={{display:'flex',flexWrap:'wrap',gap:14}}>
+                {[
+                  {r:4,label:'4px — Badge, Tag'},
+                  {r:6,label:'6px — Small button'},
+                  {r:7,label:'7px — Input small'},
+                  {r:8,label:'8px — Button, Input'},
+                  {r:9,label:'9px — Card SM'},
+                  {r:10,label:'10px — Card'},
+                  {r:12,label:'12px — Panel'},
+                  {r:14,label:'14px — Card LG'},
+                  {r:16,label:'16px — Modal'},
+                  {r:18,label:'18px — Dialog'},
+                  {r:20,label:'20px — Prompt box'},
+                ].map(item=>(
+                  <div key={item.r} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+                    <div style={{
+                      width:44,height:44,borderRadius:item.r,
+                      background:'var(--s3)',border:'1px solid var(--border2)',
+                    }}/>
+                    <code style={{fontSize:9,fontFamily:'var(--mono)',color:'var(--t4)',textAlign:'center'}}>{item.r}px</code>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{marginTop:24}}>
+                <Label>Elevation / Shadow</Label>
+                {[
+                  {label:'Card',shadow:'0 8px 24px oklch(0% 0 0 / .25), 0 1px 0 oklch(100% 0 0 / .06) inset'},
+                  {label:'Panel',shadow:'0 16px 40px oklch(0% 0 0 / .3)'},
+                  {label:'Modal',shadow:'0 32px 80px oklch(0% 0 0 / .4), 0 1px 0 oklch(100% 0 0 / .08) inset'},
+                  {label:'Primary Glow',shadow:'0 4px 16px oklch(55% 0.22 285 / .4)'},
+                ].map(e=>(
+                  <div key={e.label} style={{
+                    display:'flex',alignItems:'center',gap:16,marginBottom:12,
+                  }}>
+                    <div style={{
+                      width:40,height:28,borderRadius:8,background:'var(--s2)',
+                      boxShadow:e.shadow,flexShrink:0,
+                    }}/>
+                    <div>
+                      <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{e.label}</div>
+                      <code style={{fontSize:9,color:'var(--t4)',fontFamily:'var(--mono)',wordBreak:'break-all'}}>{e.shadow}</code>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </Section>
+
+        {/* ══ COMPONENTS ══════════════════════════════════ */}
+        <Section id="components" title="Components" subtitle="실제 UI에서 사용되는 핵심 컴포넌트. 상태와 변형을 포함합니다.">
+
+          {/* Buttons */}
+          <Label>Buttons</Label>
+          <Card style={{marginBottom:20}}>
+            <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
+              {/* Primary */}
+              <button style={{
+                padding:'10px 20px',borderRadius:9,border:'none',cursor:'pointer',
+                background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                color:'white',fontFamily:'var(--font)',fontSize:13,fontWeight:600,
+                boxShadow:'0 4px 16px oklch(55% 0.22 285 / .35)',letterSpacing:'0.02em',
+              }}>Primary</button>
+
+              {/* Secondary */}
+              <button style={{
+                padding:'10px 20px',borderRadius:9,border:'1px solid var(--border2)',cursor:'pointer',
+                background:'transparent',color:'var(--t2)',fontFamily:'var(--font)',fontSize:13,fontWeight:500,
+              }}>Secondary</button>
+
+              {/* Destructive */}
+              <button style={{
+                padding:'10px 20px',borderRadius:9,border:'1px solid oklch(58% 0.22 25 / .4)',cursor:'pointer',
+                background:'oklch(58% 0.22 25 / .1)',color:'var(--red)',
+                fontFamily:'var(--font)',fontSize:13,fontWeight:500,
+              }}>Destructive</button>
+
+              {/* Ghost */}
+              <button style={{
+                padding:'10px 20px',borderRadius:9,border:'none',cursor:'pointer',
+                background:'transparent',color:'var(--primary)',fontFamily:'var(--font)',fontSize:13,fontWeight:600,
+              }}>Ghost</button>
+
+              {/* Icon button */}
+              <button style={{
+                width:38,height:38,borderRadius:9,border:'1px solid var(--border2)',cursor:'pointer',
+                background:'var(--s2)',display:'flex',alignItems:'center',justifyContent:'center',
+              }}><Ic n='settings' s={15} c='var(--t2)' stroke={1.6}/></button>
+
+              {/* Loading */}
+              <button style={{
+                display:'flex',alignItems:'center',gap:8,padding:'10px 20px',borderRadius:9,border:'none',
+                background:'oklch(55% 0.18 285 / .6)',color:'white',
+                fontFamily:'var(--font)',fontSize:13,fontWeight:600,cursor:'not-allowed',
+              }}>
+                <div style={{width:13,height:13,borderRadius:'50%',
+                  border:'2px solid rgba(255,255,255,.3)',borderTopColor:'white',
+                  animation:'pulse .7s linear infinite'}}/>
+                생성 중...
+              </button>
+
+              {/* Small */}
+              <button style={{
+                padding:'6px 14px',borderRadius:7,border:'1px solid var(--border2)',cursor:'pointer',
+                background:'transparent',color:'var(--t3)',fontFamily:'var(--font)',fontSize:11,fontWeight:500,
+              }}>Small</button>
+            </div>
+          </Card>
+
+          {/* Badges */}
+          <Label>Badges & Tags</Label>
+          <Card style={{marginBottom:20}}>
+            <div style={{display:'flex',flexWrap:'wrap',gap:10,alignItems:'center'}}>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.08em',padding:'3px 9px',
+                borderRadius:4,background:'oklch(60% 0.20 285 / .15)',color:'var(--primary)',
+                border:'1px solid oklch(60% 0.20 285 / .3)',textTransform:'uppercase'}}>Enterprise</span>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.06em',padding:'2px 7px',
+                borderRadius:4,border:'1px solid oklch(58% 0.22 25 / .55)',background:'oklch(58% 0.22 25 / .18)',
+                color:'var(--red)',textTransform:'uppercase'}}>위급</span>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.06em',padding:'2px 7px',
+                borderRadius:4,border:'1px solid oklch(68% 0.18 55 / .55)',background:'oklch(68% 0.18 55 / .18)',
+                color:'var(--orange)',textTransform:'uppercase'}}>높음</span>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.06em',padding:'2px 7px',
+                borderRadius:4,border:'1px solid oklch(74% 0.16 85 / .55)',background:'oklch(74% 0.16 85 / .18)',
+                color:'var(--yellow)',textTransform:'uppercase'}}>중간</span>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.06em',padding:'2px 7px',
+                borderRadius:4,border:'1px solid oklch(65% 0.16 145 / .55)',background:'oklch(65% 0.16 145 / .18)',
+                color:'var(--green)',textTransform:'uppercase'}}>낮음</span>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.06em',padding:'2px 7px',
+                borderRadius:4,border:'1px solid var(--border2)',background:'var(--s3)',
+                color:'var(--t3)',textTransform:'uppercase'}}>출시 예정</span>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.06em',padding:'2px 7px',
+                borderRadius:4,border:'1px solid oklch(65% 0.16 145 / .3)',background:'oklch(65% 0.16 145 / .12)',
+                color:'var(--green)',textTransform:'uppercase',display:'flex',alignItems:'center',gap:5}}>
+                <div style={{width:5,height:5,borderRadius:'50%',background:'var(--green)',animation:'pulse 2s infinite'}}/>
+                활성
+              </span>
+              <span style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--t3)',
+                padding:'2px 7px',background:'var(--s3)',borderRadius:4,border:'1px solid var(--border)'}}>
+                v1.0
+              </span>
+            </div>
+          </Card>
+
+          {/* Chips */}
+          <Label>Selection Chips — 단일·복수 선택</Label>
+          <Card style={{marginBottom:20}}>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14}}>
+              {['Full HD (1080p)','4K UHD','PTZ 카메라','열화상 카메라','FHD 혼합 운영'].map(opt=>(
+                <button key={opt} onClick={()=>setChipSel(p=>p.includes(opt)?p.filter(x=>x!==opt):[...p,opt])} style={{
+                  display:'inline-flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:8,cursor:'pointer',
+                  border:`1px solid ${chipSel.includes(opt)?'oklch(60% 0.20 285 / .7)':'var(--border2)'}`,
+                  background:chipSel.includes(opt)?'oklch(60% 0.20 285 / .15)':'var(--s2)',
+                  color:chipSel.includes(opt)?'var(--t1)':'var(--t2)',
+                  fontSize:12,fontFamily:'var(--font)',fontWeight:chipSel.includes(opt)?600:400,transition:'all .15s',
+                }}>
+                  {chipSel.includes(opt)&&(
+                    <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+                      <polyline points="2,6 5,9 10,3" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                  {opt}
+                </button>
+              ))}
+            </div>
+            <div style={{fontSize:10,color:'var(--t4)'}}>클릭하여 선택·해제 — 복수 선택 모드</div>
+          </Card>
+
+          {/* Input */}
+          <Label>Input Field</Label>
+          <Card style={{marginBottom:20}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+              {/* Normal */}
+              <div>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--t4)',
+                  textTransform:'uppercase',marginBottom:7}}>이메일</div>
+                <div style={{
+                  position:'relative',border:'1px solid var(--border2)',borderRadius:10,
+                  background:'oklch(100% 0 0 / .025)',
+                  boxShadow:'inset 0 1px 0 oklch(100% 0 0 / .04)',
+                }}>
+                  <input placeholder="name@company.com" style={{
+                    width:'100%',padding:'12px 14px 12px 40px',background:'transparent',
+                    border:'none',outline:'none',color:'var(--t1)',fontSize:13,fontFamily:'var(--font)',
+                  }}/>
+                  <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',
+                    color:'var(--t3)',fontSize:13}}>✉</span>
+                </div>
+              </div>
+              {/* Focused */}
+              <div>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--t4)',
+                  textTransform:'uppercase',marginBottom:7}}>포커스 상태</div>
+                <div style={{
+                  position:'relative',
+                  border:'1px solid oklch(60% 0.20 285 / .6)',borderRadius:10,
+                  background:'oklch(100% 0 0 / .04)',
+                  boxShadow:'0 0 0 3px oklch(60% 0.20 285 / .12)',
+                }}>
+                  <input defaultValue="jane@enterprise.com" style={{
+                    width:'100%',padding:'12px 14px 12px 40px',background:'transparent',
+                    border:'none',outline:'none',color:'var(--t1)',fontSize:13,fontFamily:'var(--font)',
+                  }}/>
+                  <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',
+                    color:'var(--primary)',fontSize:13}}>✉</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Textarea */}
+            <div style={{marginTop:16}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--t4)',
+                textTransform:'uppercase',marginBottom:7}}>AI 프롬프트 입력</div>
+              <div style={{
+                background:'var(--s2)',border:'1px solid var(--border2)',borderRadius:12,overflow:'hidden',
+              }}>
+                <textarea defaultValue="솔루션을 선택하거나 요구사항을 자유롭게 입력하세요..." style={{
+                  width:'100%',resize:'none',background:'transparent',border:'none',outline:'none',
+                  color:'var(--t2)',fontSize:13,fontFamily:'var(--font)',lineHeight:1.6,
+                  padding:'14px 16px',minHeight:70,
+                }}/>
+                <div style={{display:'flex',justifyContent:'flex-end',padding:'8px 12px',borderTop:'1px solid var(--border)'}}>
+                  <button style={{
+                    width:34,height:34,borderRadius:8,border:'none',cursor:'pointer',
+                    background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                    display:'flex',alignItems:'center',justifyContent:'center',
+                    boxShadow:'0 2px 10px oklch(55% 0.22 285 / .35)',
+                  }}><Ic n='arrowUp' s={14} c='white' stroke={2.2}/></button>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Toggle */}
+          <Label>Toggle Switch</Label>
+          <Card style={{marginBottom:20}}>
+            <div style={{display:'flex',gap:32,alignItems:'center'}}>
+              {[{on:true},{on:false}].map((t,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div onClick={()=>setToggleOn(v=>!v)} style={{
+                    width:36,height:20,borderRadius:10,
+                    background:t.on?'var(--primary)':'var(--s4)',
+                    position:'relative',cursor:'pointer',transition:'background .2s',
+                  }}>
+                    <div style={{
+                      position:'absolute',top:2,left:t.on?16:2,width:16,height:16,
+                      borderRadius:'50%',background:'white',transition:'left .2s',
+                      boxShadow:'0 1px 4px rgba(0,0,0,.4)',
+                    }}/>
+                  </div>
+                  <span style={{fontSize:12,color:'var(--t2)'}}>{t.on?'활성':'비활성'}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Navigation Bar */}
+          <Label>Navigation Bar</Label>
+          <Card style={{padding:0,overflow:'hidden',marginBottom:20}}>
+            <div style={{
+              height:48,display:'flex',alignItems:'center',
+              background:'var(--s1)',borderBottom:'1px solid var(--border)',
+            }}>
+              <div style={{display:'flex',alignItems:'center',gap:9,padding:'0 16px',
+                borderRight:'1px solid var(--border)',height:'100%',width:200,flexShrink:0}}>
+                <Logo size={20}/>
+                <span style={{fontWeight:700,fontSize:12,letterSpacing:'0.04em'}}>AIMNIS</span>
+                <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',
+                  background:'oklch(60% 0.20 285 / .15)',color:'var(--primary)',
+                  borderRadius:4,border:'1px solid oklch(60% 0.20 285 / .25)',letterSpacing:'0.08em'}}>ENT</span>
+              </div>
+              <div style={{display:'flex',height:'100%',padding:'0 12px'}}>
+                {[{label:'홈',icon:'home'},{label:'에이전트',icon:'sparkle',active:true},{label:'AIM GUARD',icon:'shield'}].map(n=>(
+                  <div key={n.label} style={{
+                    display:'flex',alignItems:'center',gap:6,padding:'0 14px',
+                    borderBottom:`2px solid ${n.active?'var(--primary)':'transparent'}`,
+                    color:n.active?'var(--t1)':'var(--t3)',fontSize:12,fontWeight:n.active?600:400,cursor:'pointer',
+                  }}>
+                    <Ic n={n.icon} s={12} c={n.active?'var(--primary)':'var(--t3)'} stroke={1.8}/>
+                    {n.label}
+                  </div>
+                ))}
+              </div>
+              <div style={{flex:1}}/>
+              <div style={{display:'flex',alignItems:'center',gap:8,padding:'0 16px'}}>
+                <button style={{width:30,height:30,borderRadius:7,border:'1px solid var(--border)',
+                  background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                  <Ic n='settings' s={13} c='var(--t3)' stroke={1.6}/>
+                </button>
+                <div style={{width:28,height:28,borderRadius:7,
+                  background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700}}>K</div>
+              </div>
+            </div>
+            <div style={{padding:'12px 20px',background:'var(--bg)'}}>
+              <div style={{fontSize:10,color:'var(--t4)'}}>높이 48px · backdropFilter blur(20px) · borderBottom 1px solid --border</div>
+            </div>
+          </Card>
+
+          {/* Chat bubble */}
+          <Label>AI Chat Bubbles</Label>
+          <Card style={{marginBottom:20,display:'flex',flexDirection:'column',gap:12}}>
+            <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:4}}>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <div style={{width:16,height:16,borderRadius:4,
+                  background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                  display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <Ic n='sparkle' s={9} c='white' fill='white' stroke={0}/>
+                </div>
+                <span style={{fontSize:9,color:'var(--t4)',fontWeight:600}}>AIMNIS</span>
+              </div>
+              <div style={{
+                maxWidth:'70%',padding:'10px 13px',borderRadius:'10px 10px 10px 2px',
+                background:'var(--s3)',border:'1px solid var(--border)',
+                fontSize:12,color:'var(--t2)',lineHeight:1.6,
+              }}>안녕하세요! 솔루션 스펙 설정을 도와드리겠습니다.</div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
+              <div style={{
+                maxWidth:'70%',padding:'10px 13px',borderRadius:'10px 10px 2px 10px',
+                background:'oklch(60% 0.20 285 / .2)',border:'1px solid oklch(60% 0.20 285 / .35)',
+                fontSize:12,color:'var(--t1)',lineHeight:1.6,
+              }}>카메라를 추가해줘</div>
+            </div>
+            {/* Typing indicator */}
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <div style={{width:16,height:16,borderRadius:4,
+                background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Ic n='sparkle' s={9} c='white' fill='white' stroke={0}/>
+              </div>
+              <div style={{display:'flex',gap:3,padding:'9px 12px',background:'var(--s3)',
+                borderRadius:'10px 10px 10px 2px',border:'1px solid var(--border)'}}>
+                {[0,1,2].map(i=>(
+                  <div key={i} style={{width:5,height:5,borderRadius:'50%',background:'var(--primary)',
+                    animation:`pulse 1.2s ${i*0.2}s infinite`}}/>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* Progress */}
+          <Label>Progress Bar</Label>
+          <Card style={{marginBottom:20,display:'flex',flexDirection:'column',gap:14}}>
+            {[
+              {label:'설문 완성도',pct:68,color:'linear-gradient(90deg,var(--primary),oklch(65% 0.14 210))'},
+              {label:'카테고리 완료',pct:100,color:'var(--green)'},
+              {label:'API 학습',pct:23,color:'var(--orange)'},
+            ].map(p=>(
+              <div key={p.label}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                  <span style={{fontSize:11,color:'var(--t3)'}}>{p.label}</span>
+                  <span style={{fontSize:11,fontFamily:'var(--mono)',fontWeight:700,
+                    color:p.pct===100?'var(--green)':p.pct<30?'var(--orange)':'var(--primary)'}}>{p.pct}%</span>
+                </div>
+                <div style={{height:5,borderRadius:3,background:'var(--s4)'}}>
+                  <div style={{height:'100%',borderRadius:3,background:p.color,width:`${p.pct}%`,transition:'width .4s'}}/>
+                </div>
+              </div>
+            ))}
+          </Card>
+
+          {/* Card variants */}
+          <Label>Card Variants</Label>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:20}}>
+            {/* Default */}
+            <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:18}}>
+              <div style={{fontSize:10,color:'var(--t4)',marginBottom:8}}>Default Card</div>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>AIM GUARD</div>
+              <div style={{fontSize:11,color:'var(--t3)'}}>background: --s1 · border: --border</div>
+            </div>
+            {/* Elevated */}
+            <div style={{background:'oklch(100% 0 0 / .04)',border:'1px solid var(--border2)',
+              borderRadius:14,padding:18,backdropFilter:'blur(20px)',
+              boxShadow:'0 16px 40px oklch(0% 0 0 / .3), 0 1px 0 oklch(100% 0 0 / .07) inset'}}>
+              <div style={{fontSize:10,color:'var(--t4)',marginBottom:8}}>Glass Card</div>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>로그인 폼</div>
+              <div style={{fontSize:11,color:'var(--t3)'}}>glassmorphism + shadow</div>
+            </div>
+            {/* Active */}
+            <div style={{background:'oklch(60% 0.20 285 / .06)',border:'1px solid oklch(60% 0.20 285 / .3)',
+              borderRadius:14,padding:18,boxShadow:'0 0 0 1px oklch(60% 0.20 285 / .1)'}}>
+              <div style={{fontSize:10,color:'var(--primary)',marginBottom:8}}>Active / Selected</div>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>선택된 항목</div>
+              <div style={{fontSize:11,color:'var(--t3)'}}>primary tinted border</div>
+            </div>
+          </div>
+        </Section>
+
+        {/* ══ ICONS ════════════════════════════════════════ */}
+        <Section id="icons" title="Icon System" subtitle="Feather Icons 기반 라인 아이콘. strokeWidth 1.6~2.0, 24×24 viewBox.">
+          <Card>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+              {Object.keys(ICONS).map(name=>(
+                <div key={name} style={{
+                  display:'flex',flexDirection:'column',alignItems:'center',gap:8,
+                  padding:'14px 12px',borderRadius:10,width:88,
+                  border:'1px solid var(--border)',background:'var(--s2)',cursor:'pointer',
+                  transition:'all .15s',
+                }}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='oklch(60% 0.20 285 / .08)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--s2)';}}
+                  onClick={()=>copy(name)}
+                >
+                  <Ic n={name} s={20} c='var(--t2)' stroke={1.7}/>
+                  <code style={{fontSize:9,color:'var(--t4)',fontFamily:'var(--mono)',textAlign:'center',wordBreak:'break-all'}}>{name}</code>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:16,fontSize:11,color:'var(--t4)'}}>
+              클릭하면 아이콘 이름을 복사합니다 · strokeWidth 1.6~2.0 사용 · stroke="currentColor"
+            </div>
+          </Card>
+        </Section>
+
+        {/* ══ PATTERNS ════════════════════════════════════ */}
+        <Section id="patterns" title="Patterns" subtitle="반복적으로 사용되는 UI 패턴과 레이아웃 규칙">
+
+          <Label>3-Panel Layout — Edit Screen</Label>
+          <Card style={{padding:0,overflow:'hidden',marginBottom:24}}>
+            <div style={{display:'flex',height:140}}>
+              <div style={{width:200,background:'var(--s2)',borderRight:'1px solid var(--border)',
+                display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',gap:4}}>
+                <Ic n='sparkle' s={18} c='var(--primary)' stroke={0} fill='var(--primary)'/>
+                <div style={{fontSize:10,fontWeight:700,color:'var(--t3)'}}>Left Panel</div>
+                <div style={{fontSize:9,color:'var(--t4)'}}>Nav + AI Chat</div>
+                <code style={{fontSize:9,fontFamily:'var(--mono)',color:'var(--t4)'}}>width: 200~220px</code>
+              </div>
+              <div style={{flex:1,background:'var(--bg)',display:'flex',flexDirection:'column',
+                justifyContent:'center',alignItems:'center',gap:4}}>
+                <Ic n='home' s={18} c='var(--t3)' stroke={1.6}/>
+                <div style={{fontSize:10,fontWeight:700,color:'var(--t3)'}}>Center Canvas</div>
+                <div style={{fontSize:9,color:'var(--t4)'}}>솔루션 화면</div>
+                <code style={{fontSize:9,fontFamily:'var(--mono)',color:'var(--t4)'}}>flex: 1</code>
+              </div>
+              <div style={{width:280,background:'var(--s2)',borderLeft:'1px solid var(--border)',
+                display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',gap:4}}>
+                <Ic n='settings' s={18} c='var(--t3)' stroke={1.6}/>
+                <div style={{fontSize:10,fontWeight:700,color:'var(--t3)'}}>Right Panel</div>
+                <div style={{fontSize:9,color:'var(--t4)'}}>속성·알람 탭</div>
+                <code style={{fontSize:9,fontFamily:'var(--mono)',color:'var(--t4)'}}>width: 280~300px</code>
+              </div>
+            </div>
+          </Card>
+
+          <Label>Background Texture</Label>
+          <Card style={{marginBottom:24}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+              <div>
+                <div style={{fontSize:11,color:'var(--t3)',marginBottom:8}}>Grid Overlay</div>
+                <div style={{height:80,borderRadius:8,position:'relative',overflow:'hidden',
+                  background:'var(--bg)'}}>
+                  <div style={{position:'absolute',inset:0,
+                    backgroundImage:'linear-gradient(oklch(100% 0 0 / .03) 1px,transparent 1px),linear-gradient(90deg,oklch(100% 0 0 / .03) 1px,transparent 1px)',
+                    backgroundSize:'30px 30px'}}/>
+                </div>
+                <code style={{fontSize:9,fontFamily:'var(--mono)',color:'var(--t4)',marginTop:6,display:'block'}}>
+                  backgroundSize: 60px 60px · opacity .03
+                </code>
+              </div>
+              <div>
+                <div style={{fontSize:11,color:'var(--t3)',marginBottom:8}}>Gradient Orbs</div>
+                <div style={{height:80,borderRadius:8,overflow:'hidden',position:'relative',background:'var(--bg)'}}>
+                  <div style={{position:'absolute',width:120,height:120,borderRadius:'50%',
+                    left:'-10%',top:'-30%',
+                    background:'radial-gradient(circle,oklch(45% 0.22 285 / .18) 0%,transparent 70%)',
+                    filter:'blur(20px)'}}/>
+                  <div style={{position:'absolute',width:100,height:100,borderRadius:'50%',
+                    right:'0%',bottom:'-20%',
+                    background:'radial-gradient(circle,oklch(40% 0.18 210 / .14) 0%,transparent 70%)',
+                    filter:'blur(20px)'}}/>
+                </div>
+                <code style={{fontSize:9,fontFamily:'var(--mono)',color:'var(--t4)',marginTop:6,display:'block'}}>
+                  radial-gradient · blur(40~60px)
+                </code>
+              </div>
+            </div>
+          </Card>
+
+          <Label>Section Divider with Label</Label>
+          <Card style={{marginBottom:24}}>
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:4}}>
+              <span style={{fontSize:11,color:'var(--t3)',fontWeight:700,letterSpacing:'0.06em',
+                textTransform:'uppercase',whiteSpace:'nowrap'}}>구독 중인 솔루션</span>
+              <div style={{flex:1,height:1,background:'var(--border)'}}/>
+            </div>
+            <div style={{fontSize:10,color:'var(--t4)'}}>h-px divider line + label — 섹션 구분에 사용</div>
+          </Card>
+
+          <Label>Gradient Text Heading</Label>
+          <Card>
+            <div style={{
+              fontSize:36,fontWeight:700,lineHeight:1.1,letterSpacing:'-0.03em',marginBottom:12,
+              background:'linear-gradient(160deg,var(--t1) 30%,oklch(65% 0.14 285) 100%)',
+              WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',
+            }}>무엇을 만들어<br/>드릴까요?</div>
+            <code style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--t4)',lineHeight:1.8,display:'block'}}>
+              {'background: linear-gradient(160deg, var(--t1) 30%, oklch(65% 0.14 285) 100%)'}<br/>
+              {'-webkit-background-clip: text; -webkit-text-fill-color: transparent'}
+            </code>
+          </Card>
+        </Section>
+
+        {/* Footer */}
+        <div style={{borderTop:'1px solid var(--border)',paddingTop:32,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <Logo size={20}/>
+            <span style={{fontSize:12,fontWeight:700,color:'var(--t2)'}}>AIMNIS Design System</span>
+          </div>
+          <span style={{fontSize:11,color:'var(--t4)',fontFamily:'var(--mono)'}}>v1.0 · 2026 · Enterprise</span>
+        </div>
+
+        {/* Copied toast */}
+        {copied && (
+          <div style={{
+            position:'fixed',bottom:32,left:'50%',transform:'translateX(-50%)',
+            background:'var(--s3)',border:'1px solid var(--border2)',borderRadius:10,
+            padding:'9px 18px',fontSize:12,color:'var(--t2)',
+            boxShadow:'0 8px 24px oklch(0% 0 0 / .4)',
+            animation:'fadeUp .2s ease both',zIndex:9999,
+            display:'flex',alignItems:'center',gap:8,
+          }}>
+            <Ic n='check' s={13} c='var(--green)' stroke={2.5}/>
+            복사됨: <code style={{fontFamily:'var(--mono)',color:'var(--primary)'}}>{copied}</code>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
