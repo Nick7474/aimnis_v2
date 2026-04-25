@@ -107,7 +107,8 @@
   --card-foreground: 246 100% 97%;
   --popover: 240 13% 9%;
   --popover-foreground: 246 100% 97%;
-  --primary-tw: 262 83% 58%;
+  /* Tailwind/shadcn 전용 — hsl(var(--*)) 형태로 사용됨 */
+  --primary-hsl: 262 83% 58%;
   --primary-foreground: 0 0% 100%;
   --secondary: 240 13% 15%;
   --secondary-foreground: 246 100% 97%;
@@ -117,7 +118,7 @@
   --accent-foreground: 0 0% 100%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --border-tw: 262 20% 20%;
+  --border-hsl: 262 20% 20%;
   --input: 262 20% 20%;
   --ring: 262 83% 58%;
   --radius: 0.75rem;

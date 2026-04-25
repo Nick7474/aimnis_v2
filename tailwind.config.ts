@@ -10,45 +10,46 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        /* shadcn/ui 색상 — CSS var 직접 참조 (oklch 호환) */
+        background: "oklch(8% 0.025 275)",
+        foreground: "oklch(96% 0.008 275)",
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "oklch(11% 0.022 275)",
+          foreground: "oklch(96% 0.008 275)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "oklch(11% 0.022 275)",
+          foreground: "oklch(96% 0.008 275)",
         },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "var(--primary)",
+          foreground: "white",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "oklch(18% 0.018 275)",
+          foreground: "oklch(96% 0.008 275)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "oklch(14% 0.020 275)",
+          foreground: "oklch(45% 0.010 275)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--primary)",
+          foreground: "white",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "oklch(58% 0.22 25)",
+          foreground: "white",
         },
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
+        border: "var(--border)",
+        input: "oklch(22% 0.016 275)",
+        ring: "var(--primary)",
         chart: {
-          "1": "hsl(var(--chart-1))",
-          "2": "hsl(var(--chart-2))",
-          "3": "hsl(var(--chart-3))",
-          "4": "hsl(var(--chart-4))",
-          "5": "hsl(var(--chart-5))",
+          "1": "oklch(60% 0.20 285)",
+          "2": "oklch(60% 0.20 245)",
+          "3": "oklch(70% 0.14 210)",
+          "4": "oklch(65% 0.16 145)",
+          "5": "oklch(68% 0.18 55)",
         },
         brand: {
           50: "#f1effd",
