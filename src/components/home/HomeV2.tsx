@@ -128,7 +128,10 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
     <div
       style={{
         width: 220, flexShrink: 0, display: "flex", flexDirection: "column",
-        background: "var(--s1)", borderRight: "1px solid var(--border)",
+        background: "oklch(11% 0.022 275 / 0.72)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderRight: "1px solid var(--border)",
         height: "100%", overflow: "hidden",
       }}
     >
@@ -184,7 +187,10 @@ function BlueprintPanel() {
     <div
       style={{
         width: 280, flexShrink: 0, display: "flex", flexDirection: "column",
-        background: "var(--s1)", borderLeft: "1px solid var(--border)",
+        background: "oklch(11% 0.022 275 / 0.72)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderLeft: "1px solid var(--border)",
         height: "100%", overflow: "hidden",
       }}
     >
@@ -223,7 +229,7 @@ export default function HomeV2() {
         marginTop: 48,
         height: "calc(100vh - 48px)",
         overflow: "hidden",
-        background: "var(--bg)",
+        background: "transparent",
         position: "relative",
         zIndex: 1,
       }}
@@ -232,7 +238,14 @@ export default function HomeV2() {
       <LeftPanel onMagicTrigger={() => setAnimatingSpecs({})} />
 
       {/* 중앙: Spec Board (flex:1 — HTML 중앙 컨텐츠 패턴) */}
-      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div
+        style={{
+          flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0,
+          background: "oklch(8% 0.025 275 / 0.65)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
+      >
         <SpecBoard
           animatingSpecs={animatingSpecs}
           renderHeaderExtra={<MagicSetupButton onAnimatingChange={setAnimatingSpecs} />}
