@@ -15,7 +15,8 @@ interface Props {
 export default function ProviderPicker({ compact = false, dropUp = false }: Props) {
   const { provider, setProvider } = useLLMStore();
   const [open, setOpen] = useState(false);
-  const current = PROVIDER_META[provider];
+  // localStorage에 구버전 값(gemma4 등)이 남아 있으면 안전하게 fallback
+  const current = PROVIDER_META[provider] ?? PROVIDER_META["gemini-flash-lite"];
 
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>

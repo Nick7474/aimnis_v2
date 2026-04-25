@@ -20,12 +20,22 @@ interface LLMState {
   setProvider: (p: LLMProvider) => void;
 }
 
+const VALID_PROVIDERS = new Set(Object.keys(PROVIDER_META));
+
 export const useLLMStore = create<LLMState>()(
   persist(
     (set) => ({
-    provider: "gemini-flash-lite",
+      provider: "gemini-flash-lite",
       setProvider: (provider) => set({ provider }),
     }),
-    { name: "aimnis-llm-provider" }
+    {
+      name: "aimnis-llm-provider",
+      // 구버전 gemma4 등 유효하지 않은 값이 저장돼 있으면 초기화
+      onRehydrateStorage: () => (state) => {
+        if (state && !VALID_PROVIDERS.has(state.provider)) {
+          state.provider = "gemini-flash-lite";
+        }
+      },
+    }
   )
 );
