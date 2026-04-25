@@ -3,18 +3,21 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Sparkles, Paperclip, X, CheckCircle2, ExternalLink } from "lucide-react";
+import { ArrowUp, Sparkles, Paperclip, X, CheckCircle2, ExternalLink, Bot, Zap, Camera, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SolutionManifest, AnalysisStep } from "@/lib/solutionLoader";
 import * as LucideIcons from "lucide-react";
 import type { LucideProps } from "lucide-react";
+import { useHomeStore } from "@/store/homeStore";
+import { scenarios } from "@/data/scenarios";
+import ParticleWaves from "./ParticleWaves";
 
 interface HomeHeroProps {
   solutions: SolutionManifest[];
   analysisStepsMap: Record<string, AnalysisStep[]>;
 }
 
-// ─── 메인 컴포넌트 ────────────────────────────────────────────
+const SCENARIO_ICONS = { Zap, Camera, Building2 } as Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>>;
 
 export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps) {
   const router = useRouter();
@@ -22,15 +25,61 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
 
   const [input, setInput] = useState("");
   const [activeSolution, setActiveSolution] = useState<string | null>(null);
+
+  const { setIsWorking, setSelectedScenario } = useHomeStore();
+
+  const handleScenarioChip = (sc: typeof scenarios[number]) => {
+    setSelectedScenario(sc.id);
+    setIsWorking(true);
+  };
+
+  // 파일 업로드 상태
   const [uploadState, setUploadState] = useState<"idle" | "analyzing" | "done">("idle");
   const [fileName, setFileName] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // AI 응답 상태
+  const [aiState, setAiState] = useState<"idle" | "streaming" | "done">("idle");
+  const [aiResponse, setAiResponse] = useState("");
+  const [pendingSolution, setPendingSolution] = useState<string | null>(null);
+
+  // ─── AI 하네스 생성 ────────────────────────────────────────────
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    router.push(`/editor${activeSolution ? `?solution=${activeSolution}` : ""}`);
+    const text = input.trim();
+    if (!text || aiState === "streaming") return;
+
+    const solId = activeSolution ?? "guard";
+    setPendingSolution(solId);
+    setAiState("streaming");
+    setAiResponse("");
+
+    try {
+      const res = await fetch("/api/home", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: text, solution: solId }),
+      });
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let full = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += decoder.decode(value, { stream: true });
+          setAiResponse(full);
+        }
+      }
+    } catch {
+      setAiResponse("하네스 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setAiState("done");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -40,7 +89,14 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     }
   };
 
-  // 파일 선택 → 분석 애니메이션 시작
+  const resetAi = () => {
+    setAiState("idle");
+    setAiResponse("");
+    setInput("");
+  };
+
+  // ─── 파일 업로드 ──────────────────────────────────────────────
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -57,7 +113,6 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
       await new Promise((r) => setTimeout(r, steps[i].duration));
       setCompletedSteps((prev) => [...prev, i]);
     }
-
     setUploadState("done");
   };
 
@@ -73,8 +128,9 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
   const steps = analysisStepsMap[solutionId] ?? [];
 
   return (
-    <div className="flex min-h-screen flex-col items-center px-4 pt-28">
-      {/* 헤드라인 */}
+    <div className="flex min-h-screen flex-col items-center px-4 pt-28 relative">
+      <ParticleWaves />
+      <div className="relative z-10 w-full flex flex-col items-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -100,16 +156,89 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-2xl"
       >
-        {/* 분석 진행 UI */}
+        {/* Gemma4 스트리밍 응답 */}
+        <AnimatePresence>
+          {(aiState === "streaming" || aiState === "done") && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-3 overflow-hidden rounded-xl border border-purple-500/20 p-4"
+              style={{
+                background: "oklch(11% 0.022 275 / 0.68)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+              }}
+            >
+              {/* 헤더 */}
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-purple-300/70">
+                  <motion.div
+                    animate={aiState === "streaming" ? { rotate: 360 } : { rotate: 0 }}
+                    transition={{ repeat: aiState === "streaming" ? Infinity : 0, duration: 1.5, ease: "linear" }}
+                  >
+                    <Bot className="h-3.5 w-3.5" />
+                  </motion.div>
+                  <span>{aiState === "streaming" ? "Gemma4 하네스 생성 중..." : "Gemma4 생성 완료"}</span>
+                </div>
+                {aiState === "done" && (
+                  <button onClick={resetAi} className="text-white/30 hover:text-white/60 transition-colors">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* 스트리밍 텍스트 */}
+              <div className="font-mono text-xs leading-relaxed text-white/70 whitespace-pre-wrap">
+                {aiResponse}
+                {aiState === "streaming" && (
+                  <motion.span
+                    animate={{ opacity: [1, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.6 }}
+                    className="ml-0.5 inline-block h-3 w-1.5 bg-purple-400"
+                  />
+                )}
+              </div>
+
+              {/* 에디터 열기 버튼 */}
+              <AnimatePresence>
+                {aiState === "done" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 flex items-center gap-2"
+                  >
+                    <div className="flex-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400">
+                      ✓ harness 생성 완료
+                    </div>
+                    <button
+                      onClick={() => router.push(`/editor?solution=${pendingSolution ?? "guard"}`)}
+                      className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-1.5 text-xs text-white shadow-lg shadow-violet-500/20 hover:from-violet-500 hover:to-indigo-500 transition-all"
+                    >
+                      에디터 열기
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 파일 분석 UI */}
         <AnimatePresence>
           {(uploadState === "analyzing" || uploadState === "done") && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-3 overflow-hidden rounded-xl border border-purple-500/20 bg-white/[0.03] p-4"
+              className="mb-3 overflow-hidden rounded-xl border border-purple-500/20 p-4"
+              style={{
+                background: "oklch(11% 0.022 275 / 0.68)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+              }}
             >
-              {/* 파일명 헤더 */}
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-white/60">
                   <Paperclip className="h-3 w-3" />
@@ -121,8 +250,6 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                   </button>
                 )}
               </div>
-
-              {/* 분석 단계 */}
               <div className="space-y-2">
                 {steps.map((step, i) => {
                   const isDone = completedSteps.includes(i);
@@ -156,8 +283,6 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                   );
                 })}
               </div>
-
-              {/* 완료 버튼 */}
               <AnimatePresence>
                 {uploadState === "done" && (
                   <motion.div
@@ -184,7 +309,40 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
 
         {/* 입력 폼 */}
         <form onSubmit={handleSubmit}>
-          <div className="relative rounded-2xl border border-purple-500/20 bg-white/[0.04] p-4 shadow-2xl shadow-black/40 backdrop-blur-xl focus-within:border-purple-500/40 transition-colors">
+          <div
+            className="relative rounded-2xl border border-purple-500/20 p-4 shadow-2xl shadow-black/40 focus-within:border-purple-500/40 transition-colors"
+            style={{
+              background: "oklch(11% 0.022 275 / 0.68)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+            }}
+          >
+            {/* 시나리오 칩 */}
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              <span className="self-center text-[10px] text-white/25 mr-1">시나리오:</span>
+              {scenarios.map((sc) => {
+                const Icon = SCENARIO_ICONS[sc.icon] ?? Zap;
+                return (
+                  <motion.button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => handleScenarioChip(sc)}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all"
+                    style={{
+                      borderColor: sc.color + "40",
+                      backgroundColor: sc.color + "10",
+                      color: sc.color,
+                    }}
+                  >
+                    <Icon className="h-3 w-3" style={{ color: sc.color }} />
+                    {sc.label}
+                  </motion.button>
+                );
+              })}
+            </div>
+
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -200,7 +358,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
 
             <div className="mt-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                {/* 파일 첨부 버튼 */}
+                {/* 파일 첨부 */}
                 <motion.button
                   type="button"
                   whileHover={{ scale: 1.05 }}
@@ -218,6 +376,12 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                   className="hidden"
                 />
 
+                {/* Gemma4 뱃지 */}
+                <div className="flex items-center gap-1 rounded-md border border-purple-500/15 bg-purple-500/8 px-2 py-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
+                  <span className="text-[10px] text-purple-400/70">Gemma4</span>
+                </div>
+
                 {/* 솔루션 칩 */}
                 <SolutionChips
                   solutions={solutions}
@@ -231,15 +395,23 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                 type="submit"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                disabled={!input.trim()}
+                disabled={!input.trim() || aiState === "streaming"}
                 className={cn(
                   "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl transition-all",
-                  input.trim()
+                  input.trim() && aiState !== "streaming"
                     ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/30"
                     : "bg-white/5 text-white/20"
                 )}
               >
-                <ArrowUp className="h-4 w-4" />
+                {aiState === "streaming" ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white"
+                  />
+                ) : (
+                  <ArrowUp className="h-4 w-4" />
+                )}
               </motion.button>
             </div>
           </div>
@@ -250,21 +422,22 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         </p>
       </motion.div>
 
-      {/* F-006: 솔루션 카드 섹션 */}
+      {/* 솔루션 카드 */}
       <SolutionCards solutions={solutions} />
+      </div>
     </div>
   );
 }
 
 // ─── 솔루션 칩 ───────────────────────────────────────────────
 
-interface SolutionChipsProps {
+function SolutionChips({
+  solutions, active, onSelect,
+}: {
   solutions: SolutionManifest[];
   active: string | null;
   onSelect: (id: string) => void;
-}
-
-function SolutionChips({ solutions, active, onSelect }: SolutionChipsProps) {
+}) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {solutions.map((sol) => {
@@ -296,10 +469,7 @@ function SolutionChips({ solutions, active, onSelect }: SolutionChipsProps) {
               <span className="rounded-full bg-white/10 px-1 py-0.5 text-[9px] text-white/40">예정</span>
             )}
             {isActive && (
-              <motion.span
-                layoutId="chip-dot"
-                className="h-1.5 w-1.5 rounded-full bg-purple-400"
-              />
+              <motion.span layoutId="chip-dot" className="h-1.5 w-1.5 rounded-full bg-purple-400" />
             )}
           </motion.button>
         );
@@ -308,7 +478,7 @@ function SolutionChips({ solutions, active, onSelect }: SolutionChipsProps) {
   );
 }
 
-// ─── F-006: 솔루션 카드 ───────────────────────────────────────
+// ─── 솔루션 카드 ─────────────────────────────────────────────
 
 function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
   const router = useRouter();
@@ -335,9 +505,13 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 + i * 0.08 }}
-              className="glass-card p-4 flex flex-col gap-3"
+              className="rounded-xl border border-purple-500/15 p-4 flex flex-col gap-3"
+              style={{
+                background: "oklch(11% 0.022 275 / 0.68)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+              }}
             >
-              {/* 헤더 */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2.5">
                   <div
@@ -353,27 +527,17 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
                 </div>
                 <span className={cn(
                   "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  isAvailable
-                    ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-white/5 text-white/30"
+                  isAvailable ? "bg-emerald-500/15 text-emerald-400" : "bg-white/5 text-white/30"
                 )}>
                   {isAvailable ? "구독 중" : "출시 예정"}
                 </span>
               </div>
-
-              {/* 설명 */}
               <p className="text-xs text-white/40 leading-relaxed">{sol.description}</p>
-
-              {/* 기능 태그 */}
               <div className="flex flex-wrap gap-1">
                 {sol.features.slice(0, 3).map((f) => (
-                  <span key={f} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-white/30">
-                    {f}
-                  </span>
+                  <span key={f} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-white/30">{f}</span>
                 ))}
               </div>
-
-              {/* 액션 버튼 */}
               <button
                 onClick={() => isAvailable && router.push(`/editor?solution=${sol.id}`)}
                 disabled={!isAvailable}
