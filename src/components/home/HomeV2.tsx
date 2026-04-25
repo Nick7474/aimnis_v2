@@ -72,17 +72,8 @@ function ChatInput() {
   }, [value, isThinking, addMessage, setIsThinking, updateLastMessage]);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-end",
-        gap: 8,
-        padding: "8px 10px",
-        background: "var(--s2)",
-        border: "1px solid var(--border2)",
-        borderRadius: 10,
-        flexShrink: 0,
-      }}
+    <div className="flex items-end gap-2 rounded-xl border border-white/10 bg-white/5 p-2 focus-within:border-purple-500/30 transition-colors"
+      style={{ flexShrink: 0 }}
     >
       <textarea
         ref={textareaRef}
@@ -90,33 +81,24 @@ function ChatInput() {
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
         placeholder="요구사항을 입력하세요..."
-        rows={1}
-        style={{
-          flex: 1, background: "transparent", border: "none", outline: "none",
-          resize: "none", fontSize: 11, color: "var(--t2)", lineHeight: 1.5,
-          fontFamily: "var(--font)", maxHeight: 72, overflowY: "auto",
-        }}
+        rows={2}
+        className="flex-1 resize-none bg-transparent text-xs text-white placeholder:text-white/20 focus:outline-none"
+        style={{ maxHeight: 72 }}
       />
       <button
         onClick={submit}
         disabled={!value.trim() || isThinking}
-        style={{
-          width: 28, height: 28, borderRadius: 7, border: "none",
-          cursor: value.trim() && !isThinking ? "pointer" : "not-allowed",
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-          background: value.trim() && !isThinking
-            ? "linear-gradient(135deg, var(--primary), oklch(52% 0.20 295))"
-            : "var(--s3)",
-          color: value.trim() && !isThinking ? "#fff" : "var(--t4)",
-          transition: "all 0.15s",
-          boxShadow: value.trim() && !isThinking ? "0 2px 10px oklch(55% 0.22 285 / .35)" : "none",
-        }}
+        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-all ${
+          value.trim() && !isThinking
+            ? "bg-purple-600 text-white hover:bg-purple-500"
+            : "bg-white/5 text-white/20"
+        }`}
       >
         {isThinking ? (
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-            style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.2)", borderTopColor: "#fff" }}
+            className="h-3 w-3 rounded-full border-2 border-white/20 border-t-white"
           />
         ) : (
           <Send size={11} />
@@ -152,27 +134,12 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
 
       {/* AI 어시스턴트 */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <div
-          style={{
-            padding: "10px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <div
-              style={{
-                width: 22, height: 22, borderRadius: 6,
-                background: "linear-gradient(135deg, var(--primary), oklch(52% 0.20 295))",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, flexShrink: 0,
-              }}
-            >✦</div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--t2)" }}>AI 어시스턴트</span>
-          </div>
+        <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5" style={{ flexShrink: 0 }}>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">AI 어시스턴트</p>
           <ProviderPicker compact />
         </div>
 
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: "10px 12px 8px" }}>
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: "8px 10px 10px" }}>
           <div style={{ flex: 1, overflow: "hidden", minHeight: 0, marginBottom: 8 }}>
             <ChatArea />
           </div>
