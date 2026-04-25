@@ -163,11 +163,13 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-3 overflow-hidden rounded-xl border border-purple-500/20 p-4"
+              className="mb-3 overflow-hidden p-4"
               style={{
-                background: "oklch(11% 0.022 275 / 0.68)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
+                borderRadius: 16,
+                border: "1px solid #2F2243",
+                background: "rgba(41, 35, 51, 0.05)",
+                backdropFilter: "blur(5px)",
+                WebkitBackdropFilter: "blur(5px)",
               }}
             >
               {/* 헤더 */}
@@ -232,11 +234,13 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-3 overflow-hidden rounded-xl border border-purple-500/20 p-4"
+              className="mb-3 overflow-hidden p-4"
               style={{
-                background: "oklch(11% 0.022 275 / 0.68)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
+                borderRadius: 16,
+                border: "1px solid #2F2243",
+                background: "rgba(41, 35, 51, 0.05)",
+                backdropFilter: "blur(5px)",
+                WebkitBackdropFilter: "blur(5px)",
               }}
             >
               <div className="mb-3 flex items-center justify-between">
@@ -310,11 +314,13 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         {/* 입력 폼 */}
         <form onSubmit={handleSubmit}>
           <div
-            className="relative rounded-2xl border border-purple-500/20 p-4 shadow-2xl shadow-black/40 focus-within:border-purple-500/40 transition-colors"
+            className="relative p-4 shadow-2xl shadow-black/40 transition-colors"
             style={{
-              background: "oklch(11% 0.022 275 / 0.68)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
+              borderRadius: 16,
+              border: "1px solid #2F2243",
+              background: "rgba(41, 35, 51, 0.05)",
+              backdropFilter: "blur(5px)",
+              WebkitBackdropFilter: "blur(5px)",
             }}
           >
             {/* 시나리오 칩 */}
@@ -505,11 +511,13 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 + i * 0.08 }}
-              className="rounded-xl border border-purple-500/15 p-4 flex flex-col gap-3"
+              className="p-4 flex flex-col gap-3"
               style={{
-                background: "oklch(11% 0.022 275 / 0.68)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
+                borderRadius: 16,
+                border: "1px solid #2F2243",
+                background: "rgba(41, 35, 51, 0.05)",
+                backdropFilter: "blur(5px)",
+                WebkitBackdropFilter: "blur(5px)",
               }}
             >
               <div className="flex items-start justify-between">
