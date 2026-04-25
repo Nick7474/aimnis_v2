@@ -99,13 +99,11 @@ async function handleClaude(
       ? resp.content[0].text
       : `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
 
-  // __WIDGET_JSON__ 구분자가 없으면 mock JSON 붙임
-  const hasMarker = fullText.includes("__WIDGET_JSON__");
-  const finalText = hasMarker ? fullText : `${fullText}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
-
+  // Claude가 판단: 위젯 요청이면 __WIDGET_JSON__ 포함, 일반 질문이면 텍스트만
+  // 강제로 위젯 JSON 추가하지 않음
   return new ReadableStream({
     start(controller) {
-      controller.enqueue(new TextEncoder().encode(finalText));
+      controller.enqueue(new TextEncoder().encode(fullText));
       controller.close();
     },
   });
