@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 
-const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4";
+const GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17";
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const SONNET_MODEL = "claude-sonnet-4-6";
+const OPUS_MODEL = "claude-opus-4-6";
 
 // ─── 하네스 생성 시스템 프롬프트 ────────────────────────────────
 const HARNESS_SYSTEM = `당신은 AIMNIS 엔터프라이즈 AI 플랫폼의 수석 솔루션 아키텍트입니다.
@@ -94,15 +94,23 @@ function buildSpecPrompt(
 위 스펙을 기반으로 최적화된 하네스 설계서를 생성하세요.`;
 }
 
-// ─── Ollama 스트리밍 ─────────────────────────────────────────────
-async function ollamaStream(system: string, prompt: string): Promise<ReadableStream<Uint8Array>> {
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: OLLAMA_MODEL, system, prompt, stream: true }),
+// ─── Gemini 스트리밍 ─────────────────────────────────────────────
+async function geminiStream(system: string, prompt: string): Promise<ReadableStream<Uint8Array>> {
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL, systemInstruction: system });
+  const result = await model.generateContentStream(prompt);
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const enc = new TextEncoder();
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) controller.enqueue(enc.encode(text));
+      }
+      controller.close();
+    },
   });
-  if (!res.ok) throw new Error(`Ollama ${res.status}`);
-  return res.body!;
 }
 
 // ─── Claude 스트리밍 (Haiku / Sonnet) ───────────────────────────
@@ -135,46 +143,24 @@ async function claudeStream(
   });
 }
 
-// ─── Ollama NDJSON → 순수 텍스트 스트림 변환 ──────────────────────
-function ollamaToTextStream(rawStream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
-  const reader = rawStream.getReader();
-  const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
-
-  return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) { controller.close(); return; }
-        const lines = decoder.decode(value).split("\n").filter(Boolean);
-        for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line) as { response?: string; done?: boolean };
-            if (parsed.response) controller.enqueue(encoder.encode(parsed.response));
-          } catch { /* skip */ }
-        }
-      }
-    },
-  });
-}
-
 // ─── POST 핸들러 ────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const { scenario, specs, provider = "gemma4" } = await req.json();
+  const { scenario, specs, provider = "gemini-flash-lite" } = await req.json();
 
   const specPrompt = buildSpecPrompt(scenario as string, specs as Record<string, string | string[] | null>);
 
   try {
     let rawStream: ReadableStream<Uint8Array>;
 
-    if (provider === "claude-sonnet") {
+    if (provider === "claude-opus") {
+      rawStream = await claudeStream(OPUS_MODEL, HARNESS_SYSTEM, specPrompt);
+    } else if (provider === "claude-sonnet") {
       rawStream = await claudeStream(SONNET_MODEL, HARNESS_SYSTEM, specPrompt);
     } else if (provider === "claude-haiku") {
       rawStream = await claudeStream(HAIKU_MODEL, HARNESS_SYSTEM, specPrompt);
     } else {
-      // Gemma4 (Ollama)
-      const ollamaRaw = await ollamaStream(HARNESS_SYSTEM, specPrompt);
-      rawStream = ollamaToTextStream(ollamaRaw);
+      // Gemini Flash-Lite (디폴트)
+      rawStream = await geminiStream(HARNESS_SYSTEM, specPrompt);
     }
 
     return new Response(rawStream, {

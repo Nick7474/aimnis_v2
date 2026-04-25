@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
 
-const LLM_PROVIDER = process.env.LLM_PROVIDER ?? "gemma";
-const OLLAMA_URL   = process.env.OLLAMA_URL   ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4";
-const HAIKU_MODEL  = "claude-haiku-4-5-20251001";
-const SONNET_MODEL = "claude-sonnet-4-6";
+const GEMINI_MODEL  = "gemini-2.5-flash-lite-preview-06-17";
+const HAIKU_MODEL   = "claude-haiku-4-5-20251001";
+const SONNET_MODEL  = "claude-sonnet-4-6";
+const OPUS_MODEL    = "claude-opus-4-6";
 
-// ─── Claude 통합 시스템 프롬프트 (내러티브 + 위젯 JSON 동시 생성) ──
+// ─── Claude 통합 시스템 프롬프트 ─────────────────────────────────
 function buildClaudeSystem(solution: string): string {
   return `당신은 AIMNIS 엔터프라이즈 플랫폼의 AI 어시스턴트입니다.
 현재 솔루션: ${solution}
@@ -29,17 +28,6 @@ __WIDGET_JSON__
 공통 규칙:
 - 데이터는 도메인에 맞는 현실적 수치 사용
 - JSON 앞뒤 마크다운 코드블록 절대 금지`;
-}
-
-// ─── Ollama 스트리밍 ─────────────────────────────────────────────
-async function ollamaStream(systemPrompt: string, userText: string): Promise<ReadableStream<Uint8Array>> {
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: OLLAMA_MODEL, system: systemPrompt, prompt: userText, stream: true }),
-  });
-  if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
-  return res.body!;
 }
 
 // ─── Mock fallback ──────────────────────────────────────────────
@@ -76,7 +64,33 @@ function generateMockNarrative(userText: string): string {
   return "위젯을 캔버스에 추가했습니다.";
 }
 
-// ─── Claude 통합 생성 (내러티브 + 위젯 JSON 동시) ────────────────
+// ─── Gemini 스트리밍 ─────────────────────────────────────────────
+async function handleGemini(
+  systemPrompt: string,
+  userText: string
+): Promise<ReadableStream<Uint8Array>> {
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    systemInstruction: systemPrompt,
+  });
+
+  const result = await model.generateContentStream(userText);
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const enc = new TextEncoder();
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) controller.enqueue(enc.encode(text));
+      }
+      controller.close();
+    },
+  });
+}
+
+// ─── Claude 생성 ─────────────────────────────────────────────────
 async function handleClaude(
   messages: { role: string; content: string }[],
   solution: string,
@@ -86,7 +100,6 @@ async function handleClaude(
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
 
-  // 단일 호출로 내러티브 + 위젯 JSON 동시 생성 (토큰 효율 최대화)
   const resp = await client.messages.create({
     model,
     max_tokens: 512,
@@ -99,8 +112,6 @@ async function handleClaude(
       ? resp.content[0].text
       : `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
 
-  // Claude가 판단: 위젯 요청이면 __WIDGET_JSON__ 포함, 일반 질문이면 텍스트만
-  // 강제로 위젯 JSON 추가하지 않음
   return new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode(fullText));
@@ -115,61 +126,44 @@ export async function POST(req: NextRequest) {
   const userText = (messages[messages.length - 1]?.content as string) ?? "";
   const sol = (solution as string) ?? "guard";
 
-  const isClaude = provider === "claude-haiku" || provider === "claude-sonnet";
-  const effectiveProvider = isClaude ? "claude" : (LLM_PROVIDER as string);
-  const claudeModel = provider === "claude-sonnet" ? SONNET_MODEL : HAIKU_MODEL;
+  // Gemini 경로
+  if (provider === "gemini-flash-lite") {
+    try {
+      const system = buildClaudeSystem(sol); // 같은 시스템 프롬프트 재사용
+      const stream = await handleGemini(system, userText);
+      return new Response(stream, {
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
+      });
+    } catch {
+      const fallback = `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
+      return new Response(fallback, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    }
+  }
 
-  if (effectiveProvider === "claude") {
+  // Claude 모델 선택
+  const claudeModel =
+    provider === "claude-opus"   ? OPUS_MODEL   :
+    provider === "claude-sonnet" ? SONNET_MODEL :
+    HAIKU_MODEL;
+
+  const isClaudeProvider =
+    provider === "claude-haiku" ||
+    provider === "claude-sonnet" ||
+    provider === "claude-opus";
+
+  if (isClaudeProvider) {
     try {
       const stream = await handleClaude(messages, sol, userText, claudeModel);
       return new Response(stream, {
         headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
       });
     } catch {
-      // API 오류 시 mock fallback
       const fallback = `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
       return new Response(fallback, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
   }
 
-  // Gemma4 (Ollama) 경로
-  const readable = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const enc = new TextEncoder();
-      const widgetJson = generateMockWidget(userText);
-
-      const narrativeSystem = `당신은 AIMNIS 플랫폼 AI 어시스턴트입니다. 위젯 추가 요청에 한국어로 1-2문장 응답하세요.`;
-
-      const narrativeStream = await ollamaStream(narrativeSystem, userText).catch(() => null);
-
-      if (narrativeStream) {
-        try {
-          const reader = narrativeStream.getReader();
-          const decoder = new TextDecoder();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const lines = decoder.decode(value).split("\n").filter(Boolean);
-            for (const line of lines) {
-              try {
-                const parsed = JSON.parse(line) as { response?: string };
-                if (parsed.response) controller.enqueue(enc.encode(parsed.response));
-              } catch { /* skip */ }
-            }
-          }
-        } catch {
-          controller.enqueue(enc.encode(generateMockNarrative(userText)));
-        }
-      } else {
-        controller.enqueue(enc.encode(generateMockNarrative(userText)));
-      }
-
-      controller.enqueue(enc.encode(`\n__WIDGET_JSON__\n${widgetJson}`));
-      controller.close();
-    },
-  });
-
-  return new Response(readable, {
-    headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
-  });
+  // 알 수 없는 provider → mock
+  const fallback = `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
+  return new Response(fallback, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }

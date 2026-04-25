@@ -184,7 +184,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                   >
                     <Bot className="h-3.5 w-3.5" />
                   </motion.div>
-                  <span>{aiState === "streaming" ? "Gemma4 하네스 생성 중..." : "Gemma4 생성 완료"}</span>
+                  <span>{aiState === "streaming" ? "Gemini 하네스 생성 중..." : "Gemini 생성 완료"}</span>
                 </div>
                 {aiState === "done" && (
                   <button onClick={resetAi} className="text-white/30 hover:text-white/60 transition-colors">

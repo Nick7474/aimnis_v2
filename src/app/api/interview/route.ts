@@ -1,13 +1,11 @@
 import { NextRequest } from "next/server";
 
-const LLM_PROVIDER = process.env.LLM_PROVIDER ?? "gemma";
-const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:e2b";
+const LLM_PROVIDER = process.env.LLM_PROVIDER ?? "gemini";
 
 // Advisor 전략: Haiku(빠른 인터뷰 Q&A) + Opus(최종 설계 계획)
 const HAIKU_MODEL  = "claude-haiku-4-5-20251001";
 const SONNET_MODEL = "claude-sonnet-4-6";
-const OPUS_MODEL   = "claude-opus-4-7";
+const OPUS_MODEL   = "claude-opus-4-6";
 
 // 캐싱 대상 시스템 프롬프트 (변경 빈도 낮음)
 const SYSTEM_PROMPT = `당신은 20년 경력의 엔터프라이즈 서비스 아키텍트입니다.
@@ -198,12 +196,19 @@ export async function POST(req: NextRequest) {
   const lastUserMsg = msgList.filter((m) => m.role === "user").slice(-1)[0]?.content ?? "";
   const isSkip = lastUserMsg.includes("대충") || lastUserMsg.includes("그냥 해줘") || lastUserMsg.includes("건너뛰");
 
-  const isClaude = provider === "claude-haiku" || provider === "claude-sonnet";
-  const effectiveProvider = isClaude ? "claude" : (LLM_PROVIDER as string);
-  // Sonnet이면 Q&A도 Sonnet, 완료 턴은 항상 Opus
-  const interviewModel = provider === "claude-sonnet" ? SONNET_MODEL : HAIKU_MODEL;
+  // 프론트엔드 provider 선택이 항상 우선 (LLM_PROVIDER env 무시)
+  const isClaudeProvider =
+    provider === "claude-haiku" ||
+    provider === "claude-sonnet" ||
+    provider === "claude-opus";
 
-  if (effectiveProvider === "claude") {
+  // Sonnet/Opus이면 Q&A도 해당 모델, 나머지는 Haiku
+  const interviewModel =
+    provider === "claude-opus"   ? OPUS_MODEL   :
+    provider === "claude-sonnet" ? SONNET_MODEL :
+    HAIKU_MODEL;
+
+  if (isClaudeProvider) {
     try {
       const result = await handleClaudeInterview(msgList, scenario, turnCount, lastUserMsg, isSkip, interviewModel);
       return new Response(result, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
@@ -212,29 +217,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Gemma(Ollama) 기본 경로
+  // mock 기본 경로 (Gemini/Claude 미선택 시)
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
       const enc = new TextEncoder();
       try {
-        const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: OLLAMA_MODEL,
-            system: SYSTEM_PROMPT,
-            prompt: `시나리오: ${scenario}\n현재 턴: ${turnCount}/3\n사용자 메시지: ${lastUserMsg}\n\n위 형식의 JSON으로만 응답:`,
-            stream: false,
-          }),
-          signal: AbortSignal.timeout(15000),
-        });
-
-        if (!res.ok) throw new Error(`Ollama ${res.status}`);
-        const json = (await res.json()) as { response?: string };
-        let raw = (json.response ?? "").trim().replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-        const parsed = JSON.parse(raw);
-        if (turnCount >= 3) parsed.isComplete = true;
-        controller.enqueue(enc.encode(JSON.stringify(parsed)));
+        controller.enqueue(enc.encode(buildMockResponse(scenario, turnCount, lastUserMsg, isSkip)));
       } catch {
         controller.enqueue(enc.encode(buildMockResponse(scenario, turnCount, lastUserMsg, isSkip)));
       }

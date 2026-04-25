@@ -14,7 +14,7 @@ const LOGS = [
   "✓ solution loader initialized",
   "✓ harness-schema.json loaded",
   "✓ SmartGridEngine ready",
-  "✓ Gemma4 widget engine ready",
+  "✓ Gemini widget engine ready",
   "✓ Sonnet+Opus advisor connected",
   "→ waiting for user input...",
 ];

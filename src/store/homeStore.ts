@@ -231,7 +231,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
   setBlueprint: (md) => set({ blueprintMd: md }),
 
   // ─── Harness AI 생성 ─────────────────────────────────────────
-  generateHarness: async (provider = "gemma4") => {
+  generateHarness: async (provider = "gemini-flash-lite") => {
     const { selectedScenario, selectedSpecs } = get();
     if (!selectedScenario) return;
 
