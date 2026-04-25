@@ -238,8 +238,8 @@ export default function Navbar() {
                       color: "var(--t2)",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.background = "oklch(58% 0.22 25 / .1)";
-                      (e.currentTarget as HTMLButtonElement).style.color = "var(--red)";
+                      (e.currentTarget as HTMLButtonElement).style.background = "oklch(70% 0.14 210 / .1)";
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--cyan)";
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLButtonElement).style.background = "transparent";
