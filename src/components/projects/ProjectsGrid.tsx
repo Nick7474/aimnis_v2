@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Edit2, Trash2, Copy, ExternalLink, Plus,
-  Shield, AlertTriangle, CheckCircle2, Clock, X
+  Shield, AlertTriangle, CheckCircle2, Clock, X, Play
 } from "lucide-react";
+import { useProjectStore } from "@/store/projectStore";
 import { cn } from "@/lib/utils";
 
 interface ProjectStats {
@@ -40,7 +41,15 @@ const SOLUTION_COLORS: Record<string, string> = {
 
 export default function ProjectsGrid({ initialProjects }: ProjectsGridProps) {
   const router = useRouter();
-  const [projects, setProjects] = useState(initialProjects);
+  const { projects: publishedProjects, remove: removePublished } = useProjectStore();
+
+  // 정적 JSON + 동적 store 병합 (store 프로젝트 우선 표시)
+  const [staticProjects, setStaticProjects] = useState(initialProjects);
+  const projects = [
+    ...publishedProjects.map(p => ({ ...p, createdAt: p.publishedAt, thumbnail: null })),
+    ...staticProjects,
+  ] as Project[];
+
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -50,7 +59,12 @@ export default function ProjectsGrid({ initialProjects }: ProjectsGridProps) {
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+    // store 프로젝트인지 static인지 구분해서 삭제
+    if (publishedProjects.some(p => p.id === deleteTarget.id)) {
+      removePublished(deleteTarget.id);
+    } else {
+      setStaticProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
+    }
     setDeleteTarget(null);
   };
 
@@ -227,13 +241,13 @@ function ProjectCard({ project, index, copiedId, onEdit, onDelete, onCopyUrl, on
             onClick={onEdit}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-1.5 text-xs text-white/60 hover:text-white/90 hover:border-purple-500/30 transition-all"
           >
-            <Edit2 className="h-3 w-3" /> 수정
+            <Edit2 className="h-3 w-3" /> 에디터 편집
           </button>
           <button
             onClick={onOpen}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-1.5 text-xs text-white/60 hover:text-white/90 transition-all"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-teal-600/80 to-cyan-600/80 py-1.5 text-xs text-white hover:from-teal-500 hover:to-cyan-500 transition-all"
           >
-            <ExternalLink className="h-3 w-3" /> 열기
+            <Play className="h-3 w-3" /> AIM GUARD 실행
           </button>
           <button
             onClick={onCopyUrl}

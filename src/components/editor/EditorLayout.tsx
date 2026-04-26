@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Save, Maximize2, Globe, X, Check, FileCode2 } from "lucide-react";
+import { Shield, Save, Maximize2, Globe, X, Check, FileCode2, LayoutDashboard, Database, Rocket } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { DndContext, DragOverlay, type DragEndEvent } from "@dnd-kit/core";
 import { useEditorStore } from "@/store/editorStore";
+import { useProjectStore } from "@/store/projectStore";
+import { useRouter } from "next/navigation";
 import type { OverlayWidget } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -27,7 +30,15 @@ interface EditorLayoutProps {
   widgets: SolutionWidget[];
 }
 
+const EDITOR_NAV = [
+  { href: "/home",     label: "홈",        Icon: LayoutDashboard },
+  { href: "/editor",   label: "에디터",    Icon: Shield },
+  { href: "/projects", label: "프로젝트",  Icon: Database },
+  { href: "/guard",    label: "AIM GUARD", Icon: Shield },
+];
+
 export default function EditorLayout({ solution, template, widgets }: EditorLayoutProps) {
+  const pathname = usePathname();
   const { rightPanel, setRightPanel, brand, isFullscreen, setFullscreen, publishedUrl, setPublishedUrl,
           addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel } = useEditorStore();
 
@@ -69,9 +80,14 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
     },
     [addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel]
   );
+  const router = useRouter();
+  const publishProject = useProjectStore(s => s.publish);
   const [saved, setSaved] = useState(false);
   const [showPublishToast, setShowPublishToast] = useState(false);
   const [harnessBadge, setHarnessBadge] = useState<string | null>(null);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishForm, setPublishForm] = useState({ name: "", client: "", versionNote: "" });
+  const [publishDone, setPublishDone] = useState<{ id: string } | null>(null);
 
   // localStorage에서 harness 데이터 복원
   useEffect(() => {
@@ -95,11 +111,29 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
   };
 
   const handlePublish = () => {
-    const random = Math.random().toString(36).slice(2, 8);
-    const url = `https://${solution.id}.aimnis.ai/${random}`;
+    // 퍼블리시 모달 열기 (기존 이름 미리 채우기)
+    setPublishForm({ name: solution.name ?? "", client: "", versionNote: "" });
+    setPublishDone(null);
+    setShowPublishModal(true);
+  };
+
+  const handleConfirmPublish = () => {
+    const project = publishProject({
+      name: publishForm.name || solution.name,
+      solution: solution.id,
+      status: "active",
+      client: publishForm.client || "미지정",
+      description: solution.description ?? "",
+      versionNote: publishForm.versionNote,
+      tags: [],
+      stats: { alerts: 0, uptime: "100%", sensors: 0 },
+      harnessFile: null,
+      industry: "enterprise",
+    });
+    setPublishDone({ id: project.id });
+    // 기존 publishedUrl도 세팅 (토스트 표시)
+    const url = `https://${solution.id}.aimnis.ai/${project.id}`;
     setPublishedUrl(url);
-    setShowPublishToast(true);
-    setTimeout(() => setShowPublishToast(false), 4000);
   };
 
   return (
@@ -113,7 +147,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       <FloatingToolbar />
 
       {/* 상단 툴바 */}
-      <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0a0a14] px-4">
+      <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0a0a14] px-4">
         {/* 좌측: 로고 + 솔루션명 */}
         <div className="flex items-center gap-3">
           <Link href="/home" className="flex items-center gap-2.5">
@@ -156,6 +190,32 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
           </AnimatePresence>
         </div>
 
+        {/* 중앙: 네비게이션 (홈과 동일) */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 h-14">
+          {EDITOR_NAV.map(({ href, label, Icon }) => {
+            const isActive = pathname === href || (href === "/editor" && pathname?.startsWith("/editor"));
+            return (
+              <Link key={href} href={href}
+                className={cn(
+                  "relative flex items-center gap-1.5 px-3 h-14 text-xs transition-colors border-b-2",
+                  isActive
+                    ? "text-white border-violet-500"
+                    : "text-white/40 border-transparent hover:text-white/70"
+                )}
+              >
+                {isActive && (
+                  <motion.span layoutId="editor-nav-active"
+                    className="absolute inset-[6px_4px] rounded-md bg-purple-500/15"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <Icon className="relative h-3.5 w-3.5" />
+                <span className="relative">{label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
         {/* 우측: 액션 버튼 */}
         <div className="flex items-center gap-1.5">
           <button
@@ -176,7 +236,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
             onClick={handlePublish}
             className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-1.5 text-xs text-white shadow-lg shadow-violet-500/20 hover:from-violet-500 hover:to-indigo-500 transition-all"
           >
-            <Globe className="h-3 w-3" />
+            <Rocket className="h-3 w-3" />
             퍼블리시
           </button>
         </div>
@@ -255,6 +315,93 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
         )}
       </AnimatePresence>
     </div>
+
+    {/* ── 퍼블리시 모달 ── */}
+    <AnimatePresence>
+      {showPublishModal && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }}
+            className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f1a] p-6 shadow-2xl">
+
+            {/* 헤더 */}
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-white">
+                  {publishDone ? "✅ 퍼블리시 완료" : "프로젝트 퍼블리시"}
+                </h2>
+                <p className="mt-0.5 text-xs text-white/40">
+                  {publishDone ? "프로젝트가 등록됐습니다" : "프로젝트 정보를 입력하세요"}
+                </p>
+              </div>
+              <button onClick={() => setShowPublishModal(false)}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/70 transition-colors">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {!publishDone ? (
+              <>
+                {/* 폼 */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">프로젝트명</label>
+                    <input value={publishForm.name} onChange={e => setPublishForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder={solution.name}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">고객사 (선택)</label>
+                    <input value={publishForm.client} onChange={e => setPublishForm(p => ({ ...p, client: e.target.value }))}
+                      placeholder="예: 삼성SDI, 현대제철..."
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">버전 메모 (선택)</label>
+                    <input value={publishForm.versionNote} onChange={e => setPublishForm(p => ({ ...p, versionNote: e.target.value }))}
+                      placeholder="변경 사항을 간략히 기록하세요"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                  </div>
+                </div>
+
+                {/* 솔루션 정보 */}
+                <div className="mt-4 flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2.5">
+                  <Shield className="h-3.5 w-3.5 text-teal-400 flex-shrink-0" />
+                  <span className="text-xs text-white/50">솔루션: <span className="text-white/70">{solution.name}</span></span>
+                </div>
+
+                <button onClick={handleConfirmPublish}
+                  className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 hover:from-violet-500 hover:to-indigo-500 transition-all">
+                  <Rocket className="h-4 w-4" />
+                  프로젝트에 배포하기
+                </button>
+              </>
+            ) : (
+              /* 완료 화면 */
+              <div className="space-y-3">
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+                  ✓ 프로젝트 DB에 등록 완료
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => { setShowPublishModal(false); router.push("/projects"); }}
+                    className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2.5 text-xs font-medium text-white/70 hover:text-white transition-colors">
+                    프로젝트 보기
+                  </button>
+                  <button onClick={() => { setShowPublishModal(false); router.push("/guard"); }}
+                    className="flex-1 rounded-lg bg-gradient-to-r from-teal-600 to-cyan-600 py-2.5 text-xs font-bold text-white hover:from-teal-500 hover:to-cyan-500 transition-all">
+                    AIM GUARD 실행
+                  </button>
+                </div>
+                <button onClick={() => setShowPublishModal(false)}
+                  className="w-full text-center text-xs text-white/30 hover:text-white/50 transition-colors py-1">
+                  닫기
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
 
     {/* 드래그 고스트 — 실제 위젯 카드 모양 */}
     <DragOverlay dropAnimation={null}>

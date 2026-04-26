@@ -1,8 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Shield } from "lucide-react";
 import dynamic from "next/dynamic";
+import Navbar from "@/components/layout/Navbar";
 
 const GuardApp = dynamic(() => import("@/components/guard/GuardApp"), {
   ssr: false,
@@ -14,27 +13,13 @@ const GuardApp = dynamic(() => import("@/components/guard/GuardApp"), {
 });
 
 export default function GuardPage() {
-  const router = useRouter();
-
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[#020817]">
-      {/* 오버레이 — 에디터로 돌아가기 버튼 */}
-      <div className="absolute left-4 top-4 z-50 flex items-center gap-2">
-        <div className="flex items-center gap-2 rounded-xl border border-teal-500/20 bg-[#020817]/80 px-3 py-2 backdrop-blur-md">
-          <Shield className="h-3.5 w-3.5 text-teal-400" />
-          <span className="text-xs font-bold text-white">AIM GUARD</span>
-        </div>
-        <button
-          onClick={() => router.push("/editor?solution=guard")}
-          className="flex items-center gap-1.5 rounded-xl border border-teal-500/20 bg-[#020817]/80 px-3 py-2 text-xs text-teal-300 backdrop-blur-md hover:bg-teal-500/10 transition-colors"
-        >
-          <ArrowLeft className="h-3 w-3" />
-          에디터로 돌아가기
-        </button>
-      </div>
+    <div className="flex h-screen flex-col overflow-hidden bg-[#020817]">
+      {/* AIMNIS 공통 상단 네비게이션 (홈/에디터와 동일) */}
+      <Navbar />
 
-      {/* AIM GUARD — 풀스크린 직접 렌더링 */}
-      <div className="h-full w-full">
+      {/* AIM GUARD 앱 — Navbar 높이(48px) 아래 전체 차지 */}
+      <div className="flex-1 overflow-hidden">
         <GuardApp />
       </div>
     </div>

@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIM GUARD — 통합 보안 모니터링</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:oklch(8% 0.025 275);--s1:oklch(11% 0.022 275);--s2:oklch(14% 0.020 275);
+  --s3:oklch(18% 0.018 275);--s4:oklch(22% 0.016 275);
+  --border:oklch(100% 0 0/.07);--border2:oklch(100% 0 0/.12);--border3:oklch(100% 0 0/.18);
+  --primary:oklch(60% 0.20 285);--cyan:oklch(70% 0.14 210);--green:oklch(65% 0.16 145);
+  --red:oklch(58% 0.22 25);--orange:oklch(68% 0.18 55);--yellow:oklch(74% 0.16 85);
+  --t1:oklch(96% 0.008 275);--t2:oklch(68% 0.012 275);--t3:oklch(45% 0.010 275);--t4:oklch(30% 0.008 275);
+  --font:'Plus Jakarta Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--t1);overflow:hidden}
+#root{height:100%;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:4px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes rotate{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback,useMemo} = React;
+
+/* ── ICONS ─────────────────────────────────── */
+const P = {
+  shield:<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>,
+  camera:<><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></>,
+  bell:<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
+  barChart:<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>,
+  zap:<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
+  settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+  map:<><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></>,
+  plus:<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+  close:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+  check:<polyline points="20 6 9 17 4 12"/>,
+  chevronLeft:<polyline points="15 18 9 12 15 6"/>,
+  chevronRight:<polyline points="9 18 15 12 9 6"/>,
+  chevronDown:<polyline points="6 9 12 15 18 9"/>,
+  edit:<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
+  trash:<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></>,
+  user:<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+  refresh:<><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></>,
+  download:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+  cpu:<><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></>,
+  wifi:<><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></>,
+  filter:<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>,
+  search:<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+};
+const Ic = ({n,s=16,c='currentColor',sw=1.7,fill='none'})=>(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill={fill} stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>{P[n]}</svg>
+);
+
+/* ── LOGO ──────────────────────────────────── */
+const Logo = ({size=22})=>(
+  <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+    <defs><linearGradient id="lgG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stopColor="#FF6B35"/><stop offset="50%" stopColor="#C850C0"/><stop offset="100%" stopColor="#4158D0"/>
+    </linearGradient></defs>
+    <circle cx="20" cy="20" r="18" fill="url(#lgG)" opacity=".15"/>
+    <circle cx="20" cy="20" r="18" fill="none" stroke="url(#lgG)" strokeWidth="1.5"/>
+    <path d="M12 28L20 12L28 28" stroke="url(#lgG)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M14.5 22.5H25.5" stroke="url(#lgG)" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="20" cy="20" r="3" fill="url(#lgG)" opacity=".8"/>
+  </svg>
+);
+
+/* ── TOGGLE ────────────────────────────────── */
+const Toggle = ({on,onChange})=>(
+  <div onClick={()=>onChange(!on)} style={{width:34,height:19,borderRadius:10,background:on?'var(--primary)':'var(--s4)',position:'relative',cursor:'pointer',transition:'background .2s',flexShrink:0}}>
+    <div style={{position:'absolute',top:2,left:on?15:2,width:15,height:15,borderRadius:'50%',background:'white',transition:'left .2s',boxShadow:'0 1px 4px rgba(0,0,0,.4)'}}/>
+  </div>
+);
+
+/* ── PAGE TYPE DEFS ────────────────────────── */
+const PAGE_TYPES = [
+  {id:'video',  icon:'camera',   name:'영상 모니터링', desc:'CCTV 채널별 실시간 영상 및 멀티뷰 모니터링',   color:'var(--cyan)'},
+  {id:'events', icon:'bell',     name:'이벤트',       desc:'보안 알람 이벤트 목록 및 처리 현황',             color:'var(--orange)'},
+  {id:'stats',  icon:'barChart', name:'통계',         desc:'구역별·시간대별 이벤트 통계 및 분석 차트',       color:'var(--primary)'},
+  {id:'rules',  icon:'zap',      name:'이벤트 규칙',  desc:'알람 발생 조건 및 자동 대응 규칙 설정',           color:'var(--yellow)'},
+  {id:'settings',icon:'settings',name:'설정',         desc:'시스템 환경 설정, 사용자 관리, 장치 연결',         color:'var(--t2)'},
+];
+const SPECS = {
+  video:{title:'영상 모니터링 설정',qs:[
+    {id:'split',label:'기본 화면 분할 방식은?',multi:false,options:['1분할','4분할','9분할','16분할','32분할']},
+    {id:'quality',label:'스트리밍 화질 우선순위는?',multi:false,options:['고화질 (4K/2K)','표준 (FHD)','저지연 우선 (SD)','자동 조절']},
+    {id:'features',label:'필요한 기능을 선택하세요 (복수)',multi:true,options:['PTZ 제어','화면 녹화','스냅샷 저장','알람 팝업 연동','전체화면 모드']},
+  ]},
+  events:{title:'이벤트 목록 설정',qs:[
+    {id:'types',label:'모니터링할 이벤트 유형은? (복수)',multi:true,options:['INTRUSION (침입 감지)','ACCESS_DENIED (접근 거부)','FORCED_OPEN (강제 개방)','DI_INPUT (센서 입력)','DOOR_HELD_OPEN (문 열림 유지)']},
+    {id:'filter',label:'기본 필터 상태는?',multi:false,options:['전체 이벤트','미확인(UNACKED)만','오늘 발생 이벤트','최근 24시간']},
+    {id:'cols',label:'표시 컬럼을 선택하세요 (복수)',multi:true,options:['발생시간','Zone','장비명','이벤트 타입','위치','확인 상태','담당자']},
+  ]},
+  stats:{title:'통계 대시보드 설정',qs:[
+    {id:'period',label:'기본 집계 기간은?',multi:false,options:['오늘','최근 7일','이번 달','분기','사용자 지정']},
+    {id:'charts',label:'표시할 차트 유형은? (복수)',multi:true,options:['시간대별 이벤트 추이','Zone별 TOP 5','장비 유형별 비율','이벤트 타입 분류','주간 비교 추이']},
+    {id:'kpis',label:'상단 KPI 카드 항목은? (복수)',multi:true,options:['전체 이벤트','위험(CRITICAL)','미확인 알람','확인 처리율','평균 응답 시간']},
+  ]},
+  rules:{title:'이벤트 규칙 설정',qs:[
+    {id:'triggers',label:'주요 규칙 트리거 유형은? (복수)',multi:true,options:['침입 감지 (INTRUSION)','접근 거부 (ACCESS_DENIED)','강제 개방 (FORCED_OPEN)','센서 이상 (DI_INPUT)','복합 조건 트리거']},
+    {id:'actions',label:'자동 대응 액션은? (복수)',multi:true,options:['CCTV 팝업 표시','PTZ 프리셋 이동','릴레이 제어','앱 알림 전송','외부 API 호출']},
+    {id:'severity',label:'적용할 심각도 수준은? (복수)',multi:true,options:['CRITICAL','HIGH','MEDIUM','LOW']},
+  ]},
+  settings:{title:'설정 페이지 구성',qs:[
+    {id:'tabs',label:'필요한 설정 탭은? (복수)',multi:true,options:['맵 관리','Zone 편집','장비 관리','VMS/CCTV 연동','사용자 권한']},
+    {id:'maptype',label:'사용 중인 맵 유형은?',multi:false,options:['도면 이미지 (IMAGE)','위성 지도 (NAVER/카카오)','혼합 사용','3D 평면도']},
+    {id:'users',label:'사용자 권한 체계는?',multi:false,options:['2단계 (관리자/일반)','3단계 (관리자/운영자/조회)','커스텀 역할 설정']},
+  ]},
+};
+
+/* ── CHIP ──────────────────────────────────── */
+const Chip = ({label,selected,onClick})=>(
+  <button onClick={onClick} style={{
+    display:'inline-flex',alignItems:'center',gap:6,padding:'6px 13px',borderRadius:7,cursor:'pointer',
+    border:`1px solid ${selected?'oklch(60% 0.20 285 / .7)':'var(--border2)'}`,
+    background:selected?'oklch(60% 0.20 285 / .15)':'var(--s2)',
+    color:selected?'var(--t1)':'var(--t2)',fontSize:12,fontFamily:'var(--font)',
+    fontWeight:selected?600:400,transition:'all .15s',
+  }}>
+    {selected&&<svg width={11} height={11} viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="var(--primary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+    {label}
+  </button>
+);
+
+/* ── HARNESS PREVIEW ───────────────────────── */
+const HarnessPreview = ({selected, answers, specs, canCreate, onCreate})=>{
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [streamKey, setStreamKey] = useState(0);
+  const scrollRef = useRef(null);
+  const prevAnsRef = useRef('');
+
+  const fileNames = {video:'video_monitoring.md',events:'event_management.md',stats:'statistics_dashboard.md',rules:'event_rules.md',settings:'system_settings.md'};
+  const fileName = (selected&&fileNames[selected.id])||'config.md';
+  const catMap = {
+    video:['기본 설정','화질 설정','기능 구성'],
+    events:['이벤트 유형','필터 설정','컬럼 구성'],
+    stats:['기간 설정','차트 구성','KPI 설정'],
+    rules:['트리거 설정','액션 구성','심각도 설정'],
+    settings:['탭 구성','맵 설정','권한 설정'],
+  };
+
+  const lines = useMemo(()=>{
+    if(!selected||!specs) return [];
+    const r=[];
+    const today='2026. 4. 26.';
+    const cats=catMap[selected.id]||['설정 1','설정 2','설정 3'];
+    r.push({t:'h1',text:`# ${selected.name} 설정서`});
+    r.push({t:'blank'});
+    r.push({t:'h2',text:'## 프로젝트 정보'});
+    r.push({t:'meta',text:`- 솔루션: AIM GUARD v1.0`});
+    r.push({t:'meta',text:`- 생성일: ${today}`});
+    r.push({t:'meta',text:`- 상태: 설계 중...`});
+    r.push({t:'blank'});
+    specs.qs.forEach((q,i)=>{
+      const ans=answers[q.id]||[];
+      const ok=ans.length>0;
+      r.push({t:'h2',text:`## ${cats[i]||q.label}`});
+      r.push({t:'q',ok,text:q.label});
+      if(ok) ans.forEach(a=>r.push({t:'a',text:a}));
+      else r.push({t:'pending'});
+      r.push({t:'blank'});
+    });
+    return r;
+  },[selected,answers,specs]);
+
+  const ansStr = JSON.stringify(answers);
+  useEffect(()=>{
+    if(ansStr!==prevAnsRef.current){
+      prevAnsRef.current=ansStr;
+      setStreamKey(k=>k+1);
+      setVisibleCount(0);
+    }
+  },[ansStr]);
+
+  useEffect(()=>{
+    if(visibleCount<lines.length){
+      const t=setTimeout(()=>setVisibleCount(v=>v+1),14);
+      return()=>clearTimeout(t);
+    }
+  },[visibleCount,lines.length,streamKey]);
+
+  // Show all lines on first mount
+  useEffect(()=>{ setVisibleCount(lines.length); },[]);
+
+  useEffect(()=>{
+    if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight;
+  },[visibleCount]);
+
+  const streaming = visibleCount<lines.length;
+
+  return (
+    <div style={{width:400,flexShrink:0,display:'flex',flexDirection:'column',background:'oklch(9% 0.020 275)',height:'100%',animation:'fadeIn .3s ease .1s both'}}>
+      {/* Panel header */}
+      <div style={{padding:'16px 20px 12px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+        <div style={{fontSize:12,fontWeight:700,color:'var(--t2)',marginBottom:3}}>AI 생성 미리보기</div>
+        <div style={{fontSize:11,color:'var(--t4)'}}>대화 내용을 바탕으로 실시간 설계서가 작성됩니다</div>
+      </div>
+
+      {/* Editor window */}
+      <div style={{flex:1,overflow:'hidden',padding:'14px 16px 0',display:'flex',flexDirection:'column'}}>
+        {/* macOS window chrome */}
+        <div style={{background:'oklch(16% 0.018 275)',borderRadius:'10px 10px 0 0',border:'1px solid var(--border2)',borderBottom:'none',padding:'9px 14px',display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
+          <div style={{display:'flex',gap:5}}>
+            {['#FF5F57','#FFBD2E','#28CA41'].map(c=>(<div key={c} style={{width:10,height:10,borderRadius:'50%',background:c}}/>))}
+          </div>
+          <div style={{flex:1,textAlign:'center'}}>
+            <span style={{fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>{fileName}</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:5,padding:'2px 8px',borderRadius:4,background:'oklch(65% 0.16 145 / .12)',border:'1px solid oklch(65% 0.16 145 / .3)'}}>
+            <div style={{width:5,height:5,borderRadius:'50%',background:'var(--green)',animation:'pulse 1.5s infinite'}}/>
+            <span style={{fontSize:9,color:'var(--green)',fontWeight:700,letterSpacing:'0.06em'}}>LIVE</span>
+          </div>
+        </div>
+
+        {/* Markdown content */}
+        <div ref={scrollRef} style={{flex:1,overflowY:'auto',background:'oklch(12% 0.018 275)',border:'1px solid var(--border2)',borderTop:'none',borderRadius:'0 0 10px 10px',padding:'14px 16px',fontFamily:'var(--mono)',fontSize:11,lineHeight:1.85}}>
+          {lines.slice(0,visibleCount).map((ln,i)=>{
+            if(ln.t==='blank') return <div key={i} style={{height:6}}/>;
+            if(ln.t==='h1') return <div key={i} style={{fontSize:15,fontWeight:700,color:'var(--t1)',marginBottom:4,letterSpacing:'-0.01em'}}>{ln.text}</div>;
+            if(ln.t==='h2') return <div key={i} style={{fontSize:12,fontWeight:700,color:'var(--cyan)',marginTop:8}}>{ln.text}</div>;
+            if(ln.t==='meta') return <div key={i} style={{color:'var(--t3)',paddingLeft:4}}>{ln.text}</div>;
+            if(ln.t==='q') return (
+              <div key={i} style={{display:'flex',alignItems:'flex-start',gap:7,paddingLeft:4,marginTop:2}}>
+                <span style={{color:ln.ok?'oklch(65% 0.16 145)':'var(--t4)',flexShrink:0}}>{ln.ok?'✅':'□'}</span>
+                <span style={{color:ln.ok?'var(--t1)':'var(--t3)',fontWeight:ln.ok?600:400}}>**{ln.text}**</span>
+              </div>
+            );
+            if(ln.t==='a') return <div key={i} style={{color:'var(--t2)',paddingLeft:28}}>{'  - '+ln.text}</div>;
+            if(ln.t==='pending') return <div key={i} style={{color:'var(--t4)',paddingLeft:28}}>{'  - 선택 대기 중...'}</div>;
+            return null;
+          })}
+          {streaming&&<span style={{display:'inline-block',width:7,height:12,background:'var(--primary)',animation:'pulse .6s infinite',verticalAlign:'text-bottom',marginLeft:2,borderRadius:1}}/>}
+        </div>
+      </div>
+
+      {/* Create Harness button */}
+      <div style={{padding:'14px 16px 16px',borderTop:'1px solid var(--border)',flexShrink:0,marginTop:8}}>
+        <button onClick={onCreate} style={{
+          width:'100%',padding:'13px',borderRadius:10,border:'none',
+          background:canCreate?'linear-gradient(135deg,oklch(58% 0.22 285),oklch(52% 0.20 295))':'var(--s3)',
+          color:canCreate?'white':'var(--t4)',fontFamily:'var(--font)',fontSize:13,fontWeight:700,
+          cursor:canCreate?'pointer':'not-allowed',letterSpacing:'0.01em',
+          boxShadow:canCreate?'0 4px 20px oklch(55% 0.22 285 / .4)':'none',
+          transition:'all .2s',display:'flex',alignItems:'center',justifyContent:'center',gap:10,
+        }}>
+          페이지 생성하기 →
+        </button>
+        <div style={{fontSize:10,color:'var(--t4)',textAlign:'center',marginTop:7}}>
+          {canCreate?'선택 완료 후 바로 페이지를 생성할 수 있습니다':'최소 1개 항목을 선택하면 활성화됩니다'}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── PAGE ADD MODAL ────────────────────────── */
+const PageAddModal = ({addedIds, onSelect, onClose})=>{
+  const [step, setStep] = useState(1); // 1=select, 2=spec
+  const [selected, setSelected] = useState(null);
+  const [answers, setAnswers] = useState({});
+
+  const pick = (pt) => { setSelected(pt); setStep(2); };
+  const onAnswer = (qid, val) => setAnswers(p=>({...p,[qid]:val}));
+  const toggle = (qid, opt, multi) => {
+    const cur = answers[qid]||[];
+    if(multi) onAnswer(qid, cur.includes(opt)?cur.filter(x=>x!==opt):[...cur,opt]);
+    else onAnswer(qid, cur[0]===opt?[]:[opt]);
+  };
+  const canCreate = selected && SPECS[selected.id].qs.some(q=>(answers[q.id]||[]).length>0);
+
+  return (
+    <div style={{position:'fixed',top:44,bottom:28,left:220,right:240,zIndex:500,display:'flex',alignItems:'stretch',justifyContent:'flex-start'}}>
+      <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.5)',backdropFilter:'blur(4px)'}}
+        onClick={onClose}/>
+      {/* Two-panel container */}
+      <div style={{
+        position:'relative',zIndex:1,display:'flex',flexDirection:'row',height:'100%',
+        animation:'slideInRight .25s cubic-bezier(.16,1,.3,1) both',
+        boxShadow:'8px 0 40px rgba(0,0,0,.5)',
+      }}>
+        {/* LEFT — questions panel */}
+        <div style={{
+          width:480,flexShrink:0,
+          background:'var(--s1)',borderRight:'1px solid var(--border2)',
+          display:'flex',flexDirection:'column',height:'100%',
+        }}>
+        {/* Header */}
+        <div style={{padding:'20px 24px 16px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              {step===2&&(
+                <button onClick={()=>{setStep(1);setSelected(null);setAnswers({});}} style={{
+                  width:28,height:28,borderRadius:7,border:'1px solid var(--border2)',background:'transparent',
+                  cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',
+                }}>
+                  <Ic n='chevronLeft' s={14} c='var(--t3)' sw={2}/>
+                </button>
+              )}
+              <div>
+                <h2 style={{fontSize:16,fontWeight:700,letterSpacing:'-0.01em'}}>
+                  {step===1?'페이지 추가':selected?.name+' 설정'}
+                </h2>
+                <p style={{fontSize:11,color:'var(--t3)',marginTop:2}}>
+                  {step===1?'추가할 페이지를 선택하세요':'설문에 답변하면 최적 설정으로 페이지를 생성합니다'}
+                </p>
+              </div>
+            </div>
+            <button onClick={onClose} style={{width:30,height:30,borderRadius:8,border:'1px solid var(--border)',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <Ic n='close' s={14} c='var(--t3)' sw={2}/>
+            </button>
+          </div>
+          {/* Step indicator */}
+          <div style={{display:'flex',gap:6,marginTop:12}}>
+            {['페이지 선택','기능 설정'].map((s,i)=>(
+              <div key={s} style={{display:'flex',alignItems:'center',gap:6}}>
+                <div style={{
+                  width:20,height:20,borderRadius:'50%',
+                  background:step>i?'var(--primary)':step===i+1?'var(--primary)':'var(--s4)',
+                  border:`1px solid ${step>i||step===i+1?'var(--primary)':'var(--border2)'}`,
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,
+                  color:step>=i+1?'white':'var(--t4)',
+                }}>
+                  {step>i+1?<Ic n='check' s={10} c='white' sw={2.5}/>:i+1}
+                </div>
+                <span style={{fontSize:11,color:step===i+1?'var(--t1)':'var(--t4)',fontWeight:step===i+1?600:400}}>{s}</span>
+                {i<1&&<Ic n='chevronRight' s={12} c='var(--t4)' sw={1.5}/>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{flex:1,overflowY:'auto',padding:'16px 24px'}}>
+          {step===1&&(
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {PAGE_TYPES.map(pt=>{
+                const added = addedIds.includes(pt.id);
+                return (
+                  <button key={pt.id} onClick={()=>!added&&pick(pt)} style={{
+                    display:'flex',alignItems:'center',gap:16,padding:'16px 18px',
+                    border:`1px solid ${added?'var(--border)':'var(--border2)'}`,
+                    borderRadius:12,cursor:added?'default':'pointer',background:added?'transparent':'var(--s2)',
+                    transition:'all .15s',opacity:added?.5:1,textAlign:'left',
+                  }}
+                    onMouseEnter={e=>{if(!added){e.currentTarget.style.borderColor='oklch(60% 0.20 285 / .5)';e.currentTarget.style.background='var(--s3)';}}}
+                    onMouseLeave={e=>{if(!added){e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.background='var(--s2)';}}}
+                  >
+                    <div style={{
+                      width:44,height:44,borderRadius:12,flexShrink:0,
+                      background:`oklch(from ${pt.color} l c h / .15)`,
+                      border:`1px solid oklch(from ${pt.color} l c h / .3)`,
+                      display:'flex',alignItems:'center',justifyContent:'center',
+                    }}>
+                      <Ic n={pt.icon} s={20} c={pt.color} sw={1.7}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                        <span style={{fontSize:14,fontWeight:700,color:'var(--t1)'}}>{pt.name}</span>
+                        {added&&<span style={{fontSize:10,padding:'2px 7px',borderRadius:4,background:'var(--s4)',color:'var(--t4)',fontWeight:600}}>추가됨</span>}
+                      </div>
+                      <span style={{fontSize:12,color:'var(--t3)',lineHeight:1.5}}>{pt.desc}</span>
+                    </div>
+                    {!added&&<Ic n='chevronRight' s={16} c='var(--t4)' sw={1.5}/>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {step===2&&selected&&(
+            <div style={{animation:'fadeUp .2s ease both'}}>
+              {/* Page preview badge */}
+              <div style={{
+                display:'flex',alignItems:'center',gap:12,padding:'12px 16px',
+                background:`oklch(from ${selected.color} l c h / .08)`,
+                border:`1px solid oklch(from ${selected.color} l c h / .25)`,
+                borderRadius:10,marginBottom:20,
+              }}>
+                <div style={{width:32,height:32,borderRadius:9,background:`oklch(from ${selected.color} l c h / .15)`,
+                  display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <Ic n={selected.icon} s={16} c={selected.color} sw={1.7}/>
+                </div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:'var(--t1)'}}>{selected.name}</div>
+                  <div style={{fontSize:11,color:'var(--t3)'}}>{selected.desc}</div>
+                </div>
+              </div>
+
+              {/* Questions */}
+              {SPECS[selected.id].qs.map((q,qi)=>{
+                const ans = answers[q.id]||[];
+                return (
+                  <div key={q.id} style={{
+                    marginBottom:18,padding:'16px',
+                    background:ans.length>0?'oklch(60% 0.20 285 / .04)':'var(--s2)',
+                    border:`1px solid ${ans.length>0?'oklch(60% 0.20 285 / .25)':'var(--border)'}`,
+                    borderRadius:12,transition:'all .2s',
+                  }}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                      <span style={{fontSize:11,fontWeight:700,color:'var(--t4)',fontFamily:'var(--mono)'}}>{String(qi+1).padStart(2,'0')}</span>
+                      <p style={{fontSize:13,fontWeight:600,color:'var(--t1)',flex:1,lineHeight:1.4}}>{q.label}</p>
+                      {ans.length>0&&<Ic n='check' s={14} c='var(--green)' sw={2.5}/>}
+                    </div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+                      {q.options.map(opt=>(
+                        <Chip key={opt} label={opt} selected={ans.includes(opt)}
+                          onClick={()=>toggle(q.id,opt,q.multi)}/>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {step===1&&(
+          <div style={{padding:'12px 24px',borderTop:'1px solid var(--border)',flexShrink:0}}>
+            <div style={{fontSize:11,color:'var(--t4)',textAlign:'center'}}>페이지를 선택하면 설정 단계로 이동합니다</div>
+          </div>
+        )}
+        </div>{/* end left panel */}
+
+        {/* RIGHT — Harness Preview (step 2 only) */}
+        {step===2&&selected&&(
+          <HarnessPreview
+            selected={selected} answers={answers} specs={SPECS[selected.id]}
+            canCreate={canCreate}
+            onCreate={()=>{if(canCreate){onSelect(selected);onClose();}}}
+          />
+        )}
+      </div>{/* end two-panel container */}
+    </div>
+  );
+};
+
+/* ── RIGHT API PANEL ───────────────────────── */
+const RightApiPanel = ({activePage})=>{
+  const [tab, setTab] = useState('api');
+  const [selectedWidget, setSelectedWidget] = useState(null);
+  const [settings, setSettings] = useState({autoRefresh:true,interval:30,notifications:true,darkMode:true,soundAlert:false});
+
+  const Toggle2 = ({on,onChange})=>(
+    <div onClick={()=>onChange(!on)} style={{width:32,height:18,borderRadius:9,background:on?'var(--primary)':'var(--s4)',position:'relative',cursor:'pointer',transition:'background .2s',flexShrink:0}}>
+      <div style={{position:'absolute',top:2,left:on?14:2,width:14,height:14,borderRadius:'50%',background:'white',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,.4)'}}/>
+    </div>
+  );
+
+  const apiMappings = activePage==='video'
+    ? [{key:'stream_url',label:'스트림 URL',val:'rtsp://192.168.1.{id}/stream'},{key:'fps',label:'FPS',val:'30'},{key:'bitrate',label:'비트레이트',val:'4096 kbps'}]
+    : activePage==='events'
+    ? [{key:'endpoint',label:'이벤트 엔드포인트',val:'/api/v1/events'},{key:'poll_interval',label:'폴링 주기',val:'5s'},{key:'filter',label:'기본 필터',val:'UNACKED'}]
+    : activePage==='stats'
+    ? [{key:'data_source',label:'데이터 소스',val:'/api/v1/statistics'},{key:'period',label:'집계 주기',val:'1h'},{key:'cache_ttl',label:'캐시 TTL',val:'300s'}]
+    : activePage==='rules'
+    ? [{key:'webhook',label:'웹훅 URL',val:'/api/v1/rules/trigger'},{key:'timeout',label:'타임아웃',val:'10s'},{key:'retry',label:'재시도 횟수',val:'3'}]
+    : [];
+
+  return (
+    <div style={{width:240,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--s1)',borderLeft:'1px solid var(--border)',height:'100%'}}>
+      {/* Header */}
+      <div style={{padding:'10px 14px 0',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          <span style={{fontSize:12,fontWeight:700,color:'var(--t1)'}}>API 매핑</span>
+        </div>
+        {/* Tabs */}
+        <div style={{display:'flex',borderBottom:'1px solid var(--border)'}}>
+          {[{id:'api',label:'API 매핑',icon:<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>},{id:'settings',label:'세팅',icon:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>}].map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{
+              flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:5,
+              padding:'8px 4px',border:'none',background:'transparent',cursor:'pointer',
+              borderBottom:`2px solid ${tab===t.id?'var(--primary)':'transparent'}`,
+              color:tab===t.id?'var(--primary)':'var(--t4)',
+              fontSize:11,fontFamily:'var(--font)',fontWeight:tab===t.id?700:400,transition:'all .15s',
+            }}>
+              <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{t.icon}</svg>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{flex:1,overflowY:'auto',minHeight:0}}>
+        {/* API 매핑 tab */}
+        {tab==='api'&&(
+          apiMappings.length>0 ? (
+            <div style={{padding:'14px 14px'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:12}}>
+                {activePage==='video'?'영상 스트림':activePage==='events'?'이벤트 API':activePage==='stats'?'통계 API':'규칙 API'} 매핑
+              </div>
+              {apiMappings.map((m,i)=>(
+                <div key={m.key} style={{marginBottom:12}}>
+                  <div style={{fontSize:10,color:'var(--t3)',marginBottom:5,fontWeight:600}}>{m.label}</div>
+                  <div style={{
+                    padding:'8px 10px',background:'var(--s2)',border:'1px solid var(--border2)',
+                    borderRadius:7,fontSize:11,color:'var(--t1)',fontFamily:'var(--mono)',
+                    display:'flex',alignItems:'center',justifyContent:'space-between',
+                  }}>
+                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{m.val}</span>
+                    <button style={{background:'none',border:'none',cursor:'pointer',padding:'0 0 0 8px',flexShrink:0}}>
+                      <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="var(--t4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button style={{
+                width:'100%',marginTop:4,padding:'8px',borderRadius:7,
+                border:'1px solid oklch(60% 0.20 285 / .3)',background:'oklch(60% 0.20 285 / .08)',
+                color:'var(--primary)',fontSize:11,fontFamily:'var(--font)',fontWeight:600,cursor:'pointer',
+                transition:'all .15s',
+              }}>+ 매핑 추가</button>
+            </div>
+          ) : (
+            <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,height:'100%',gap:12,marginTop:60}}>
+              <div style={{width:44,height:44,borderRadius:12,background:'var(--s3)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--t4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+              </div>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontSize:12,color:'var(--t3)',fontWeight:500,marginBottom:4}}>캔버스에서 위젯을 선택하면</div>
+                <div style={{fontSize:11,color:'var(--t4)',lineHeight:1.6}}>API 매핑을 편집할 수 있습니다</div>
+              </div>
+            </div>
+          )
+        )}
+
+        {/* 세팅 tab */}
+        {tab==='settings'&&(
+          <div style={{padding:'14px 14px'}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:12}}>일반 설정</div>
+            {[
+              {k:'autoRefresh',label:'자동 새로고침'},
+              {k:'notifications',label:'이벤트 알림'},
+              {k:'soundAlert',label:'사운드 알림'},
+              {k:'darkMode',label:'다크 모드'},
+            ].map(s=>(
+              <div key={s.k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
+                <span style={{fontSize:12,color:'var(--t2)'}}>{s.label}</span>
+                <Toggle2 on={settings[s.k]} onChange={v=>setSettings(p=>({...p,[s.k]:v}))}/>
+              </div>
+            ))}
+
+            <div style={{marginTop:16}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>새로고침 주기</div>
+              <div style={{display:'flex',gap:6}}>
+                {[10,30,60,300].map(v=>(
+                  <button key={v} onClick={()=>setSettings(p=>({...p,interval:v}))} style={{
+                    flex:1,padding:'6px 4px',borderRadius:6,border:`1px solid ${settings.interval===v?'var(--primary)':'var(--border2)'}`,
+                    background:settings.interval===v?'oklch(60% 0.20 285 / .12)':'transparent',
+                    color:settings.interval===v?'var(--primary)':'var(--t3)',
+                    fontSize:10,fontFamily:'var(--mono)',cursor:'pointer',fontWeight:settings.interval===v?700:400,transition:'all .15s',
+                  }}>{v<60?v+'s':v/60+'m'}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{marginTop:16}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>페이지 정보</div>
+              <div style={{padding:'10px 12px',background:'var(--s2)',border:'1px solid var(--border)',borderRadius:8}}>
+                <div style={{fontSize:11,color:'var(--t2)',fontWeight:600,marginBottom:4}}>AIM GUARD v1.0</div>
+                <div style={{fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)'}}>마지막 동기화: 방금 전</div>
+                <div style={{fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)',marginTop:2}}>연결 상태: WS 연결됨</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+const TopBar = ()=>(
+  <div style={{height:44,display:'flex',alignItems:'center',background:'var(--s1)',borderBottom:'1px solid var(--border)',flexShrink:0,zIndex:20,position:'relative'}}>
+    <div style={{display:'flex',alignItems:'center',gap:10,padding:'0 16px',borderRight:'1px solid var(--border)',height:'100%',minWidth:200}}>
+      <Logo size={20}/>
+      <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <Ic n='shield' s={13} c='var(--primary)' sw={2}/>
+        <span style={{fontWeight:700,fontSize:13,letterSpacing:'0.02em',color:'var(--primary)'}}>AIM GUARD</span>
+      </div>
+      <span style={{fontSize:10,color:'var(--t4)',borderLeft:'1px solid var(--border)',paddingLeft:10}}>통합 보안 모니터링 시스템</span>
+    </div>
+    <div style={{flex:1}}/>
+    <div style={{display:'flex',alignItems:'center',gap:10,padding:'0 16px'}}>
+      <button style={{position:'relative',width:30,height:30,borderRadius:7,border:'1px solid var(--border)',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <Ic n='bell' s={14} c='var(--t3)' sw={1.7}/>
+        <span style={{position:'absolute',top:4,right:4,width:7,height:7,borderRadius:'50%',background:'var(--red)',border:'1.5px solid var(--s1)'}}/>
+      </button>
+      <div style={{display:'flex',alignItems:'center',gap:7,padding:'4px 10px',borderRadius:7,border:'1px solid var(--border)',background:'var(--s2)',cursor:'pointer'}}>
+        <Ic n='user' s={13} c='var(--t3)' sw={1.7}/>
+        <span style={{fontSize:11,color:'var(--t2)',fontWeight:500}}>데모 관리자</span>
+      </div>
+    </div>
+  </div>
+);
+
+/* ── STATUS BAR ────────────────────────────── */
+const StatusBar = ()=>(
+  <div style={{height:28,display:'flex',alignItems:'center',gap:0,background:'var(--s1)',borderTop:'1px solid var(--border)',flexShrink:0,padding:'0 16px',justifyContent:'space-between'}}>
+    <div style={{display:'flex',gap:16}}>
+      {[['Senstar-1F','var(--green)','연결'],['ADAM-1F','var(--green)','연결'],['출입-A','var(--orange)','경고']].map(([n,c,s])=>(
+        <div key={n} style={{display:'flex',alignItems:'center',gap:5}}>
+          <div style={{width:5,height:5,borderRadius:'50%',background:c,animation:s==='연결'?'pulse 2s infinite':'none'}}/>
+          <span style={{fontSize:10,color:'var(--t3)',fontFamily:'var(--mono)'}}>{n}: <span style={{color:c}}>{s}</span></span>
+        </div>
+      ))}
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:12}}>
+      <div style={{display:'flex',alignItems:'center',gap:5}}>
+        <Ic n='wifi' s={11} c='var(--green)' sw={1.7}/>
+        <span style={{fontSize:10,color:'var(--t3)',fontFamily:'var(--mono)'}}>WS: <span style={{color:'var(--green)'}}>연결됨</span></span>
+      </div>
+      <span style={{fontSize:10,color:'var(--t4)',fontFamily:'var(--mono)'}}>AIM GUARD v1.0.0</span>
+    </div>
+  </div>
+);
+
+/* ── PAGE: VIDEO MONITOR ───────────────────── */
+const VideoMonitor = ()=>{
+  const [split, setSplit] = useState(4);
+  const [dragging, setDragging] = useState(null);
+  const [slots, setSlots] = useState({0:'1층 로비 CAM_01',1:null,2:null,3:null});
+  const cameras = [
+    {id:'c1',name:'1층 로비 CAM_01',group:'본관 (Main Building)',status:'online'},
+    {id:'c2',name:'1층 복도 CAM_02',group:'본관 (Main Building)',status:'online'},
+    {id:'c3',name:'2층 복도 CAM_03',group:'본관 (Main Building)',status:'alarm'},
+    {id:'c4',name:'주차장 입구 CAM_04',group:'외부 (Exterior)',status:'online'},
+    {id:'c5',name:'NVR/ODM (MediaMT...)',group:'외부 (Exterior)',status:'online'},
+    {id:'c6',name:'NVR 빈 프레임 (Frame...)',group:'외부 (Exterior)',status:'offline'},
+    {id:'c7',name:'볼피수거함 CAM_05',group:'외부 (Exterior)',status:'online'},
+  ];
+  const groups = [...new Set(cameras.map(c=>c.group))];
+  const grid = Math.ceil(Math.sqrt(split));
+  const cellCount = split;
+
+  return (
+    <div style={{flex:1,display:'flex',minHeight:0}}>
+      {/* Device list */}
+      <div style={{width:220,flexShrink:0,background:'var(--s1)',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column'}}>
+        <div style={{padding:'12px 14px 8px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+          <span style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.08em',textTransform:'uppercase'}}>장치 목록</span>
+        </div>
+        <div style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
+          {groups.map(g=>(
+            <div key={g}>
+              <div style={{padding:'6px 14px',fontSize:10,color:'var(--t4)',fontWeight:600,letterSpacing:'0.04em'}}>{g}</div>
+              {cameras.filter(c=>c.group===g).map(cam=>(
+                <div key={cam.id} draggable onDragStart={()=>setDragging(cam.name)} onDragEnd={()=>setDragging(null)}
+                  style={{
+                    display:'flex',alignItems:'center',gap:9,padding:'8px 14px',cursor:'grab',
+                    background:dragging===cam.name?'var(--s3)':'transparent',transition:'background .15s',
+                  }}
+                  onMouseEnter={e=>e.currentTarget.style.background='var(--s2)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                >
+                  <Ic n='camera' s={13} c={cam.status==='alarm'?'var(--red)':cam.status==='offline'?'var(--t4)':'var(--t2)'} sw={1.7}/>
+                  <span style={{fontSize:11,color:cam.status==='offline'?'var(--t4)':'var(--t2)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cam.name}</span>
+                  {cam.status==='offline'&&<span style={{fontSize:9,color:'var(--red)',fontWeight:600}}>오프라인</span>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div style={{padding:'10px 12px',borderTop:'1px solid var(--border)',display:'flex',flexDirection:'column',gap:7,flexShrink:0}}>
+          <button style={{padding:'9px',borderRadius:8,border:'none',cursor:'pointer',
+            background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+            color:'white',fontFamily:'var(--font)',fontSize:12,fontWeight:600,
+            boxShadow:'0 2px 10px oklch(55% 0.22 285 / .3)'}}>자동 배치</button>
+          <button style={{padding:'9px',borderRadius:8,border:'1px solid var(--red)',cursor:'pointer',
+            background:'oklch(58% 0.22 25 / .1)',color:'var(--red)',
+            fontFamily:'var(--font)',fontSize:12,fontWeight:600}}>전체 제거</button>
+        </div>
+      </div>
+
+      {/* Main canvas */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
+        {/* Canvas toolbar */}
+        <div style={{height:40,display:'flex',alignItems:'center',gap:12,padding:'0 16px',background:'var(--s1)',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+          <div style={{display:'flex',alignItems:'center',gap:7,flex:1}}>
+            <Ic n='camera' s={14} c='var(--cyan)' sw={1.7}/>
+            <span style={{fontSize:13,fontWeight:700}}>CCTV 통합 관제센터</span>
+            <div style={{display:'flex',alignItems:'center',gap:5,padding:'3px 9px',borderRadius:5,
+              background:'oklch(65% 0.16 145 / .12)',border:'1px solid oklch(65% 0.16 145 / .3)'}}>
+              <div style={{width:5,height:5,borderRadius:'50%',background:'var(--green)',animation:'pulse 1.5s infinite'}}/>
+              <span style={{fontSize:10,color:'var(--green)',fontWeight:700}}>LIVE</span>
+            </div>
+          </div>
+          <span style={{fontSize:11,color:'var(--t3)'}}>분할</span>
+          <div style={{display:'flex',gap:2,background:'var(--s2)',borderRadius:7,padding:2,border:'1px solid var(--border)'}}>
+            {[1,4,9,16,32].map(n=>(
+              <button key={n} onClick={()=>setSplit(n)} style={{
+                width:28,height:26,borderRadius:5,border:'none',cursor:'pointer',
+                background:split===n?'var(--s4)':'transparent',
+                color:split===n?'var(--t1)':'var(--t3)',
+                fontSize:11,fontFamily:'var(--mono)',fontWeight:split===n?700:400,transition:'all .15s',
+              }}>{n}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Grid */}
+        <div style={{flex:1,background:'var(--bg)',padding:8,display:'grid',gap:6,
+          gridTemplateColumns:`repeat(${grid},1fr)`,gridTemplateRows:`repeat(${Math.ceil(cellCount/grid)},1fr)`}}>
+          {Array.from({length:cellCount}).map((_,i)=>(
+            <div key={i}
+              onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor='var(--primary)';}}
+              onDragLeave={e=>e.currentTarget.style.borderColor='oklch(60% 0.20 285 / .2)'}
+              onDrop={e=>{e.preventDefault();if(dragging)setSlots(p=>({...p,[i]:dragging}));setDragging(null);e.currentTarget.style.borderColor='oklch(60% 0.20 285 / .2)';}}
+              style={{
+                background:'var(--s2)',border:'1.5px dashed oklch(60% 0.20 285 / .2)',
+                borderRadius:8,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                position:'relative',transition:'border-color .15s',overflow:'hidden',minHeight:0,
+              }}>
+              {slots[i]?(
+                <>
+                  <div style={{position:'absolute',inset:0,background:`linear-gradient(135deg, oklch(${12+i*2}% 0.02 ${260+i*10}) 0%, oklch(${8+i}% 0.015 ${270+i*5}) 100%)`}}/>
+                  <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'6px 10px',
+                    background:'linear-gradient(transparent,rgba(0,0,0,.7))',
+                    display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span style={{fontSize:10,fontWeight:600,color:'white',fontFamily:'var(--mono)'}}>{slots[i]}</span>
+                    <div style={{display:'flex',alignItems:'center',gap:4}}>
+                      <div style={{width:5,height:5,borderRadius:'50%',background:'var(--green)',animation:'pulse 2s infinite'}}/>
+                      <span style={{fontSize:9,color:'var(--green)'}}>REC</span>
+                    </div>
+                  </div>
+                  <div style={{position:'absolute',top:6,right:6,
+                    width:16,height:16,borderRadius:4,background:'rgba(0,0,0,.5)',
+                    display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+                    onClick={()=>setSlots(p=>({...p,[i]:null}))}>
+                    <Ic n='close' s={9} c='white' sw={2}/>
+                  </div>
+                </>
+              ):(
+                <>
+                  <Ic n='plus' s={20} c='var(--border2)' sw={1.5}/>
+                  <span style={{fontSize:11,color:'var(--t4)',marginTop:6}}>여기로 드래그 앤 드롭</span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── PAGE: EVENTS ──────────────────────────── */
+const EventsPage = ()=>{
+  const [page,setPage] = useState(1);
+  const [filter,setFilter] = useState({status:'전체',type:'전체'});
+  const events = [
+    {time:'2026-03-20 09:30:05',zone:'정문 구간',device:'Senstar-1',type:'PERIMETER',event:'INTRUSION',loc:'450m A측',status:'UNACKED'},
+    {time:'2026-03-20 09:28:10',zone:'출입문-A',device:'ADAM-1',type:'IO_MODULE',event:'DI_INPUT',loc:'-',status:'UNACKED'},
+    {time:'2026-03-20 09:25:00',zone:'주차장 구역',device:'Senstar-1',type:'PERIMETER',event:'INTRUSION',loc:'120m B측',status:'ACKED'},
+    {time:'2026-03-20 09:15:22',zone:'2층 복도',device:'출입-A',type:'ACCESS_CONTROL',event:'ACCESS_DENIED',loc:'-',status:'ACKED'},
+    {time:'2026-03-20 09:10:00',zone:'외곽 동편',device:'Senstar-2',type:'PERIMETER',event:'INTRUSION',loc:'800m A측',status:'ACKED'},
+    {time:'2026-03-20 09:30:12',zone:'정문 출입구',device:'ACR-1F-01',type:'ACCESS_CONTROL',event:'FORCED_OPEN',loc:'-',status:'UNACKED'},
+    {time:'2026-03-20 09:29:55',zone:'본관연결통로 출입문',device:'ACR-2F-01',type:'ACCESS_CONTROL',event:'ACCESS_DENIED',loc:'-',status:'UNACKED'},
+    {time:'2026-03-20 09:28:00',zone:'의회상황실 입구',device:'ACR-3F-02',type:'ACCESS_CONTROL',event:'ACCESS_DENIED',loc:'-',status:'UNACKED'},
+    {time:'2026-03-20 09:15:44',zone:'비상구 A',device:'ACR-1F-04',type:'ACCESS_CONTROL',event:'DOOR_HELD_OPEN',loc:'-',status:'UNACKED'},
+    {time:'2026-03-20 09:10:05',zone:'프레젠터 입구',device:'ACR-3F-05',type:'ACCESS_CONTROL',event:'DOOR_HELD_OPEN',loc:'-',status:'ACKED'},
+    {time:'2026-03-20 08:55:30',zone:'후문 출입구',device:'ACR-1F-02',type:'ACCESS_CONTROL',event:'ACCESS_GRANTED',loc:'-',status:'ACKED'},
+  ];
+  const typeColors = {PERIMETER:'var(--cyan)',IO_MODULE:'var(--yellow)',ACCESS_CONTROL:'var(--primary)'};
+
+  return (
+    <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0,background:'var(--bg)'}}>
+      {/* Header */}
+      <div style={{padding:'16px 24px 12px',borderBottom:'1px solid var(--border)',background:'var(--s1)',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+          <h1 style={{fontSize:18,fontWeight:700,letterSpacing:'-0.02em'}}>이벤트 목록</h1>
+          <div style={{display:'flex',gap:8}}>
+            <button style={{display:'flex',alignItems:'center',gap:7,padding:'7px 14px',borderRadius:8,border:'1px solid var(--border2)',background:'transparent',cursor:'pointer',color:'var(--t2)',fontSize:12,fontFamily:'var(--font)',fontWeight:500}}>
+              <Ic n='refresh' s={13} c='var(--t2)' sw={1.7}/> 새로고침
+            </button>
+            <button style={{display:'flex',alignItems:'center',gap:7,padding:'7px 14px',borderRadius:8,border:'none',background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',cursor:'pointer',color:'white',fontSize:12,fontFamily:'var(--font)',fontWeight:600,boxShadow:'0 2px 10px oklch(55% 0.22 285 / .3)'}}>
+              <Ic n='download' s={13} c='white' sw={2}/> CSV 내보내기
+            </button>
+          </div>
+        </div>
+        {/* Filters */}
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,padding:'7px 12px',background:'var(--s2)',border:'1px solid var(--border2)',borderRadius:8}}>
+            <span style={{fontSize:11,color:'var(--t3)'}}>시작일</span>
+            <span style={{fontSize:11,color:'var(--t4)'}}>→</span>
+            <span style={{fontSize:11,color:'var(--t3)'}}>종료일</span>
+            <Ic n='filter' s={12} c='var(--t4)' sw={1.5}/>
+          </div>
+          {['확인 상태','장비 종류'].map(f=>(
+            <div key={f} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 12px',background:'var(--s2)',border:'1px solid var(--border2)',borderRadius:8,cursor:'pointer'}}>
+              <span style={{fontSize:11,color:'var(--t2)'}}>{f}</span>
+              <Ic n='chevronDown' s={12} c='var(--t4)' sw={1.7}/>
+            </div>
+          ))}
+          <div style={{flex:1,display:'flex',alignItems:'center',gap:7,padding:'7px 12px',background:'var(--s2)',border:'1px solid var(--border2)',borderRadius:8}}>
+            <Ic n='search' s={13} c='var(--t4)' sw={1.5}/>
+            <input placeholder="Zone / 장비명 검색" style={{background:'none',border:'none',outline:'none',fontSize:11,color:'var(--t1)',fontFamily:'var(--font)',flex:1}}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{flex:1,overflowY:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead>
+            <tr style={{background:'var(--s2)',position:'sticky',top:0}}>
+              {['발생시간','Zone','장비','종류','이벤트 타입','위치','확인 상태','액션'].map((h,i)=>(
+                <th key={h} style={{padding:'10px 14px',fontSize:11,fontWeight:700,color:'var(--t3)',textAlign:'left',
+                  borderBottom:'1px solid var(--border)',whiteSpace:'nowrap',
+                  borderRight:h==='확인 상태'?'2px solid var(--primary)':'none',cursor:'pointer'}}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((e,i)=>(
+              <tr key={i} style={{borderBottom:'1px solid var(--border)',transition:'background .1s',cursor:'pointer'}}
+                onMouseEnter={ev=>ev.currentTarget.style.background='var(--s2)'}
+                onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
+                <td style={{padding:'10px 14px',fontSize:11,fontFamily:'var(--mono)',color:'var(--t2)',whiteSpace:'nowrap'}}>{e.time}</td>
+                <td style={{padding:'10px 14px',fontSize:12,fontWeight:500,color:'var(--t1)'}}>{e.zone}</td>
+                <td style={{padding:'10px 14px',fontSize:11,color:'var(--t2)',fontFamily:'var(--mono)'}}>{e.device}</td>
+                <td style={{padding:'10px 14px'}}>
+                  <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,letterSpacing:'0.04em',
+                    background:`${typeColors[e.type]}18`,color:typeColors[e.type],border:`1px solid ${typeColors[e.type]}44`}}>
+                    {e.type}
+                  </span>
+                </td>
+                <td style={{padding:'10px 14px',fontSize:12,fontWeight:600,color:'var(--t1)'}}>{e.event}</td>
+                <td style={{padding:'10px 14px',fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>{e.loc}</td>
+                <td style={{padding:'10px 14px',borderRight:'2px solid oklch(60% 0.20 285 / .15)'}}>
+                  <span style={{fontSize:10,fontWeight:700,padding:'3px 9px',borderRadius:5,
+                    background:e.status==='UNACKED'?'oklch(58% 0.22 25 / .15)':'var(--s3)',
+                    color:e.status==='UNACKED'?'var(--red)':'var(--t3)',
+                    border:`1px solid ${e.status==='UNACKED'?'oklch(58% 0.22 25 / .4)':'var(--border)'}`}}>
+                    {e.status}
+                  </span>
+                </td>
+                <td style={{padding:'10px 14px'}}>
+                  <button style={{fontSize:11,padding:'4px 12px',borderRadius:6,border:'1px solid var(--border2)',background:'transparent',color:'var(--t2)',cursor:'pointer',fontFamily:'var(--font)',fontWeight:500}}>상세</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <div style={{padding:'10px 24px',borderTop:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'var(--s1)'}}>
+        <span style={{fontSize:11,color:'var(--t3)'}}>총 <span style={{color:'var(--t1)',fontWeight:700}}>11</span>건</span>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <button style={{width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+            <Ic n='chevronLeft' s={13} c='var(--t3)' sw={2}/>
+          </button>
+          <div style={{width:26,height:26,borderRadius:6,border:'1px solid var(--primary)',background:'oklch(60% 0.20 285 / .15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'var(--primary)'}}>1</div>
+          <button style={{width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+            <Ic n='chevronRight' s={13} c='var(--t3)' sw={2}/>
+          </button>
+          <div style={{display:'flex',alignItems:'center',gap:5,marginLeft:8,padding:'4px 10px',background:'var(--s2)',border:'1px solid var(--border)',borderRadius:6}}>
+            <span style={{fontSize:11,color:'var(--t2)'}}>20 / page</span>
+            <Ic n='chevronDown' s={11} c='var(--t4)' sw={1.7}/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── PAGE: STATISTICS ──────────────────────── */
+const StatsPage = ()=>{
+  const barData = [65,66,52,28,73,72,50,53,51,16,22,29,30,42,75,48,66,27,37,23,42,58,6];
+  const maxBar = Math.max(...barData);
+  const kpis = [
+    {label:'전체 이벤트',value:'1,240',unit:'건',delta:'+87건',up:true,icon:'zap',color:'var(--primary)'},
+    {label:'위험 (CRITICAL)',value:'15',unit:'건',delta:'+3건',up:false,icon:'bell',color:'var(--red)'},
+    {label:'미확인 알람',value:'42',unit:'건',delta:'+12건',up:false,icon:'bell',color:'var(--orange)'},
+    {label:'확인 처리율',value:'96.6',unit:'%',delta:'+2.1%',up:true,icon:'check',color:'var(--green)'},
+  ];
+  const zones = [
+    {name:'정문 구간',count:320,pct:32},{name:'외곽 동편',count:240,pct:24},
+    {name:'주차장',count:180,pct:18},{name:'후문 구간',count:160,pct:16},{name:'출입문-A',count:100,pct:10},
+  ];
+  const donut = [{label:'PERIMETER',v:800,c:'var(--primary)'},{label:'IO_MODULE',v:320,c:'var(--yellow)'},{label:'ACCESS',v:120,c:'var(--cyan)'}];
+  const total = donut.reduce((s,d)=>s+d.v,0);
+  let offset = 0;
+  const CIRC = 2*Math.PI*36;
+
+  return (
+    <div style={{flex:1,overflowY:'auto',background:'var(--bg)',padding:24}}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <h1 style={{fontSize:18,fontWeight:700,letterSpacing:'-0.02em',marginBottom:3}}>통계 대시보드</h1>
+          <p style={{fontSize:12,color:'var(--t3)'}}>실시간 보안 이벤트 현황</p>
+        </div>
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <div style={{padding:'6px 14px',background:'var(--s2)',border:'1px solid var(--border2)',borderRadius:8,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+            <span style={{fontSize:12,color:'var(--t1)',fontWeight:600}}>오늘</span>
+            <Ic n='chevronDown' s={12} c='var(--t3)' sw={1.7}/>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',background:'var(--s2)',border:'1px solid var(--border)',borderRadius:8}}>
+            <span style={{fontSize:11,color:'var(--t3)'}}>시작일</span>
+            <span style={{fontSize:11,color:'var(--t4)'}}>→</span>
+            <span style={{fontSize:11,color:'var(--t3)'}}>종료일</span>
+            <Ic n='filter' s={12} c='var(--t4)' sw={1.5}/>
+          </div>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:20}}>
+        {kpis.map(k=>(
+          <div key={k.label} style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:'16px 18px',
+            borderTop:`2px solid ${k.color}`}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <span style={{fontSize:11,color:'var(--t3)',fontWeight:600}}>{k.label}</span>
+              <div style={{width:28,height:28,borderRadius:7,background:`oklch(from ${k.color} l c h / .15)`,
+                display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Ic n={k.icon} s={13} c={k.color} sw={2}/>
+              </div>
+            </div>
+            <div style={{fontSize:28,fontWeight:700,color:k.color,letterSpacing:'-0.03em',fontFamily:'var(--mono)',marginBottom:4}}>
+              {k.value}<span style={{fontSize:13,fontWeight:500,marginLeft:3,color:'var(--t3)'}}>{k.unit}</span>
+            </div>
+            <div style={{fontSize:11,color:k.up?'var(--green)':'var(--red)',display:'flex',alignItems:'center',gap:4}}>
+              <span>{k.up?'↑':'↓'}</span>
+              <span>전일 대비 {k.delta}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts row */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:14,marginBottom:14}}>
+        {/* Bar chart */}
+        <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px'}}>
+          <div style={{fontSize:12,fontWeight:700,color:'var(--t2)',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>
+            <div style={{width:3,height:14,borderRadius:2,background:'var(--primary)'}}/>
+            시간대별 이벤트 발생 추이 (오늘)
+          </div>
+          <svg width="100%" height="120" viewBox={`0 0 ${barData.length*24} 120`} preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="oklch(60% 0.20 285)" stopOpacity="0.9"/>
+                <stop offset="100%" stopColor="oklch(50% 0.18 285)" stopOpacity="0.4"/>
+              </linearGradient>
+            </defs>
+            {barData.map((v,i)=>{
+              const h = (v/maxBar)*90;
+              return (
+                <g key={i}>
+                  <rect x={i*24+2} y={100-h} width={18} height={h} rx={3} fill="url(#barGrad)"/>
+                  {v>=50&&<text x={i*24+11} y={96-h} fontSize="8" fill="white" textAnchor="middle" fontFamily="var(--mono)">{v}</text>}
+                  <text x={i*24+11} y={115} fontSize="8" fill="oklch(35% 0.008 275)" textAnchor="middle" fontFamily="var(--mono)">{i}시</text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* Donut */}
+        <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px'}}>
+          <div style={{fontSize:12,fontWeight:700,color:'var(--t2)',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>
+            <div style={{width:3,height:14,borderRadius:2,background:'var(--yellow)'}}/>
+            장비 종류별 이벤트 비율
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:16}}>
+            <svg width={90} height={90} viewBox="0 0 90 90">
+              {donut.map((d,i)=>{
+                const pct = d.v/total;
+                const dash = pct*CIRC;
+                const gap = CIRC-dash;
+                const rotate = (offset/total)*360-90;
+                offset += d.v;
+                return (
+                  <circle key={i} cx={45} cy={45} r={36} fill="none" stroke={d.c} strokeWidth={14}
+                    strokeDasharray={`${dash} ${gap}`}
+                    transform={`rotate(${rotate} 45 45)`} strokeLinecap="butt"/>
+                );
+              })}
+              <text x={45} y={43} textAnchor="middle" fill="white" fontSize="13" fontWeight="700" fontFamily="var(--mono)">{total.toLocaleString()}</text>
+              <text x={45} y={55} textAnchor="middle" fill="oklch(40% 0.008 275)" fontSize="8" fontFamily="var(--font)">총계</text>
+            </svg>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {donut.map(d=>(
+                <div key={d.label} style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:8,height:8,borderRadius:2,background:d.c,flexShrink:0}}/>
+                  <span style={{fontSize:11,color:'var(--t3)',minWidth:80}}>{d.label}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--t1)',fontFamily:'var(--mono)'}}>{d.v.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Zone ranking */}
+      <div style={{background:'var(--s1)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px'}}>
+        <div style={{fontSize:12,fontWeight:700,color:'var(--t2)',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>
+          <div style={{width:3,height:14,borderRadius:2,background:'var(--cyan)'}}/>
+          ZONE별 이벤트 TOP 5
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr) 80px 40px',gap:0,marginBottom:6,padding:'0 2px'}}>
+          {['ZONE','이벤트','비율','',''].map((h,i)=>(
+            <span key={i} style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.06em',textTransform:'uppercase',paddingBottom:8,borderBottom:'1px solid var(--border)'}}>{h}</span>
+          ))}
+        </div>
+        {zones.map((z,i)=>(
+          <div key={z.name} style={{display:'grid',gridTemplateColumns:'repeat(3,1fr) 80px 40px',alignItems:'center',padding:'10px 2px',borderBottom:'1px solid var(--border)'}}>
+            <span style={{fontSize:12,color:'var(--t1)',fontWeight:500}}>{z.name}</span>
+            <span style={{fontSize:14,fontWeight:700,color:'var(--primary)',fontFamily:'var(--mono)'}}>{z.count}</span>
+            <div style={{height:6,borderRadius:3,background:'var(--s4)',overflow:'hidden'}}>
+              <div style={{height:'100%',borderRadius:3,background:'linear-gradient(90deg,var(--primary),var(--cyan))',width:`${z.pct*2.5}%`,transition:'width .5s ease'}}/>
+            </div>
+            <span style={{fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)',textAlign:'right',paddingRight:12}}>{z.pct}%</span>
+            <span style={{fontSize:11,color:'var(--t4)',textAlign:'center'}}>#{i+1}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ── PAGE: EVENT RULES ─────────────────────── */
+const RulesPage = ()=>{
+  const [rules, setRules] = useState([
+    {id:1,name:'정문 침입 감지',trigger:'Zone 1개 · INTRUSION · HIGH+CRITICAL',actions:['CCTV 팝업','PTZ 프리셋 이동','릴레이 제어','앱 전환'],on:true},
+    {id:2,name:'출입 거부 알람',trigger:'Zone 1개 · ACCESS_DENIED/FORCED_OPEN · MEDIUM+HIGH+CRITICAL',actions:['CCTV 팝업','앱 전환'],on:true},
+    {id:3,name:'주차장 침입',trigger:'Zone 1개 · INTRUSION · MEDIUM+HIGH+CRITICAL',actions:['CCTV 팝업','앱 전환'],on:false},
+  ]);
+
+  return (
+    <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0,background:'var(--bg)'}}>
+      <div style={{padding:'16px 24px 12px',borderBottom:'1px solid var(--border)',background:'var(--s1)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <h1 style={{fontSize:18,fontWeight:700,letterSpacing:'-0.02em'}}>이벤트 규칙 관리</h1>
+        <button style={{display:'flex',alignItems:'center',gap:7,padding:'8px 16px',borderRadius:8,border:'none',
+          background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+          cursor:'pointer',color:'white',fontSize:12,fontFamily:'var(--font)',fontWeight:600,
+          boxShadow:'0 2px 10px oklch(55% 0.22 285 / .3)'}}>
+          <Ic n='plus' s={13} c='white' sw={2.5}/> 규칙 추가
+        </button>
+      </div>
+
+      <div style={{flex:1,overflowY:'auto',padding:24}}>
+        <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead>
+            <tr style={{background:'var(--s2)'}}>
+              {['규칙명','트리거','액션','활성','관리'].map((h,i)=>(
+                <th key={h} style={{padding:'10px 16px',fontSize:11,fontWeight:700,color:'var(--t3)',textAlign:'left',
+                  borderBottom:'2px solid var(--primary)',whiteSpace:'nowrap',
+                  width:h==='규칙명'?'20%':h==='트리거'?'35%':h==='액션'?'25%':'10%'}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rules.map((r,i)=>(
+              <tr key={r.id} style={{borderBottom:'1px solid var(--border)',opacity:r.on?1:.5,transition:'opacity .2s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--s2)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <td style={{padding:'14px 16px',fontSize:13,fontWeight:700,color:'var(--t1)'}}>{r.name}</td>
+                <td style={{padding:'14px 16px',fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>{r.trigger}</td>
+                <td style={{padding:'14px 16px'}}>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                    {r.actions.map(a=>(
+                      <span key={a} style={{fontSize:10,padding:'2px 8px',borderRadius:4,
+                        background:'var(--s3)',border:'1px solid var(--border2)',color:'var(--t2)',
+                        display:'flex',alignItems:'center',gap:5}}>
+                        {a==='CCTV 팝업'&&<Ic n='camera' s={9} c='var(--t3)' sw={1.7}/>}
+                        {a==='PTZ 프리셋 이동'&&<Ic n='map' s={9} c='var(--t3)' sw={1.7}/>}
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td style={{padding:'14px 16px'}}>
+                  <Toggle on={r.on} onChange={v=>setRules(p=>p.map(x=>x.id===r.id?{...x,on:v}:x))}/>
+                </td>
+                <td style={{padding:'14px 16px'}}>
+                  <div style={{display:'flex',gap:6}}>
+                    <button style={{width:28,height:28,borderRadius:6,border:'1px solid var(--border2)',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <Ic n='edit' s={13} c='var(--t2)' sw={1.7}/>
+                    </button>
+                    <button style={{width:28,height:28,borderRadius:6,border:'1px solid oklch(58% 0.22 25 / .3)',background:'oklch(58% 0.22 25 / .1)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <Ic n='trash' s={13} c='var(--red)' sw={1.7}/>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+/* ── PAGE: SETTINGS ────────────────────────── */
+const SettingsPage = ()=>{
+  const [tab, setTab] = useState('맵 관리');
+  const tabs = ['맵 관리','Zone 편집','장비 관리','VMS/CCTV','사용자'];
+  const maps = [
+    {name:'1층 평면도 (의사당)',type:'IMAGE',zones:7,res:'1200 × 800',default:true},
+    {name:'2층 평면도 (의사당)',type:'IMAGE',zones:7,res:'1200 × 800',default:false},
+    {name:'3층 평면도 (의사당)',type:'IMAGE',zones:11,res:'1200 × 800',default:false},
+    {name:'외부 경계 펜스',type:'NAVER',zones:4,res:'-',default:false},
+  ];
+  return (
+    <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0,background:'var(--bg)'}}>
+      {/* Tabs */}
+      <div style={{display:'flex',background:'var(--s1)',borderBottom:'1px solid var(--border)',flexShrink:0,padding:'0 24px'}}>
+        {tabs.map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            display:'flex',alignItems:'center',gap:6,padding:'12px 16px',border:'none',background:'transparent',cursor:'pointer',
+            borderBottom:`2px solid ${tab===t?'var(--primary)':'transparent'}`,
+            color:tab===t?'var(--t1)':'var(--t3)',fontSize:12,fontFamily:'var(--font)',fontWeight:tab===t?700:400,transition:'all .15s',
+          }}>
+            {t==='맵 관리'&&<Ic n='map' s={12} c={tab===t?'var(--primary)':'var(--t4)'} sw={1.7}/>}
+            {t==='Zone 편집'&&<Ic n='edit' s={12} c={tab===t?'var(--primary)':'var(--t4)'} sw={1.7}/>}
+            {t==='장비 관리'&&<Ic n='cpu' s={12} c={tab===t?'var(--primary)':'var(--t4)'} sw={1.7}/>}
+            {t==='VMS/CCTV'&&<Ic n='camera' s={12} c={tab===t?'var(--primary)':'var(--t4)'} sw={1.7}/>}
+            {t==='사용자'&&<Ic n='user' s={12} c={tab===t?'var(--primary)':'var(--t4)'} sw={1.7}/>}
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <div style={{flex:1,overflowY:'auto',padding:24}}>
+        {tab==='맵 관리'&&(
+          <>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+              <h2 style={{fontSize:16,fontWeight:700}}>맵 관리</h2>
+              <button style={{display:'flex',alignItems:'center',gap:7,padding:'8px 16px',borderRadius:8,border:'none',
+                background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',
+                cursor:'pointer',color:'white',fontSize:12,fontFamily:'var(--font)',fontWeight:600,
+                boxShadow:'0 2px 10px oklch(55% 0.22 285 / .3)'}}>
+                <Ic n='plus' s={13} c='white' sw={2.5}/> 맵 추가
+              </button>
+            </div>
+            <table style={{width:'100%',borderCollapse:'collapse'}}>
+              <thead>
+                <tr style={{background:'var(--s2)'}}>
+                  {['미리보기','맵 이름','종류','Zone 수','해상도','기본 맵','액션'].map(h=>(
+                    <th key={h} style={{padding:'10px 14px',fontSize:11,fontWeight:700,color:'var(--t3)',textAlign:'left',borderBottom:'1px solid var(--border2)'}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {maps.map((m,i)=>(
+                  <tr key={i} style={{borderBottom:'1px solid var(--border)'}}
+                    onMouseEnter={e=>e.currentTarget.style.background='var(--s2)'}
+                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <td style={{padding:'12px 14px'}}>
+                      <div style={{width:48,height:36,borderRadius:6,background:'var(--s3)',border:'1px solid var(--border2)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        <Ic n='map' s={16} c='var(--t4)' sw={1.5}/>
+                      </div>
+                    </td>
+                    <td style={{padding:'12px 14px',fontSize:13,fontWeight:600,color:'var(--t1)'}}>{m.name}</td>
+                    <td style={{padding:'12px 14px'}}>
+                      <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,
+                        background:m.type==='NAVER'?'oklch(65% 0.16 145 / .12)':'oklch(60% 0.20 285 / .1)',
+                        color:m.type==='NAVER'?'var(--green)':'var(--primary)',
+                        border:`1px solid ${m.type==='NAVER'?'oklch(65% 0.16 145 / .3)':'oklch(60% 0.20 285 / .25)'}`}}>{m.type}</span>
+                    </td>
+                    <td style={{padding:'12px 14px',fontSize:13,fontWeight:700,color:'var(--cyan)',fontFamily:'var(--mono)'}}>{m.zones}</td>
+                    <td style={{padding:'12px 14px',fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>{m.res}</td>
+                    <td style={{padding:'12px 14px'}}><Toggle on={m.default} onChange={()=>{}}/></td>
+                    <td style={{padding:'12px 14px'}}>
+                      <div style={{display:'flex',gap:7}}>
+                        <button style={{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',borderRadius:6,border:'1px solid var(--border2)',background:'transparent',color:'var(--t2)',cursor:'pointer',fontSize:11,fontFamily:'var(--font)'}}>
+                          <Ic n='edit' s={12} c='var(--t2)' sw={1.7}/> 편집
+                        </button>
+                        <button style={{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',borderRadius:6,border:'1px solid oklch(58% 0.22 25 / .3)',background:'oklch(58% 0.22 25 / .08)',color:'var(--red)',cursor:'pointer',fontSize:11,fontFamily:'var(--font)'}}>
+                          <Ic n='trash' s={12} c='var(--red)' sw={1.7}/> 삭제
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+        {tab!=='맵 관리'&&(
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:300,gap:16}}>
+            <div style={{width:56,height:56,borderRadius:16,background:'var(--s2)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <Ic n={tab==='Zone 편집'?'edit':tab==='장비 관리'?'cpu':tab==='VMS/CCTV'?'camera':'user'} s={24} c='var(--t4)' sw={1.5}/>
+            </div>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:14,fontWeight:600,color:'var(--t2)',marginBottom:4}}>{tab} 설정</div>
+              <div style={{fontSize:12,color:'var(--t4)'}}>이 탭은 데모 버전에서 준비 중입니다</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ── MAIN APP ──────────────────────────────── */
+const App = ()=>{
+  const DEFAULT_PAGES = [{id:'map',icon:'map',name:'Map 기반 모니터링',color:'var(--primary)'}];
+  const [pages, setPages] = useState(DEFAULT_PAGES);
+  const [activePage, setActivePage] = useState('map');
+  const [showModal, setShowModal] = useState(false);
+  const [aiMessages, setAiMessages] = useState([
+    {role:'ai', text:'안녕하세요! AIM GUARD AI 어시스턴트입니다. 보안 구역 설정, 카메라 추가, 알람 분석 등을 도와드립니다.'},
+  ]);
+  const [aiInput, setAiInput] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const chatBottomRef = useRef(null);
+
+  const aiResponses = {
+    '카메라 추가': '구역 내 CCTV 카메라 위치를 분석하고 있습니다. 최적 배치 포인트 3곳을 식별했습니다. 맵에 마커를 추가할까요?',
+    '알람 분석': '오늘 발생한 알람 15건을 분석했습니다. CRITICAL 2건은 즉시 처리가 필요하며, 정문 구간 침입 감지가 가장 빈번합니다.',
+    '보고서 생성': '이번 주 보안 현황 보고서를 생성 중입니다. 이벤트 통계, Zone별 분석, 처리율 96.6%를 포함한 PDF를 준비하겠습니다.',
+  };
+
+  const sendAiMessage = (text) => {
+    const msg = (text || aiInput).trim();
+    if(!msg) return;
+    setAiMessages(p=>[...p,{role:'user',text:msg}]);
+    setAiInput('');
+    setAiLoading(true);
+    setTimeout(()=>{
+      const resp = aiResponses[msg] || '요청을 처리하고 있습니다. 현재 보안 상태를 분석하여 최적의 설정을 추천해 드리겠습니다.';
+      setAiMessages(p=>[...p,{role:'ai',text:resp}]);
+      setAiLoading(false);
+    }, 1100);
+  };
+
+  useEffect(()=>{
+    if(chatBottomRef.current) chatBottomRef.current.scrollTop = chatBottomRef.current.scrollHeight;
+  },[aiMessages, aiLoading]);
+
+  const addPage = (pt) => {
+    setPages(p=>[...p,{id:pt.id,icon:pt.icon,name:pt.name,color:pt.color}]);
+    setTimeout(()=>setActivePage(pt.id), 100);
+  };
+
+  const removePage = (id,e) => {
+    e.stopPropagation();
+    setPages(p=>p.filter(x=>x.id!==id));
+    if(activePage===id) setActivePage('map');
+  };
+
+  const renderPage = ()=>{
+    switch(activePage){
+      case 'video': return <VideoMonitor/>;
+      case 'events': return <EventsPage/>;
+      case 'stats': return <StatsPage/>;
+      case 'rules': return <RulesPage/>;
+      case 'settings': return <SettingsPage/>;
+      default: return (
+        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,background:'var(--bg)'}}>
+          <div style={{position:'relative',width:280,height:200}}>
+            <div style={{position:'absolute',inset:0,background:`linear-gradient(oklch(100% 0 0 / .025) 1px,transparent 1px),linear-gradient(90deg,oklch(100% 0 0 / .025) 1px,transparent 1px)`,backgroundSize:'30px 30px',borderRadius:12,border:'1px solid var(--border)'}}/>
+            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:10}}>
+              <Ic n='map' s={40} c='var(--primary)' sw={1.2}/>
+              <span style={{fontSize:13,color:'var(--t2)',fontWeight:600}}>Map 기반 모니터링</span>
+              <span style={{fontSize:11,color:'var(--t4)'}}>위성 지도 기반 실시간 보안 현황</span>
+            </div>
+          </div>
+          <p style={{fontSize:12,color:'var(--t3)',textAlign:'center'}}>
+            좌측 하단의 <strong style={{color:'var(--primary)'}}>+ 페이지 추가</strong> 버튼을 클릭해<br/>추가 페이지를 구성해보세요
+          </p>
+        </div>
+      );
+    }
+  };
+
+  const addedIds = pages.map(p=>p.id);
+
+  return (
+    <div style={{height:'100vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <TopBar/>
+      <div style={{flex:1,display:'flex',minHeight:0}}>
+        {/* AI Chat Panel */}
+        <div style={{width:220,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--s1)',borderRight:'1px solid var(--border)'}}>
+          <div style={{padding:'10px 14px',borderBottom:'1px solid var(--border)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div style={{display:'flex',alignItems:'center',gap:7}}>
+              <div style={{width:22,height:22,borderRadius:6,background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <svg width={10} height={10} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z"/></svg>
+              </div>
+              <span style={{fontSize:11,fontWeight:600,color:'var(--t2)'}}>AI 어시스턴트</span>
+            </div>
+            <div style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',animation:'pulse 2s infinite'}}/>
+          </div>
+          <div ref={chatBottomRef} style={{flex:1,overflowY:'auto',padding:'10px 10px 6px',display:'flex',flexDirection:'column',gap:8}}>
+            {aiMessages.map((m,i)=>(
+              <div key={i} style={{display:'flex',flexDirection:'column',alignItems:m.role==='user'?'flex-end':'flex-start',animation:'fadeUp .2s ease both'}}>
+                {m.role==='ai'&&(
+                  <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:3}}>
+                    <div style={{width:13,height:13,borderRadius:3,background:'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      <svg width={7} height={7} viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z"/></svg>
+                    </div>
+                    <span style={{fontSize:9,color:'var(--t4)',fontWeight:600}}>AIMNIS</span>
+                  </div>
+                )}
+                <div style={{
+                  maxWidth:'90%',padding:'8px 10px',
+                  borderRadius:m.role==='user'?'9px 9px 2px 9px':'9px 9px 9px 2px',
+                  background:m.role==='user'?'oklch(60% 0.20 285 / .18)':'var(--s3)',
+                  border:`1px solid ${m.role==='user'?'oklch(60% 0.20 285 / .35)':'var(--border)'}`,
+                  fontSize:11,lineHeight:1.6,color:'var(--t2)',
+                }}>{m.text}</div>
+              </div>
+            ))}
+            {aiLoading&&(
+              <div style={{display:'flex',gap:3,padding:'8px 10px',background:'var(--s3)',borderRadius:'9px 9px 9px 2px',border:'1px solid var(--border)',width:'fit-content'}}>
+                {[0,1,2].map(i=>(<div key={i} style={{width:5,height:5,borderRadius:'50%',background:'var(--primary)',animation:`pulse 1.2s ${i*0.2}s infinite`}}/>))}
+              </div>
+            )}
+          </div>
+          <div style={{padding:'0 8px 6px',display:'flex',flexWrap:'wrap',gap:5,flexShrink:0}}>
+            {['카메라 추가','알람 분석','보고서 생성'].map(chip=>(
+              <button key={chip} onClick={()=>sendAiMessage(chip)} style={{
+                fontSize:10,padding:'3px 9px',borderRadius:10,border:'1px solid var(--border2)',
+                background:'var(--s2)',color:'var(--t3)',cursor:'pointer',fontFamily:'var(--font)',transition:'all .15s',
+              }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.color='var(--primary)';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--t3)';}}>
+                {chip}
+              </button>
+            ))}
+          </div>
+          <div style={{padding:'6px 8px 8px',borderTop:'1px solid var(--border)',flexShrink:0,display:'flex',gap:6,alignItems:'flex-end'}}>
+            <textarea value={aiInput} onChange={e=>setAiInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAiMessage();}}}
+              placeholder="명령을 입력하세요..."
+              style={{flex:1,resize:'none',background:'var(--s2)',border:'1px solid var(--border2)',borderRadius:8,padding:'7px 9px',color:'var(--t1)',fontSize:11,fontFamily:'var(--font)',lineHeight:1.5,outline:'none',minHeight:34,maxHeight:68}}/>
+            <button onClick={()=>sendAiMessage()} style={{
+              width:30,height:30,borderRadius:7,border:'none',cursor:'pointer',flexShrink:0,
+              background:aiInput.length>0?'linear-gradient(135deg,var(--primary),oklch(52% 0.20 295))':'var(--s3)',
+              display:'flex',alignItems:'center',justifyContent:'center',
+              boxShadow:aiInput.length>0?'0 2px 8px oklch(55% 0.22 285 / .35)':'none',transition:'all .2s',
+            }}>
+              <Ic n='arrowUp' s={13} c='white' sw={2.2}/>
+            </button>
+          </div>
+        </div>
+
+        {/* Nav Menu Panel */}
+        <div style={{width:180,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--s1)',borderRight:'1px solid var(--border)'}}>
+          <div style={{padding:'10px 10px 4px',flexShrink:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--t4)',letterSpacing:'0.08em',textTransform:'uppercase',padding:'0 6px 6px'}}>모니터링 시스템</div>
+          </div>
+          <div style={{flex:1,overflowY:'auto',padding:'0 8px'}}>
+            {pages.map(pg=>(
+              <div key={pg.id} onClick={()=>setActivePage(pg.id)} style={{
+                display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:8,cursor:'pointer',
+                background:activePage===pg.id?'oklch(60% 0.20 285 / .12)':'transparent',
+                borderLeft:`2px solid ${activePage===pg.id?'var(--primary)':'transparent'}`,
+                transition:'all .15s',marginBottom:2,
+              }}
+                onMouseEnter={e=>{if(activePage!==pg.id){e.currentTarget.style.background='var(--s2)';}}}
+                onMouseLeave={e=>{if(activePage!==pg.id){e.currentTarget.style.background='transparent';}}}
+              >
+                <Ic n={pg.icon} s={13} c={activePage===pg.id?'var(--primary)':'var(--t3)'} sw={activePage===pg.id?2:1.7}/>
+                <span style={{fontSize:11,fontWeight:activePage===pg.id?700:400,color:activePage===pg.id?'var(--t1)':'var(--t3)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{pg.name}</span>
+                {pg.id!=='map'&&(
+                  <button onClick={e=>removePage(pg.id,e)} style={{width:14,height:14,borderRadius:3,border:'none',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity .15s'}}
+                    onMouseEnter={e=>{e.currentTarget.style.opacity='1';}}
+                    onMouseLeave={e=>{e.currentTarget.style.opacity='0';}}>
+                    <Ic n='close' s={9} c='var(--t4)' sw={2}/>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{padding:'8px 10px',borderTop:'1px solid var(--border)',flexShrink:0}}>
+            <button onClick={()=>setShowModal(true)} style={{
+              width:'100%',display:'flex',alignItems:'center',gap:8,padding:'8px 10px',
+              borderRadius:8,border:'1px dashed var(--border2)',background:'transparent',cursor:'pointer',
+              color:'var(--t3)',fontFamily:'var(--font)',fontSize:11,fontWeight:500,transition:'all .2s',
+            }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.color='var(--primary)';e.currentTarget.style.background='oklch(60% 0.20 285 / .06)';}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--t3)';e.currentTarget.style.background='transparent';}}>
+              <Ic n='plus' s={12} c='currentColor' sw={2.5}/> 페이지 추가
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,position:'relative'}}>
+          {/* Page content */}
+          <div style={{flex:1,display:'flex',minHeight:0,animation:'fadeIn .2s ease both'}} key={activePage}>
+            {renderPage()}
+          </div>
+        </div>
+
+        {/* Right API Panel — always visible */}
+        <RightApiPanel activePage={activePage}/>
+      </div>
+      <StatusBar/>
+
+      {/* Modal */}
+      {showModal&&<PageAddModal addedIds={addedIds} onSelect={(pt)=>{addPage(pt);setShowModal(false);}} onClose={()=>setShowModal(false)}/>}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

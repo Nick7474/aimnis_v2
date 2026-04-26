@@ -10,6 +10,7 @@ import * as LucideIcons from "lucide-react";
 import type { LucideProps } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
 import { useLLMStore } from "@/store/llmStore";
+import { useProjectStore } from "@/store/projectStore";
 import { scenarios } from "@/data/scenarios";
 import ParticleWaves from "./ParticleWaves";
 import ProviderPicker from "@/components/shared/ProviderPicker";
@@ -30,6 +31,15 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
 
   const { setIsWorking, setSelectedScenario } = useHomeStore();
   const { provider } = useLLMStore();
+  const { projects: savedProjects } = useProjectStore();
+  const [showProjectSuggestions, setShowProjectSuggestions] = useState(false);
+
+  const filteredProjects = input.trim().length > 0
+    ? savedProjects.filter(p =>
+        p.name.toLowerCase().includes(input.toLowerCase()) ||
+        p.client.toLowerCase().includes(input.toLowerCase())
+      )
+    : savedProjects.slice(0, 4);
 
   const handleScenarioChip = (sc: typeof scenarios[number]) => {
     setSelectedScenario(sc.id);
@@ -352,9 +362,30 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               })}
             </div>
 
+            {/* 저장된 프로젝트 검색 드롭다운 */}
+            {showProjectSuggestions && filteredProjects.length > 0 && (
+              <div className="mb-2 rounded-xl border border-white/8 bg-[#0f0f1a]/95 overflow-hidden">
+                <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/30">저장된 프로젝트</p>
+                {filteredProjects.map(p => (
+                  <button key={p.id} onMouseDown={() => { router.push(`/editor?solution=${p.solution}`); }}
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-white/5 transition-colors">
+                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-teal-500/20">
+                      <span className="text-[10px] text-teal-400">G</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-medium text-white/80">{p.name}</p>
+                      <p className="text-[10px] text-white/30">{p.client} · {p.version}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onFocus={() => setShowProjectSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowProjectSuggestions(false), 150)}
               onKeyDown={handleKeyDown}
               placeholder={
                 activeSolution === "guard"
