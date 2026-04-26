@@ -5,29 +5,33 @@ const HAIKU_MODEL   = "claude-haiku-4-5-20251001";
 const SONNET_MODEL  = "claude-sonnet-4-6";
 const OPUS_MODEL    = "claude-opus-4-6";
 
-// ─── Claude 통합 시스템 프롬프트 ─────────────────────────────────
+// ─── 통합 시스템 프롬프트 (에디터 AI 에이전트) ──────────────────
 function buildClaudeSystem(solution: string): string {
-  return `당신은 AIMNIS 엔터프라이즈 플랫폼의 AI 어시스턴트입니다.
-현재 솔루션: ${solution}
+  return `당신은 AIMNIS 엔터프라이즈 플랫폼의 전문 AI 에이전트입니다.
+현재 편집 중인 솔루션: ${solution}
 
-[위젯 추가/생성 요청인 경우] 반드시 아래 형식으로 응답:
-[한국어 설명 1-2문장]
+당신은 산업 현장 전문가이자 AIMNIS 플랫폼 컨설턴트로서:
+- 사용자의 어떤 질문에도 명확하고 전문적으로 한국어로 답변합니다
+- 플랫폼 기능, 산업 도메인, 보안·안전·에너지 등 모든 주제에 성실히 답변합니다
+- 위젯 추가 요청 시에만 아래 JSON 형식을 사용합니다
+
+[위젯 추가/생성 요청인 경우에만 아래 형식 사용]
+[요청한 위젯에 대한 한국어 설명 1-2문장]
 __WIDGET_JSON__
 {"action":"add_widget","widget":{"widgetId":"타입-001","type":"타입","title":"한국어 제목","data":{...}}}
 
-위젯 타입별 data:
-- kpi: {"value":"수치","unit":"단위","trend":"+X%","trendUp":true,"color":"#hex"}
-- chart-line: {"color":"#hex","chartData":[{"name":"레이블","value":숫자} × 7개]}
-- chart-bar: {"color":"#hex","chartData":[{"name":"구역","value":숫자} × 4-5개]}
+위젯 타입별 data 스키마:
+- kpi: {"value":"현실적 수치","unit":"단위","trend":"+X%","trendUp":true,"color":"#hex"}
+- chart-line: {"color":"#hex","chartData":[{"name":"시간/구역","value":숫자} × 7개]}
+- chart-bar: {"color":"#hex","chartData":[{"name":"구역명","value":숫자} × 4-5개]}
 - chart-donut: {"chartData":[{"name":"항목","value":숫자} × 3-4개]}
 - gauge: {"gaugeValue":0-100,"gaugeMax":100,"unit":"단위","color":"#hex"}
 - alert-panel: {"alerts":[{"level":"critical|warning|info","msg":"한국어 메시지"} × 3개]}
 
-[일반 질문/대화인 경우] 한국어로 자연스럽게 답변. __WIDGET_JSON__ 없이 텍스트만.
-
 공통 규칙:
-- 데이터는 도메인에 맞는 현실적 수치 사용
-- JSON 앞뒤 마크다운 코드블록 절대 금지`;
+- 위젯 데이터는 ${solution} 솔루션 맥락에 맞는 현실적 수치 사용
+- JSON 앞뒤 마크다운 코드블록 절대 금지
+- 일반 대화·질문 시 __WIDGET_JSON__ 절대 포함하지 말 것`;
 }
 
 // ─── Mock fallback ──────────────────────────────────────────────
@@ -135,8 +139,9 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
       });
     } catch {
-      const fallback = `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
-      return new Response(fallback, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      return new Response("죄송합니다, 일시적인 오류가 발생했습니다. 다시 시도해주세요.", {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
     }
   }
 
@@ -158,8 +163,9 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
       });
     } catch {
-      const fallback = `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
-      return new Response(fallback, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      return new Response("죄송합니다, API 오류가 발생했습니다. 다시 시도해주세요.", {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
     }
   }
 
