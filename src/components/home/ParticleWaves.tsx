@@ -13,7 +13,7 @@ const ParticleWaves = () => {
   const animationRef = useRef<number | null>(null);
   
   const density = 50;
-  const speed = 0.1;
+  const speed = 0.1 / 1.8; // 1.8배 느리게
   const amplitude = 50;
   const separation = 100;
   const particleColor = '#735FE9'; // Keep AIMNIS primary color, but exactly same look
