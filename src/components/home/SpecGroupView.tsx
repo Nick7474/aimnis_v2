@@ -61,15 +61,15 @@ export default function SpecGroupView({ group, index, defaultOpen = false, onCom
             width: 34,
             height: 34,
             borderRadius: 9,
-            background: `color-mix(in oklch, ${group.color} 18%, transparent)`,
-            border: `1px solid color-mix(in oklch, ${group.color} 33%, transparent)`,
+            background: "oklch(20% 0.008 275)",
+            border: "1px solid oklch(28% 0.008 275)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
           }}
         >
-          <IconComp size={16} color={group.color} />
+          <IconComp size={16} color="oklch(52% 0.010 275)" />
         </div>
 
         {/* 제목 + 진행바 */}

@@ -63,9 +63,9 @@ export default function CreateHarnessBtn() {
             : isComplete && !loading
             ? {
                 boxShadow: [
-                  "0 0 0px rgba(0,212,255,0)",
-                  "0 0 20px rgba(0,212,255,0.5)",
-                  "0 0 8px rgba(0,212,255,0.25)",
+                  "0 0 0px oklch(60% 0.20 285 / 0)",
+                  "0 0 24px oklch(60% 0.20 285 / .55)",
+                  "0 0 10px oklch(60% 0.20 285 / .28)",
                 ],
                 transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
               }
@@ -122,7 +122,7 @@ export default function CreateHarnessBtn() {
               style={{ display: "flex", alignItems: "center", gap: 8 }}
             >
               <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} />
-              하네스를 생성하고 있습니다...
+              AI가 맞춤 대시보드를 구성하고 있습니다...
             </motion.span>
           ) : isComplete ? (
             <motion.span
@@ -132,7 +132,7 @@ export default function CreateHarnessBtn() {
               exit={{ opacity: 0, y: -4 }}
               style={{ display: "flex", alignItems: "center", gap: 8 }}
             >
-              Create Harness
+              현장 맞춤 솔루션 생성하기
               <ArrowRight size={15} />
             </motion.span>
           ) : (
@@ -144,7 +144,7 @@ export default function CreateHarnessBtn() {
               style={{ display: "flex", alignItems: "center", gap: 6 }}
             >
               <Lock size={12} />
-              운영 규모와 데이터 수집을 선택해주세요
+              현장 정보를 입력하면 AI가 맞춤 설정을 자동으로 구성합니다
             </motion.span>
           )}
         </AnimatePresence>
@@ -157,9 +157,9 @@ export default function CreateHarnessBtn() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            style={{ fontSize: 10, color: "#735FE9", textAlign: "center" as const, margin: 0 }}
+            style={{ fontSize: 10, color: "var(--primary)", textAlign: "center" as const, margin: 0 }}
           >
-            선택을 완료하거나 바로 하네스를 만들 수 있습니다
+            설정이 완료됐습니다. 버튼을 눌러 대시보드를 바로 만들어보세요
           </motion.p>
         )}
       </AnimatePresence>

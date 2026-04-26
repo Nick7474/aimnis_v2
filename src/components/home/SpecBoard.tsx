@@ -171,7 +171,7 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
           {/* 우측: 카테고리 필터 칩 + 헤더 액션 */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
             {renderHeaderExtra}
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 320 }}>
+            <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", maxWidth: 360, scrollbarWidth: "none" as const }}>
               {specGroups.map((g) => {
                 const IconComp = ((Icons as unknown as Record<string, LucideIcon>)[g.icon] || Icons.HelpCircle) as LucideIcon;
                 const gDone = g.questions.filter((q) => {

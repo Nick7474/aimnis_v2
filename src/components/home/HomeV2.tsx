@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Send } from "lucide-react";
+import { Send, Paperclip, Mic } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
 import { useLLMStore } from "@/store/llmStore";
 import ProviderPicker from "@/components/shared/ProviderPicker";
@@ -72,7 +72,7 @@ function ChatInput() {
   }, [value, isThinking, addMessage, setIsThinking, updateLastMessage]);
 
   return (
-    <div className="flex items-end gap-2 rounded-xl border border-white/10 bg-white/5 p-2 focus-within:border-purple-500/30 transition-colors"
+    <div className="rounded-xl border border-white/10 bg-white/5 focus-within:border-purple-500/30 transition-colors"
       style={{ flexShrink: 0 }}
     >
       <textarea
@@ -82,13 +82,22 @@ function ChatInput() {
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
         placeholder="요구사항을 입력하세요..."
         rows={2}
-        className="flex-1 resize-none bg-transparent text-xs text-white placeholder:text-white/20 focus:outline-none"
+        className="w-full resize-none bg-transparent px-3 pt-2.5 text-xs text-white placeholder:text-white/20 focus:outline-none"
         style={{ maxHeight: 72 }}
       />
+      <div className="flex items-center justify-between px-2 pb-2">
+        <div className="flex items-center gap-1">
+          <button className="flex h-6 w-6 items-center justify-center rounded-md text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors" title="이미지 첨부">
+            <Paperclip className="h-3.5 w-3.5" />
+          </button>
+          <button className="flex h-6 w-6 items-center justify-center rounded-md text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors" title="음성 입력">
+            <Mic className="h-3.5 w-3.5" />
+          </button>
+        </div>
       <button
         onClick={submit}
         disabled={!value.trim() || isThinking}
-        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-all ${
+        className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg transition-all ${
           value.trim() && !isThinking
             ? "bg-purple-600 text-white hover:bg-purple-500"
             : "bg-white/5 text-white/20"
@@ -104,19 +113,53 @@ function ChatInput() {
           <Send size={11} />
         )}
       </button>
+      </div>
     </div>
   );
 }
 
-// ─── 좌측 AI 에이전트 패널 ────────────────────────────────────
+const MIN_W = 220;
+const MAX_W = 550; // 220 * 2.5
+
+// ─── 좌측 AI 에이전트 패널 (리사이즈 가능) ───────────────────
 function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
+  const [panelWidth, setPanelWidth] = useState(MIN_W);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startW = useRef(MIN_W);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    dragging.current = true;
+    startX.current = e.clientX;
+    startW.current = panelWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = ev.clientX - startX.current;
+      const next = Math.min(MAX_W, Math.max(MIN_W, startW.current + delta));
+      setPanelWidth(next);
+    };
+    const onUp = () => {
+      dragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
   return (
+    <div style={{ position: "relative", flexShrink: 0, height: "100%", display: "flex" }}>
     <div
       style={{
-        width: 220, flexShrink: 0, display: "flex", flexDirection: "column",
+        width: panelWidth, flexShrink: 0, display: "flex", flexDirection: "column",
         background: "var(--s1)",
-        borderRight: "1px solid var(--border)",
         height: "100%", overflow: "hidden",
+        transition: dragging.current ? "none" : "width 0.05s",
       }}
     >
       {/* 시나리오 칩 */}
@@ -146,6 +189,20 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
           <ChatInput />
         </div>
       </div>
+    </div>
+    {/* 드래그 리사이즈 핸들 */}
+    <div
+      onMouseDown={onMouseDown}
+      style={{
+        width: 6, flexShrink: 0, cursor: "col-resize",
+        background: "var(--border)",
+        borderRight: "1px solid var(--border)",
+        position: "relative",
+        transition: "background 0.15s",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = "var(--primary)")}
+      onMouseLeave={e => (e.currentTarget.style.background = "var(--border)")}
+    />
     </div>
   );
 }
