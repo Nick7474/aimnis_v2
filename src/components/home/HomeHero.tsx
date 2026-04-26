@@ -523,8 +523,15 @@ const SOLUTION_LOGOS: Record<string, string> = {
 
 // ─── 솔루션 카드 ─────────────────────────────────────────────
 
+// 솔루션 ID → 시나리오 ID 매핑 (guard=manufacturing, eco=smartcity)
+const SOLUTION_TO_SCENARIO: Record<string, string> = {
+  guard: "manufacturing",
+  eco:   "smartcity",
+};
+
 function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
   const router = useRouter();
+  const { setIsWorking, setSelectedScenario } = useHomeStore();
 
   return (
     <motion.div
@@ -582,7 +589,17 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
                 ))}
               </div>
               <button
-                onClick={() => isAvailable && router.push(`/editor?solution=${sol.id}`)}
+                onClick={() => {
+                  if (!isAvailable) return;
+                  const scenarioId = SOLUTION_TO_SCENARIO[sol.id];
+                  if (scenarioId) {
+                    // Step2로 이동 (스펙 설정 → 하네스 생성 → 에디터)
+                    setSelectedScenario(scenarioId as "energy" | "manufacturing" | "smartcity");
+                    setIsWorking(true);
+                  } else {
+                    router.push(`/editor?solution=${sol.id}`);
+                  }
+                }}
                 disabled={!isAvailable}
                 className={cn(
                   "mt-auto w-full rounded-lg py-2 text-xs font-medium transition-all",
@@ -591,7 +608,7 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
                     : "cursor-not-allowed bg-white/5 text-white/20"
                 )}
               >
-                {isAvailable ? "편집하기" : "출시 예정"}
+                {isAvailable ? "시작하기" : "출시 예정"}
               </button>
             </motion.div>
           );

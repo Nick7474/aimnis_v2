@@ -101,10 +101,10 @@ export default function ProjectsGrid({ initialProjects }: ProjectsGridProps) {
               project={project}
               index={i}
               copiedId={copiedId}
-              onEdit={() => router.push(`/editor?solution=${project.solution}`)}
+              onEdit={() => router.push(`/editor?solution=${project.solution}&project=${project.id}`)}
               onDelete={() => handleDelete(project)}
               onCopyUrl={() => handleCopyUrl(project)}
-              onOpen={() => router.push(`/${project.solution}`)}
+              onOpen={() => router.push(`/${project.solution}?project=${project.id}`)}
             />
           ))}
         </AnimatePresence>
