@@ -1,86 +1,73 @@
 import { NextRequest } from "next/server";
 
+// gemini-2.0-flash-lite: 안정적으로 광범위 지원, Flash-Lite 계열 중 권장
 const GEMINI_MODEL  = "gemini-2.5-flash-lite-preview-06-17";
 const HAIKU_MODEL   = "claude-haiku-4-5-20251001";
 const SONNET_MODEL  = "claude-sonnet-4-6";
 const OPUS_MODEL    = "claude-opus-4-6";
 
-// ─── 통합 시스템 프롬프트 (에디터 AI 에이전트) ──────────────────
+// ─── Claude용 시스템 프롬프트 (JSON 스키마 포함 상세 버전) ──────────
 function buildClaudeSystem(solution: string): string {
   return `당신은 AIMNIS 엔터프라이즈 플랫폼의 전문 AI 에이전트입니다.
 현재 편집 중인 솔루션: ${solution}
 
-당신은 산업 현장 전문가이자 AIMNIS 플랫폼 컨설턴트로서:
-- 사용자의 어떤 질문에도 명확하고 전문적으로 한국어로 답변합니다
-- 플랫폼 기능, 산업 도메인, 보안·안전·에너지 등 모든 주제에 성실히 답변합니다
-- 위젯 추가 요청 시에만 아래 JSON 형식을 사용합니다
+역할: 산업 현장 전문가이자 AIMNIS 플랫폼 컨설턴트
+- 어떤 질문에도 명확하고 전문적으로 한국어로 답변
+- 위젯/대시보드/차트 추가 요청 시에만 아래 JSON 형식 사용
 
-[위젯 추가/생성 요청인 경우에만 아래 형식 사용]
-[요청한 위젯에 대한 한국어 설명 1-2문장]
+[위젯 생성 요청 시 출력 형식]
+설명 1-2문장
 __WIDGET_JSON__
-{"action":"add_widget","widget":{"widgetId":"타입-001","type":"타입","title":"한국어 제목","data":{...}}}
+{"action":"add_widget","widget":{"widgetId":"타입-001","type":"타입","title":"한국어","data":{...}}}
 
-위젯 타입별 data 스키마:
-- kpi: {"value":"현실적 수치","unit":"단위","trend":"+X%","trendUp":true,"color":"#hex"}
-- chart-line: {"color":"#hex","chartData":[{"name":"시간/구역","value":숫자} × 7개]}
-- chart-bar: {"color":"#hex","chartData":[{"name":"구역명","value":숫자} × 4-5개]}
-- chart-donut: {"chartData":[{"name":"항목","value":숫자} × 3-4개]}
-- gauge: {"gaugeValue":0-100,"gaugeMax":100,"unit":"단위","color":"#hex"}
-- alert-panel: {"alerts":[{"level":"critical|warning|info","msg":"한국어 메시지"} × 3개]}
+위젯 타입별 data:
+kpi: {"value":"수치","unit":"단위","trend":"+X%","trendUp":true,"color":"#hex"}
+chart-line: {"color":"#hex","chartData":[{"name":"레이블","value":숫자}]} (7개)
+chart-bar: {"color":"#hex","chartData":[{"name":"구역","value":숫자}]} (4-5개)
+chart-donut: {"chartData":[{"name":"항목","value":숫자}]} (3-4개)
+gauge: {"gaugeValue":0-100,"gaugeMax":100,"unit":"단위","color":"#hex"}
+alert-panel: {"alerts":[{"level":"critical|warning|info","msg":"메시지"}]} (3개)
 
-공통 규칙:
-- 위젯 데이터는 ${solution} 솔루션 맥락에 맞는 현실적 수치 사용
-- JSON 앞뒤 마크다운 코드블록 절대 금지
-- 일반 대화·질문 시 __WIDGET_JSON__ 절대 포함하지 말 것`;
+규칙: 일반 질문은 __WIDGET_JSON__ 없이 텍스트만. JSON 앞뒤 코드블록 금지.`;
 }
 
-// ─── Mock fallback ──────────────────────────────────────────────
-function generateMockWidget(userText: string): string {
-  const lower = userText.toLowerCase();
-  if (lower.includes("kpi") || lower.includes("수치") || lower.includes("에너지") || lower.includes("현황")) {
-    return JSON.stringify({ action: "add_widget", widget: { widgetId: `kpi-${Date.now()}`, type: "kpi", title: lower.includes("에너지") ? "에너지 소비량" : "KPI 지표", data: { value: "247.3", unit: lower.includes("에너지") ? "kWh" : "%", trend: "+3.2%", trendUp: true, color: "#14b8a6" } } });
-  }
-  if (lower.includes("라인") || lower.includes("차트") || lower.includes("그래프") || lower.includes("추이")) {
-    return JSON.stringify({ action: "add_widget", widget: { widgetId: `line-${Date.now()}`, type: "chart-line", title: "실시간 추이", data: { color: "#6366f1", chartData: ["월","화","수","목","금","토","일"].map((d, i) => ({ name: d, value: 40 + i * 8 })) } } });
-  }
-  if (lower.includes("바") || lower.includes("막대") || lower.includes("비교")) {
-    return JSON.stringify({ action: "add_widget", widget: { widgetId: `bar-${Date.now()}`, type: "chart-bar", title: "구역별 비교", data: { color: "#8b5cf6", chartData: [{ name: "A구역", value: 42 }, { name: "B구역", value: 67 }, { name: "C구역", value: 31 }, { name: "D구역", value: 89 }] } } });
-  }
-  if (lower.includes("게이지") || lower.includes("온도") || lower.includes("압력")) {
-    return JSON.stringify({ action: "add_widget", widget: { widgetId: `gauge-${Date.now()}`, type: "gauge", title: "시스템 상태", data: { gaugeValue: 72, gaugeMax: 100, unit: "%", color: "#f59e0b" } } });
-  }
-  if (lower.includes("알람") || lower.includes("알림") || lower.includes("경보")) {
-    return JSON.stringify({ action: "add_widget", widget: { widgetId: `alert-${Date.now()}`, type: "alert-panel", title: "실시간 알람", data: { alerts: [{ level: "critical", msg: "배터리실 온도 임계값 초과 (87°C)" }, { level: "warning", msg: "B구역 에너지 소비 급증 감지" }, { level: "info", msg: "야간 점검 스케줄 시작" }] } } });
-  }
-  if (lower.includes("도넛") || lower.includes("비율") || lower.includes("분포")) {
-    return JSON.stringify({ action: "add_widget", widget: { widgetId: `donut-${Date.now()}`, type: "chart-donut", title: "위험도 분포", data: { chartData: [{ name: "정상", value: 68 }, { name: "주의", value: 22 }, { name: "위험", value: 10 }] } } });
-  }
-  return JSON.stringify({ action: "add_widget", widget: { widgetId: `kpi-${Date.now()}`, type: "kpi", title: "모니터링 지표", data: { value: "99.8", unit: "%", trend: "+0.2%", trendUp: true, color: "#14b8a6" } } });
+// ─── Gemini용 시스템 프롬프트 (단순화 버전 — Flash-Lite 호환) ──────
+function buildGeminiSystem(solution: string): string {
+  return `당신은 AIMNIS 플랫폼의 AI 어시스턴트입니다. 현재 솔루션: ${solution}
+
+규칙:
+1. 일반 질문 → 한국어로 자연스럽게 답변
+2. "위젯 추가해줘", "차트 만들어줘" 등 위젯 생성 요청 → 아래 형식으로 응답:
+
+[한국어 설명]
+__WIDGET_JSON__
+{"action":"add_widget","widget":{"widgetId":"w-001","type":"kpi","title":"제목","data":{"value":"99","unit":"%","trend":"+1%","trendUp":true,"color":"#14b8a6"}}}
+
+중요: 위젯 요청이 아니면 __WIDGET_JSON__ 절대 출력하지 말 것.`;
 }
 
-function generateMockNarrative(userText: string): string {
-  const lower = userText.toLowerCase();
-  if (lower.includes("kpi") || lower.includes("에너지")) return "KPI 카드 위젯을 캔버스에 추가했습니다.";
-  if (lower.includes("차트") || lower.includes("라인")) return "라인 차트 위젯을 추가했습니다.";
-  if (lower.includes("바") || lower.includes("막대")) return "바 차트 위젯을 추가했습니다.";
-  if (lower.includes("게이지")) return "게이지 위젯을 추가했습니다.";
-  if (lower.includes("알람") || lower.includes("알림")) return "알람 패널 위젯을 추가했습니다.";
-  return "위젯을 캔버스에 추가했습니다.";
-}
 
-// ─── Gemini 스트리밍 ─────────────────────────────────────────────
+// ─── Gemini 스트리밍 (대화 히스토리 포함) ───────────────────────────
 async function handleGemini(
-  systemPrompt: string,
-  userText: string
+  messages: { role: string; content: string }[],
+  solution: string
 ): Promise<ReadableStream<Uint8Array>> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai");
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
   const model = genAI.getGenerativeModel({
     model: GEMINI_MODEL,
-    systemInstruction: systemPrompt,
+    systemInstruction: buildGeminiSystem(solution),
   });
 
-  const result = await model.generateContentStream(userText);
+  // 대화 히스토리를 Gemini 형식으로 변환
+  const history = messages.slice(0, -1).map((m) => ({
+    role: m.role === "user" ? "user" : "model",
+    parts: [{ text: m.content }],
+  }));
+  const lastMessage = messages[messages.length - 1]?.content ?? "";
+
+  const chat = model.startChat({ history });
+  const result = await chat.sendMessageStream(lastMessage);
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -98,7 +85,6 @@ async function handleGemini(
 async function handleClaude(
   messages: { role: string; content: string }[],
   solution: string,
-  userText: string,
   model: string = HAIKU_MODEL
 ): Promise<ReadableStream<Uint8Array>> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
@@ -106,15 +92,12 @@ async function handleClaude(
 
   const resp = await client.messages.create({
     model,
-    max_tokens: 512,
+    max_tokens: 600,
     system: [{ type: "text", text: buildClaudeSystem(solution), cache_control: { type: "ephemeral" } }],
     messages: messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
   });
 
-  const fullText =
-    resp.content[0]?.type === "text"
-      ? resp.content[0].text
-      : `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
+  const fullText = resp.content[0]?.type === "text" ? resp.content[0].text : "";
 
   return new ReadableStream({
     start(controller) {
@@ -127,49 +110,55 @@ async function handleClaude(
 // ─── POST 핸들러 ────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const { messages, solution, provider } = await req.json();
-  const userText = (messages[messages.length - 1]?.content as string) ?? "";
   const sol = (solution as string) ?? "guard";
 
   // Gemini 경로
   if (provider === "gemini-flash-lite") {
+    if (!process.env.GOOGLE_API_KEY) {
+      // Google 키 없으면 Claude Haiku로 대체
+      try {
+        const stream = await handleClaude(messages, sol, HAIKU_MODEL);
+        return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
+      } catch {
+        return new Response("API 오류가 발생했습니다. 다시 시도해주세요.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      }
+    }
     try {
-      const system = buildClaudeSystem(sol); // 같은 시스템 프롬프트 재사용
-      const stream = await handleGemini(system, userText);
-      return new Response(stream, {
-        headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
-      });
-    } catch {
-      return new Response("죄송합니다, 일시적인 오류가 발생했습니다. 다시 시도해주세요.", {
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      const stream = await handleGemini(messages, sol);
+      return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
+    } catch (e) {
+      console.error("[Gemini chat error]", e);
+      // Gemini 실패 시 Claude Haiku로 자동 전환
+      try {
+        const stream = await handleClaude(messages, sol, HAIKU_MODEL);
+        return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
+      } catch {
+        return new Response("AI 연결 오류가 발생했습니다. 다시 시도해주세요.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      }
     }
   }
 
-  // Claude 모델 선택
+  // Claude 경로
   const claudeModel =
     provider === "claude-opus"   ? OPUS_MODEL   :
     provider === "claude-sonnet" ? SONNET_MODEL :
     HAIKU_MODEL;
 
-  const isClaudeProvider =
-    provider === "claude-haiku" ||
-    provider === "claude-sonnet" ||
-    provider === "claude-opus";
-
-  if (isClaudeProvider) {
+  if (provider === "claude-haiku" || provider === "claude-sonnet" || provider === "claude-opus") {
     try {
-      const stream = await handleClaude(messages, sol, userText, claudeModel);
-      return new Response(stream, {
-        headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" },
-      });
-    } catch {
-      return new Response("죄송합니다, API 오류가 발생했습니다. 다시 시도해주세요.", {
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      const stream = await handleClaude(messages, sol, claudeModel);
+      return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
+    } catch (e) {
+      console.error("[Claude chat error]", e);
+      return new Response("Claude API 오류가 발생했습니다. 다시 시도해주세요.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
   }
 
-  // 알 수 없는 provider → mock
-  const fallback = `${generateMockNarrative(userText)}\n__WIDGET_JSON__\n${generateMockWidget(userText)}`;
-  return new Response(fallback, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  // 미매칭 provider → 기본 Claude Haiku
+  try {
+    const stream = await handleClaude(messages, sol, HAIKU_MODEL);
+    return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
+  } catch {
+    return new Response("AI 연결 오류가 발생했습니다.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
 }

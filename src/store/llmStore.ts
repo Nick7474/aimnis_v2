@@ -25,7 +25,7 @@ const VALID_PROVIDERS = new Set(Object.keys(PROVIDER_META));
 export const useLLMStore = create<LLMState>()(
   persist(
     (set) => ({
-      provider: "gemini-flash-lite",
+      provider: "claude-haiku",
       setProvider: (provider) => set({ provider }),
     }),
     {
