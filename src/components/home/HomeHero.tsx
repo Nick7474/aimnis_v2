@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Sparkles, Paperclip, X, CheckCircle2, ExternalLink, Bot, Zap, Camera, Building2 } from "lucide-react";
@@ -52,10 +52,12 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
-  // AI 응답 상태
+  // AI 응답 상태 — 대화 히스토리 유지
   const [aiState, setAiState] = useState<"idle" | "streaming" | "done">("idle");
   const [aiResponse, setAiResponse] = useState("");
   const [pendingSolution, setPendingSolution] = useState<string | null>(null);
+  const [chatHistory, setChatHistory] = useState<{ role: "user" | "ai"; text: string }[]>([]);
+  const historyScrollRef = useRef<HTMLDivElement>(null);
 
   // ─── AI 하네스 생성 ────────────────────────────────────────────
 
@@ -68,6 +70,9 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     setPendingSolution(solId);
     setAiState("streaming");
     setAiResponse("");
+    // 사용자 메시지를 히스토리에 추가
+    setChatHistory(prev => [...prev, { role: "user", text }]);
+    setInput("");
 
     try {
       const res = await fetch("/api/home", {
@@ -89,11 +94,29 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         }
       }
     } catch {
-      setAiResponse("하네스 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      const errMsg = "하네스 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+      setAiResponse(errMsg);
+      setChatHistory(prev => [...prev, { role: "ai" as const, text: errMsg }]);
     } finally {
       setAiState("done");
     }
   };
+
+  // streaming 완료 시 히스토리에 저장
+  const prevAiState = useRef(aiState);
+  useEffect(() => {
+    if (prevAiState.current === "streaming" && aiState === "done" && aiResponse) {
+      setChatHistory(prev => [...prev, { role: "ai" as const, text: aiResponse }]);
+    }
+    prevAiState.current = aiState;
+  }, [aiState, aiResponse]);
+
+  // 히스토리 자동 스크롤
+  useEffect(() => {
+    if (historyScrollRef.current) {
+      historyScrollRef.current.scrollTop = historyScrollRef.current.scrollHeight;
+    }
+  }, [chatHistory, aiResponse]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -169,14 +192,14 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-2xl"
       >
-        {/* Gemma4 스트리밍 응답 */}
+        {/* AI 대화 히스토리 — 스크롤 가능한 고정 높이 패널 */}
         <AnimatePresence>
-          {(aiState === "streaming" || aiState === "done") && (
+          {(chatHistory.length > 0 || aiState === "streaming") && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-3 overflow-hidden p-4"
+              className="mb-3"
               style={{
                 borderRadius: 16,
                 border: "1px solid #2F2243",
@@ -186,7 +209,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               }}
             >
               {/* 헤더 */}
-              <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/5">
                 <div className="flex items-center gap-2 text-xs text-purple-300/70">
                   <motion.div
                     animate={aiState === "streaming" ? { rotate: 360 } : { rotate: 0 }}
@@ -194,48 +217,57 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                   >
                     <Bot className="h-3.5 w-3.5" />
                   </motion.div>
-                  <span>{aiState === "streaming" ? "Gemini 하네스 생성 중..." : "Gemini 생성 완료"}</span>
+                  <span>{aiState === "streaming" ? "AI 응답 중..." : "AI 어시스턴트"}</span>
                 </div>
-                {aiState === "done" && (
-                  <button onClick={resetAi} className="text-white/30 hover:text-white/60 transition-colors">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
+                <button onClick={resetAi} className="text-white/20 hover:text-white/50 transition-colors" title="대화 초기화">
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
 
-              {/* 스트리밍 텍스트 */}
-              <div className="font-mono text-xs leading-relaxed text-white/70 whitespace-pre-wrap">
-                {aiResponse}
-                {aiState === "streaming" && (
-                  <motion.span
-                    animate={{ opacity: [1, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.6 }}
-                    className="ml-0.5 inline-block h-3 w-1.5 bg-purple-400"
-                  />
-                )}
-              </div>
-
-              {/* 에디터 열기 버튼 */}
-              <AnimatePresence>
-                {aiState === "done" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-4 flex items-center gap-2"
-                  >
-                    <div className="flex-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400">
-                      ✓ harness 생성 완료
+              {/* 스크롤 가능한 메시지 영역 */}
+              <div
+                ref={historyScrollRef}
+                style={{ maxHeight: 280, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}
+                className="custom-scrollbar"
+              >
+                {chatHistory.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-purple-500/20 text-purple-100"
+                        : "bg-white/5 text-white/80 whitespace-pre-wrap font-mono"
+                    }`}>
+                      {msg.text}
+                      {/* 마지막 AI 메시지 완료 시 에디터 열기 버튼 */}
+                      {msg.role === "ai" && i === chatHistory.length - 1 && aiState === "done" && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <div className="flex-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-400">✓ 생성 완료</div>
+                          <button
+                            onClick={() => router.push(`/editor?solution=${pendingSolution ?? "guard"}`)}
+                            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-2.5 py-1 text-[10px] text-white hover:from-violet-500 hover:to-indigo-500 transition-all"
+                          >
+                            에디터 열기 <ExternalLink className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => router.push(`/editor?solution=${pendingSolution ?? "guard"}`)}
-                      className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-1.5 text-xs text-white shadow-lg shadow-violet-500/20 hover:from-violet-500 hover:to-indigo-500 transition-all"
-                    >
-                      에디터 열기
-                      <ExternalLink className="h-3 w-3" />
-                    </button>
-                  </motion.div>
+                  </div>
+                ))}
+
+                {/* 현재 스트리밍 중인 응답 */}
+                {aiState === "streaming" && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 whitespace-pre-wrap font-mono leading-relaxed">
+                      {aiResponse}
+                      <motion.span
+                        animate={{ opacity: [1, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.6 }}
+                        className="ml-0.5 inline-block h-3 w-1.5 bg-purple-400"
+                      />
+                    </div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

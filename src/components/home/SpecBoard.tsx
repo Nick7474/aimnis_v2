@@ -171,7 +171,7 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
           {/* 우측: 카테고리 필터 칩 + 헤더 액션 */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
             {renderHeaderExtra}
-            <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", maxWidth: 360, scrollbarWidth: "none" as const }}>
+            <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", maxWidth: 400, scrollbarWidth: "none" as const, msOverflowStyle: "none" as const }}>
               {specGroups.map((g) => {
                 const IconComp = ((Icons as unknown as Record<string, LucideIcon>)[g.icon] || Icons.HelpCircle) as LucideIcon;
                 const gDone = g.questions.filter((q) => {
@@ -187,20 +187,22 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 5,
-                      padding: "5px 11px",
-                      borderRadius: 7,
-                      border: `1px solid ${isActive ? `color-mix(in oklch, ${g.color} 55%, transparent)` : "var(--border)"}`,
-                      background: isActive ? `color-mix(in oklch, ${g.color} 12%, transparent)` : "transparent",
-                      color: isActive ? "var(--t1)" : "var(--t3)",
+                      gap: 6,
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${isActive ? `color-mix(in oklch, ${g.color} 55%, transparent)` : "var(--border2)"}`,
+                      background: isActive ? `color-mix(in oklch, ${g.color} 12%, transparent)` : "var(--s2)",
+                      color: isActive ? "var(--t1)" : "var(--t2)",
                       fontSize: 11,
                       fontFamily: "var(--font)",
                       fontWeight: isActive ? 600 : 400,
                       cursor: "pointer",
                       transition: "all .15s",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
                     }}
                   >
-                    <IconComp size={11} color={isActive ? g.color : "var(--t3)"} />
+                    <IconComp size={13} color={isActive ? g.color : "oklch(52% 0.010 275)"} />
                     {g.label}
                     {gComplete && (
                       <svg width={10} height={10} viewBox="0 0 10 10" fill="none">

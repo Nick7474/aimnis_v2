@@ -2,10 +2,10 @@
 
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Send, Paperclip, Mic } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
 import { useLLMStore } from "@/store/llmStore";
 import ProviderPicker from "@/components/shared/ProviderPicker";
+import AiChatInput from "@/components/shared/AiChatInput";
 import ScenarioChips from "./ScenarioChips";
 import SpecBoard from "./SpecBoard";
 import MagicSetupButton from "./MagicSetupButton";
@@ -13,18 +13,23 @@ import LiveBlueprint from "./LiveBlueprint";
 import CreateHarnessBtn from "./CreateHarnessBtn";
 import ChatArea from "./ChatArea";
 
-// ─── 채팅 입력창 ──────────────────────────────────────────────
+// ─── 채팅 입력창 (AiChatInput 사용) ─────────────────────────
 function ChatInput() {
   const { addMessage, updateLastMessage, isThinking, setIsThinking } = useHomeStore();
   const { provider } = useLLMStore();
   const [value, setValue] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
 
   const submit = useCallback(async () => {
     const text = value.trim();
-    if (!text || isThinking) return;
-    setValue("");
+    if ((!text && attachedImages.length === 0) || isThinking) return;
 
+    const userContent = attachedImages.length > 0
+      ? [{ type: "text", text }, ...attachedImages.map(img => ({ type: "image_url", url: img }))]
+      : text;
+
+    setValue("");
+    setAttachedImages([]);
     addMessage({ id: `u-${Date.now()}`, role: "user", content: text });
     setIsThinking(true);
 
@@ -34,21 +39,18 @@ function ChatInput() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, { role: "user", content: text }],
+          messages: [...messages, { role: "user", content: typeof userContent === "string" ? userContent : text }],
           solution: selectedScenario ?? "guard",
           provider,
         }),
       });
 
-      if (!res.ok) throw new Error("API 오류");
-      if (!res.body) throw new Error("Stream 없음");
-
+      if (!res.ok || !res.body) throw new Error();
       addMessage({ id: `a-${Date.now()}`, role: "assistant", content: "" });
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let assistantContent = "";
-
       while (true) {
         const { done, value: chunk } = await reader.read();
         if (chunk) {
@@ -69,52 +71,19 @@ function ChatInput() {
     } finally {
       setIsThinking(false);
     }
-  }, [value, isThinking, addMessage, setIsThinking, updateLastMessage]);
+  }, [value, attachedImages, isThinking, addMessage, setIsThinking, updateLastMessage, provider]);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 focus-within:border-purple-500/30 transition-colors"
-      style={{ flexShrink: 0 }}
-    >
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-        placeholder="요구사항을 입력하세요..."
-        rows={2}
-        className="w-full resize-none bg-transparent px-3 pt-2.5 text-xs text-white placeholder:text-white/20 focus:outline-none"
-        style={{ maxHeight: 72 }}
-      />
-      <div className="flex items-center justify-between px-2 pb-2">
-        <div className="flex items-center gap-1">
-          <button className="flex h-6 w-6 items-center justify-center rounded-md text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors" title="이미지 첨부">
-            <Paperclip className="h-3.5 w-3.5" />
-          </button>
-          <button className="flex h-6 w-6 items-center justify-center rounded-md text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors" title="음성 입력">
-            <Mic className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      <button
-        onClick={submit}
-        disabled={!value.trim() || isThinking}
-        className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg transition-all ${
-          value.trim() && !isThinking
-            ? "bg-purple-600 text-white hover:bg-purple-500"
-            : "bg-white/5 text-white/20"
-        }`}
-      >
-        {isThinking ? (
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-            className="h-3 w-3 rounded-full border-2 border-white/20 border-t-white"
-          />
-        ) : (
-          <Send size={11} />
-        )}
-      </button>
-      </div>
-    </div>
+    <AiChatInput
+      value={value}
+      onChange={setValue}
+      onSubmit={submit}
+      isLoading={isThinking}
+      placeholder="요구사항을 입력하세요..."
+      attachedImages={attachedImages}
+      onImagesChange={setAttachedImages}
+      className="flex-shrink-0"
+    />
   );
 }
 
@@ -190,14 +159,12 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
         </div>
       </div>
     </div>
-    {/* 드래그 리사이즈 핸들 */}
+    {/* 1px 드래그 핸들 */}
     <div
       onMouseDown={onMouseDown}
       style={{
-        width: 6, flexShrink: 0, cursor: "col-resize",
+        width: 1, flexShrink: 0, cursor: "col-resize",
         background: "var(--border)",
-        borderRight: "1px solid var(--border)",
-        position: "relative",
         transition: "background 0.15s",
       }}
       onMouseEnter={e => (e.currentTarget.style.background = "var(--primary)")}

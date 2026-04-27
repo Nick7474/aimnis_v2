@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ChevronDown, ChevronRight, Terminal, Sparkles, Paperclip, Mic } from "lucide-react";
+import { ChevronDown, ChevronRight, Terminal, Sparkles } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { useLLMStore } from "@/store/llmStore";
 import ProviderPicker from "@/components/shared/ProviderPicker";
+import AiChatInput from "@/components/shared/AiChatInput";
 import { cn } from "@/lib/utils";
 import { computeNextPosition, getWidgetSize } from "./SmartGridEngine";
 import type { WidgetData } from "@/store/editorStore";
@@ -61,6 +62,7 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
 
   const { provider } = useLLMStore();
   const [input, setInput] = useState("");
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [logsOpen, setLogsOpen] = useState(false);
   const [widgetBadges, setWidgetBadges] = useState<
     Record<string, { type: string; title: string }>
@@ -100,8 +102,9 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || isStreaming) return;
+    if ((!text && attachedImages.length === 0) || isStreaming) return;
     setInput("");
+    setAttachedImages([]);
 
     const userMsg = { id: Date.now().toString(), role: "user" as const, content: text };
     addMessage(userMsg);
@@ -263,48 +266,17 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         ))}
       </div>
 
-      {/* 입력창 */}
+      {/* 입력창 — AiChatInput (이미지 첨부 + 음성 인식) */}
       <div className="border-t border-white/5 p-3">
-        <div className="rounded-xl border border-white/10 bg-white/5 focus-within:border-purple-500/30 transition-colors">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="위젯 추가, 차트 생성, 알람 패널 등 자연어로 요청하세요"
-            rows={2}
-            className="w-full resize-none bg-transparent px-3 pt-2.5 text-xs text-white placeholder:text-white/20 focus:outline-none"
-          />
-          <div className="flex items-center justify-between px-2 pb-2">
-            <div className="flex items-center gap-1">
-              <button className="flex h-6 w-6 items-center justify-center rounded-md text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors" title="이미지 첨부">
-                <Paperclip className="h-3 w-3" />
-              </button>
-              <button className="flex h-6 w-6 items-center justify-center rounded-md text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors" title="음성 입력">
-                <Mic className="h-3 w-3" />
-              </button>
-            </div>
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isStreaming}
-            className={cn(
-              "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-all",
-              input.trim() && !isStreaming
-                ? "bg-purple-600 text-white hover:bg-purple-500"
-                : "bg-white/5 text-white/20"
-            )}
-          >
-            {isStreaming ? (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="h-3 w-3 rounded-full border border-white/30 border-t-white"
-              />
-            ) : (
-              <Send className="h-3 w-3" />
-            )}
-          </button>
-          </div>
-        </div>
+        <AiChatInput
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSend}
+          isLoading={isStreaming}
+          placeholder="위젯 추가, 차트 생성, 알람 패널 등 자연어로 요청하세요"
+          attachedImages={attachedImages}
+          onImagesChange={setAttachedImages}
+        />
       </div>
     </div>
   );

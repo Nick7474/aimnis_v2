@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Save, Maximize2, Globe, X, Check, FileCode2, LayoutDashboard, Database, Rocket } from "lucide-react";
 import Link from "next/link";
@@ -37,8 +37,37 @@ const EDITOR_NAV = [
   { href: "/guard",    label: "AIM GUARD", Icon: Shield },
 ];
 
+const EDITOR_PANEL_MIN = 240;
+const EDITOR_PANEL_MAX = 600;
+
 export default function EditorLayout({ solution, template, widgets }: EditorLayoutProps) {
   const pathname = usePathname();
+  const [chatPanelWidth, setChatPanelWidth] = useState(280);
+  const chatDragging = useRef(false);
+  const chatDragStartX = useRef(0);
+  const chatDragStartW = useRef(280);
+
+  const handleChatPanelDrag = (e: React.MouseEvent) => {
+    chatDragging.current = true;
+    chatDragStartX.current = e.clientX;
+    chatDragStartW.current = chatPanelWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    const onMove = (ev: MouseEvent) => {
+      if (!chatDragging.current) return;
+      const next = Math.min(EDITOR_PANEL_MAX, Math.max(EDITOR_PANEL_MIN, chatDragStartW.current + ev.clientX - chatDragStartX.current));
+      setChatPanelWidth(next);
+    };
+    const onUp = () => {
+      chatDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
   const { rightPanel, setRightPanel, brand, isFullscreen, setFullscreen, publishedUrl, setPublishedUrl,
           addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel } = useEditorStore();
 
@@ -244,15 +273,31 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
 
       {/* 3패널 본문 */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 좌측 채팅 패널 280px */}
-        <aside className="flex w-[280px] flex-shrink-0 flex-col border-r border-white/5 bg-[#0a0a14]">
-          <div className="border-b border-white/5 px-4 py-2.5">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">AI 어시스턴트</p>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <ChatPanel solutionId={solution.id} />
-          </div>
-        </aside>
+        {/* 좌측 채팅 패널 — 리사이즈 가능 */}
+        <div style={{ display: "flex", flexShrink: 0, height: "100%" }}>
+          <aside
+            style={{ width: chatPanelWidth, flexShrink: 0 }}
+            className="flex flex-col bg-[#0a0a14] overflow-hidden"
+          >
+            <div className="border-b border-white/5 px-4 py-2.5">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">AI 어시스턴트</p>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <ChatPanel solutionId={solution.id} />
+            </div>
+          </aside>
+          {/* 1px 드래그 핸들 */}
+          <div
+            onMouseDown={handleChatPanelDrag}
+            style={{
+              width: 1, flexShrink: 0, cursor: "col-resize",
+              background: "rgba(255,255,255,0.05)",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--primary)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+          />
+        </div>
 
         {/* 중앙 캔버스 flex-1 — 빈 영역 클릭 시 선택 해제 */}
         <main
