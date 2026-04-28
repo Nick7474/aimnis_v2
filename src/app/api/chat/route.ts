@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
 // gemini-2.0-flash-lite: 안정적으로 광범위 지원, Flash-Lite 계열 중 권장
-const GEMINI_MODEL  = "gemini-2.5-flash-lite-preview-06-17";
+const GEMINI_MODEL  = "gemini-2.0-flash-lite";
 const HAIKU_MODEL   = "claude-haiku-4-5-20251001";
 const SONNET_MODEL  = "claude-sonnet-4-6";
 const OPUS_MODEL    = "claude-opus-4-6";

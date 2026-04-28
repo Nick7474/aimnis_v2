@@ -32,9 +32,9 @@ const ParticleWaves = () => {
       context.clearRect(0, 0, 32, 32);
 
       // 보라색 단색 — AIMNIS primary purple
-      const gradient = context.createRadialGradient(16, 16, 2, 16, 16, 12);
-      gradient.addColorStop(0, '#a78bfa'); // violet-400 (밝은 보라)
-      gradient.addColorStop(1, '#7c3aed'); // violet-600 (기본 보라)
+      const gradient = context.createLinearGradient(0, 0, 32, 32);
+      gradient.addColorStop(0, '#7c3aed'); // Violet-600
+      gradient.addColorStop(1, '#4f46e5'); // Indigo-600
 
       context.fillStyle = gradient;
       context.beginPath();

@@ -171,7 +171,7 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
           {/* 우측: 카테고리 필터 칩 + 헤더 액션 */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
             {renderHeaderExtra}
-            <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", maxWidth: 400, scrollbarWidth: "none" as const, msOverflowStyle: "none" as const }}>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
               {specGroups.map((g) => {
                 const IconComp = ((Icons as unknown as Record<string, LucideIcon>)[g.icon] || Icons.HelpCircle) as LucideIcon;
                 const gDone = g.questions.filter((q) => {
@@ -187,9 +187,9 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
-                      padding: "6px 12px",
-                      borderRadius: 8,
+                      gap: 5,
+                      padding: "4px 9px",
+                      borderRadius: 7,
                       border: `1px solid ${isActive ? `color-mix(in oklch, ${g.color} 55%, transparent)` : "var(--border2)"}`,
                       background: isActive ? `color-mix(in oklch, ${g.color} 12%, transparent)` : "var(--s2)",
                       color: isActive ? "var(--t1)" : "var(--t2)",

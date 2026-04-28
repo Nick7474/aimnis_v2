@@ -192,85 +192,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-2xl"
       >
-        {/* AI 대화 히스토리 — 스크롤 가능한 고정 높이 패널 */}
-        <AnimatePresence>
-          {(chatHistory.length > 0 || aiState === "streaming") && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-3"
-              style={{
-                borderRadius: 16,
-                border: "1px solid #2F2243",
-                background: "rgba(135, 135, 178, 0.05)",
-                backdropFilter: "blur(5px)",
-                WebkitBackdropFilter: "blur(5px)",
-              }}
-            >
-              {/* 헤더 */}
-              <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/5">
-                <div className="flex items-center gap-2 text-xs text-purple-300/70">
-                  <motion.div
-                    animate={aiState === "streaming" ? { rotate: 360 } : { rotate: 0 }}
-                    transition={{ repeat: aiState === "streaming" ? Infinity : 0, duration: 1.5, ease: "linear" }}
-                  >
-                    <Bot className="h-3.5 w-3.5" />
-                  </motion.div>
-                  <span>{aiState === "streaming" ? "AI 응답 중..." : "AI 어시스턴트"}</span>
-                </div>
-                <button onClick={resetAi} className="text-white/20 hover:text-white/50 transition-colors" title="대화 초기화">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              {/* 스크롤 가능한 메시지 영역 */}
-              <div
-                ref={historyScrollRef}
-                style={{ maxHeight: 280, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}
-                className="custom-scrollbar"
-              >
-                {chatHistory.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
-                      msg.role === "user"
-                        ? "bg-purple-500/20 text-purple-100"
-                        : "bg-white/5 text-white/80 whitespace-pre-wrap font-mono"
-                    }`}>
-                      {msg.text}
-                      {/* 마지막 AI 메시지 완료 시 에디터 열기 버튼 */}
-                      {msg.role === "ai" && i === chatHistory.length - 1 && aiState === "done" && (
-                        <div className="mt-3 flex items-center gap-2">
-                          <div className="flex-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-400">✓ 생성 완료</div>
-                          <button
-                            onClick={() => router.push(`/editor?solution=${pendingSolution ?? "guard"}`)}
-                            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-2.5 py-1 text-[10px] text-white hover:from-violet-500 hover:to-indigo-500 transition-all"
-                          >
-                            에디터 열기 <ExternalLink className="h-2.5 w-2.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* 현재 스트리밍 중인 응답 */}
-                {aiState === "streaming" && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[85%] rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 whitespace-pre-wrap font-mono leading-relaxed">
-                      {aiResponse}
-                      <motion.span
-                        animate={{ opacity: [1, 0] }}
-                        transition={{ repeat: Infinity, duration: 0.6 }}
-                        className="ml-0.5 inline-block h-3 w-1.5 bg-purple-400"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* 채팅 히스토리는 입력 폼 안에 통합됨 (아래 form 참고) */}
 
         {/* 파일 분석 UI */}
         <AnimatePresence>
@@ -356,10 +278,10 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
           )}
         </AnimatePresence>
 
-        {/* 입력 폼 */}
+        {/* 입력 폼 — 대화 히스토리 통합 */}
         <form onSubmit={handleSubmit}>
           <div
-            className="relative p-4 shadow-2xl shadow-black/40 transition-colors"
+            className="relative shadow-2xl shadow-black/40 transition-colors"
             style={{
               borderRadius: 16,
               border: "1px solid #2F2243",
@@ -368,8 +290,58 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               WebkitBackdropFilter: "blur(5px)",
             }}
           >
+            {/* 대화 히스토리 — 내용 있을 때만 표시, 스크롤 가능 */}
+            <AnimatePresence>
+              {(chatHistory.length > 0 || aiState === "streaming") && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="border-b border-white/5"
+                >
+                  <div
+                    ref={historyScrollRef}
+                    style={{ maxHeight: 320, overflowY: "auto", padding: "16px 16px 12px", display: "flex", flexDirection: "column", gap: 10 }}
+                    className="custom-scrollbar"
+                  >
+                    {chatHistory.map((msg, i) => (
+                      <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[88%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                          msg.role === "user"
+                            ? "bg-purple-500/20 text-purple-100"
+                            : "bg-white/5 text-white/80 whitespace-pre-wrap"
+                        }`}>
+                          {msg.text}
+                          {msg.role === "ai" && i === chatHistory.length - 1 && aiState === "done" && (
+                            <div className="mt-3 flex items-center gap-2">
+                              <div className="flex-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-400">✓ 생성 완료</div>
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/editor?solution=${pendingSolution ?? "guard"}`)}
+                                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-2.5 py-1 text-[10px] text-white hover:from-violet-500 hover:to-indigo-500 transition-all"
+                              >
+                                에디터 열기 <ExternalLink className="h-2.5 w-2.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {aiState === "streaming" && (
+                      <div className="flex justify-start">
+                        <div className="max-w-[88%] rounded-xl bg-white/5 px-3 py-2 text-sm text-white/80 whitespace-pre-wrap leading-relaxed">
+                          {aiResponse}
+                          <motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.6 }}
+                            className="ml-0.5 inline-block h-3 w-1.5 bg-purple-400" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* 시나리오 칩 */}
-            <div className="mb-3 flex flex-wrap gap-1.5">
+            <div className="px-4 pt-4 pb-2 flex flex-wrap gap-1.5">
               <span className="self-center text-[10px] text-white/25 mr-1">시나리오:</span>
               {scenarios.map((sc) => {
                 const Icon = SCENARIO_ICONS[sc.icon] ?? Zap;
@@ -381,11 +353,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all"
-                    style={{
-                      borderColor: sc.color + "40",
-                      backgroundColor: sc.color + "10",
-                      color: sc.color,
-                    }}
+                    style={{ borderColor: sc.color + "40", backgroundColor: sc.color + "10", color: sc.color }}
                   >
                     <Icon className="h-3 w-3" style={{ color: sc.color }} />
                     {sc.label}
@@ -394,30 +362,10 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               })}
             </div>
 
-            {/* 저장된 프로젝트 검색 드롭다운 */}
-            {showProjectSuggestions && filteredProjects.length > 0 && (
-              <div className="mb-2 rounded-xl border border-white/8 bg-[#0f0f1a]/95 overflow-hidden">
-                <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/30">저장된 프로젝트</p>
-                {filteredProjects.map(p => (
-                  <button key={p.id} onMouseDown={() => { router.push(`/editor?solution=${p.solution}`); }}
-                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-white/5 transition-colors">
-                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-teal-500/20">
-                      <span className="text-[10px] text-teal-400">G</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-white/80">{p.name}</p>
-                      <p className="text-[10px] text-white/30">{p.client} · {p.version}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
+            <div className="px-4 pb-2">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onFocus={() => setShowProjectSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowProjectSuggestions(false), 150)}
               onKeyDown={handleKeyDown}
               placeholder={
                 activeSolution === "guard"
@@ -428,7 +376,8 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               className="w-full resize-none bg-transparent text-sm text-white placeholder:text-white/20 focus:outline-none"
             />
 
-            <div className="mt-3 flex items-center justify-between gap-2">
+            </div>{/* px-4 pb-2 wrapper 닫기 */}
+            <div className="px-4 pb-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 {/* 파일 첨부 */}
                 <motion.button
