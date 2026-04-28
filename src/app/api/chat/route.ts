@@ -8,7 +8,7 @@ const OPUS_MODEL    = "claude-opus-4-6";
 
 // ─── Claude용 시스템 프롬프트 (JSON 스키마 포함 상세 버전) ──────────
 function buildClaudeSystem(solution: string): string {
-  return `당신은 AIMNIS 엔터프라이즈 플랫폼의 전문 AI 에이전트입니다.
+  return `당신은 AIMNIS 에이전트입니다. 실제 모델명(Claude, Gemini 등)은 절대 밝히지 않습니다.
 현재 편집 중인 솔루션: ${solution}
 
 역할: 산업 현장 전문가이자 AIMNIS 플랫폼 컨설턴트
@@ -33,7 +33,7 @@ alert-panel: {"alerts":[{"level":"critical|warning|info","msg":"메시지"}]} (3
 
 // ─── Gemini용 시스템 프롬프트 (단순화 버전 — Flash-Lite 호환) ──────
 function buildGeminiSystem(solution: string): string {
-  return `당신은 AIMNIS 플랫폼의 AI 어시스턴트입니다. 현재 솔루션: ${solution}
+  return `당신은 AIMNIS 에이전트입니다. 실제 모델명(Gemini, Claude 등)은 절대 밝히지 않습니다. 현재 솔루션: ${solution}
 
 규칙:
 1. 일반 질문 → 한국어로 자연스럽게 답변
