@@ -42,7 +42,7 @@ interface OverlayCardProps {
 }
 
 function OverlayCard({ widget: w, index }: OverlayCardProps) {
-  const { removeOverlayWidget, setSelectedElement, setRightPanel, setShowRightPanel, activeWidgets } = useEditorStore();
+  const { removeOverlayWidget, setSelectedElement, setRightPanel, activeWidgets } = useEditorStore();
 
   const activeTitle = activeWidgets.find((aw) => aw.id === w.id)?.properties.title ?? w.title;
 
@@ -65,9 +65,8 @@ function OverlayCard({ widget: w, index }: OverlayCardProps) {
         rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
       });
       setRightPanel("widget");
-      setShowRightPanel(true);
     },
-    [w, activeTitle, setSelectedElement, setRightPanel, setShowRightPanel]
+    [w, activeTitle, setSelectedElement, setRightPanel]
   );
 
   return (

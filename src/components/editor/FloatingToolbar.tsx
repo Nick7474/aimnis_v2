@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  X, Database, Palette, Trash2, Check,
+  X, Database, Palette, Trash2, Check, Settings,
 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 
@@ -24,6 +24,7 @@ export default function FloatingToolbar() {
     selectedElement, setSelectedElement, setRightPanel, setCenterView,
     removeOverlayWidget, overlayWidgets, updateOverlayWidgetData, setShowRightPanel,
   } = useEditorStore();
+
   const [mounted, setMounted] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -94,6 +95,10 @@ export default function FloatingToolbar() {
   const handleDataConnect = () => {
     setRightPanel("mapping");
     setCenterView("mapping");
+  };
+
+  const handleWidgetSettings = () => {
+    setRightPanel("widget");
     setShowRightPanel(true);
   };
 
@@ -165,6 +170,13 @@ export default function FloatingToolbar() {
 
             {isWidget && currentWidget ? (
               <>
+                {/* 설정 — 우측 패널 오픈 */}
+                <ToolbarButton
+                  icon={<Settings size={13} />}
+                  label="설정"
+                  onClick={handleWidgetSettings}
+                />
+
                 {/* 데이터 연결 */}
                 <ToolbarButton
                   icon={<Database size={13} />}
@@ -221,7 +233,7 @@ export default function FloatingToolbar() {
               <ToolbarButton
                 icon={<Database size={13} />}
                 label="설정"
-                onClick={() => { setRightPanel("settings"); setShowRightPanel(true); }}
+                onClick={() => setRightPanel("settings")}
               />
             )}
 

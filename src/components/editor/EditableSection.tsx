@@ -45,7 +45,7 @@ export default function EditableSection({
   const ref = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
 
-  const { selectedElement, setSelectedElement, setRightPanel, setShowRightPanel } = useEditorStore();
+  const { selectedElement, setSelectedElement, setRightPanel } = useEditorStore();
   const isSelected = selectedElement?.sectionId === sectionId;
 
   const select = useCallback(
@@ -58,9 +58,8 @@ export default function EditableSection({
         rect: { top: r.top, left: r.left, width: r.width, height: r.height },
       });
       setRightPanel(PANEL_MAP[panelType] as Parameters<typeof setRightPanel>[0]);
-      setShowRightPanel(true);
     },
-    [sectionId, type, label, panelType, setSelectedElement, setRightPanel, setShowRightPanel]
+    [sectionId, type, label, panelType, setSelectedElement, setRightPanel]
   );
 
   // ── overlay 모드: Monitor 위 투명 레이어 ──────────────────
