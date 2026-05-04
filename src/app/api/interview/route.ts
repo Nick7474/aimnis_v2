@@ -115,7 +115,7 @@ async function handleClaudeInterview(
   qaModel: string = HAIKU_MODEL
 ): Promise<string> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || undefined });
 
   const isComplete = turnCount >= 3 || isSkip;
 
@@ -189,6 +189,70 @@ async function handleClaudeInterview(
   return buildMockResponse(scenario, turnCount, lastUserMsg, isSkip);
 }
 
+// ─── Gemini Flash-Lite 인터뷰 (빠른 Q&A) ─────────────────────────────
+async function handleGeminiInterview(
+  messages: { role: string; content: string }[],
+  scenario: string,
+  turnCount: number,
+  lastUserMsg: string,
+  isSkip: boolean
+): Promise<string> {
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: SYSTEM_PROMPT,
+  });
+
+  const isComplete = turnCount >= 3 || isSkip;
+
+  // 턴 >= 3이거나 완료 요청: Gemini로 최종 설계
+  if (isComplete) {
+    try {
+      const planModel = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash", // Use flash for planning instead of flash-lite if available, else flash-lite
+        systemInstruction: OPUS_PLAN_SYSTEM,
+      });
+      const prompt = `시나리오: ${scenario}. 지금까지 수집된 요구사항으로 최종 하네스 설계서 JSON을 작성해주세요.`;
+      
+      const history = messages.map((m) => ({
+        role: m.role === "user" ? "user" : "model",
+        parts: [{ text: m.content }],
+      }));
+
+      const chat = planModel.startChat({ history });
+      const result = await chat.sendMessage(prompt);
+      let raw = result.response.text().replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      JSON.parse(raw); // validate
+      return raw;
+    } catch {
+      // 실패 시 mock으로 fallback
+    }
+    return buildMockResponse(scenario, turnCount, lastUserMsg, isSkip);
+  }
+
+  // 일반 턴: Gemini로 빠른 Q&A
+  try {
+    const prompt = `시나리오: ${scenario}\n현재 턴: ${turnCount}/3\n사용자: ${lastUserMsg}\n\nJSON만 응답:`;
+    const history = messages.map((m) => ({
+      role: m.role === "user" ? "user" : "model",
+      parts: [{ text: m.content }],
+    }));
+    
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(prompt);
+    
+    let raw = result.response.text().replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    const parsed = JSON.parse(raw);
+    if (turnCount >= 3) parsed.isComplete = true;
+    return JSON.stringify(parsed);
+  } catch {
+    // 실패 시 mock
+  }
+
+  return buildMockResponse(scenario, turnCount, lastUserMsg, isSkip);
+}
+
 // ─── POST 핸들러 ────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const { messages, scenario, turnCount = 0, provider } = await req.json();
@@ -214,6 +278,37 @@ export async function POST(req: NextRequest) {
       return new Response(result, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     } catch {
       // fallback to mock
+    }
+  } else if (provider === "gemini-flash-lite") {
+    if (process.env.GOOGLE_API_KEY) {
+      try {
+        const result = await handleGeminiInterview(msgList, scenario, turnCount, lastUserMsg, isSkip);
+        return new Response(result, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      } catch (e: any) {
+        try {
+          const result = await handleClaudeInterview(msgList, scenario, turnCount, lastUserMsg, isSkip, HAIKU_MODEL);
+          return new Response(result, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+        } catch {
+          return new Response(JSON.stringify({
+            message: `[Gemini API 오류] ${e?.message || "연결에 실패했습니다. 할당량 초과일 수 있습니다."}`,
+            question: "",
+            blueprintUpdate: { section: "Requirements", content: "- API Error\n" },
+            isComplete: true
+          }), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+        }
+      }
+    } else {
+      try {
+        const result = await handleClaudeInterview(msgList, scenario, turnCount, lastUserMsg, isSkip, HAIKU_MODEL);
+        return new Response(result, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      } catch {
+        return new Response(JSON.stringify({
+          message: "[Gemini] API 키가 설정되지 않았습니다. 현재 환경에서는 응답을 제공할 수 없습니다.",
+          question: "",
+          blueprintUpdate: { section: "Requirements", content: "- API Key Missing\n" },
+          isComplete: true
+        }), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      }
     }
   }
 

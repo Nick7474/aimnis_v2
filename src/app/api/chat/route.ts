@@ -1,84 +1,31 @@
 import { NextRequest } from "next/server";
 
-// gemini-2.0-flash-lite: 안정적으로 광범위 지원, Flash-Lite 계열 중 권장
-const GEMINI_MODEL  = "gemini-2.0-flash-lite";
-const HAIKU_MODEL   = "claude-haiku-4-5-20251001";
-const SONNET_MODEL  = "claude-sonnet-4-6";
-const OPUS_MODEL    = "claude-opus-4-6";
+const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
 // ─── Claude용 시스템 프롬프트 (JSON 스키마 포함 상세 버전) ──────────
 function buildClaudeSystem(solution: string): string {
-  return `당신은 AIMNIS 에이전트입니다. 실제 모델명(Claude, Gemini 등)은 절대 밝히지 않습니다.
+  return `당신은 AIMNIS 에이전트입니다. 
 현재 편집 중인 솔루션: ${solution}
 
 역할: 산업 현장 전문가이자 AIMNIS 플랫폼 컨설턴트
+- 사용자의 '가장 마지막(최신) 메시지'에서 "너는 누구니?" 또는 "무슨 모델을 쓰니?"라고 명시적으로 물어볼 때만 "저는 Claude(Anthropic) 기반의 AIMNIS 에이전트입니다"라고 대답하세요. 이전 대화 기록에 있더라도 현재 질문이 아니면 절대 모델명을 언급하지 마세요.
 - 어떤 질문에도 명확하고 전문적으로 한국어로 답변
-- 위젯/대시보드/차트 추가 요청 시에만 아래 JSON 형식 사용
+- [절대 규칙] 위젯 생성 요청 시, 요청된 위젯 정확히 1개만 생성하세요. 절대 2개 이상 만들지 마세요.
 
 [위젯 생성 요청 시 출력 형식]
-설명 1-2문장
+질문하거나 되묻지 말고, 곧바로 아래 형식에 맞춰 위젯을 정확히 1개만 생성하세요.
 __WIDGET_JSON__
-{"action":"add_widget","widget":{"widgetId":"타입-001","type":"타입","title":"한국어","data":{...}}}
+{"action":"add_widget","widget":{"widgetId":"w-001","type":"kpi","title":"위젯제목","data":{"value":"수치","unit":"단위","trend":"증감","trendUp":true,"color":"#hex"}}}
 
-위젯 타입별 data:
-kpi: {"value":"수치","unit":"단위","trend":"+X%","trendUp":true,"color":"#hex"}
-chart-line: {"color":"#hex","chartData":[{"name":"레이블","value":숫자}]} (7개)
-chart-bar: {"color":"#hex","chartData":[{"name":"구역","value":숫자}]} (4-5개)
-chart-donut: {"chartData":[{"name":"항목","value":숫자}]} (3-4개)
-gauge: {"gaugeValue":0-100,"gaugeMax":100,"unit":"단위","color":"#hex"}
-alert-panel: {"alerts":[{"level":"critical|warning|info","msg":"메시지"}]} (3개)
+지원되는 type 및 data 구조:
+1. kpi: {"value":"99","unit":"%","trend":"+1%","trendUp":true,"color":"#14b8a6"}
+2. chart-line: {"color":"#14b8a6","chartData":[{"name":"레이블","value":10}]}
+3. chart-bar: {"color":"#14b8a6","chartData":[{"name":"구역","value":10}]}
+4. chart-donut: {"chartData":[{"name":"항목","value":10}]}
+5. gauge: {"gaugeValue":80,"gaugeMax":100,"unit":"%","color":"#14b8a6"}
+6. alert-panel: {"alerts":[{"level":"critical","msg":"메시지"}]}
 
-규칙: 일반 질문은 __WIDGET_JSON__ 없이 텍스트만. JSON 앞뒤 코드블록 금지.`;
-}
-
-// ─── Gemini용 시스템 프롬프트 (단순화 버전 — Flash-Lite 호환) ──────
-function buildGeminiSystem(solution: string): string {
-  return `당신은 AIMNIS 에이전트입니다. 실제 모델명(Gemini, Claude 등)은 절대 밝히지 않습니다. 현재 솔루션: ${solution}
-
-규칙:
-1. 일반 질문 → 한국어로 자연스럽게 답변
-2. "위젯 추가해줘", "차트 만들어줘" 등 위젯 생성 요청 → 아래 형식으로 응답:
-
-[한국어 설명]
-__WIDGET_JSON__
-{"action":"add_widget","widget":{"widgetId":"w-001","type":"kpi","title":"제목","data":{"value":"99","unit":"%","trend":"+1%","trendUp":true,"color":"#14b8a6"}}}
-
-중요: 위젯 요청이 아니면 __WIDGET_JSON__ 절대 출력하지 말 것.`;
-}
-
-
-// ─── Gemini 스트리밍 (대화 히스토리 포함) ───────────────────────────
-async function handleGemini(
-  messages: { role: string; content: string }[],
-  solution: string
-): Promise<ReadableStream<Uint8Array>> {
-  const { GoogleGenerativeAI } = await import("@google/generative-ai");
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
-    systemInstruction: buildGeminiSystem(solution),
-  });
-
-  // 대화 히스토리를 Gemini 형식으로 변환
-  const history = messages.slice(0, -1).map((m) => ({
-    role: m.role === "user" ? "user" : "model",
-    parts: [{ text: m.content }],
-  }));
-  const lastMessage = messages[messages.length - 1]?.content ?? "";
-
-  const chat = model.startChat({ history });
-  const result = await chat.sendMessageStream(lastMessage);
-
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const enc = new TextEncoder();
-      for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if (text) controller.enqueue(enc.encode(text));
-      }
-      controller.close();
-    },
-  });
+규칙: 일반 질문은 __WIDGET_JSON__ 없이 텍스트만. 위젯 추가 요청시 무조건 데이터를 임의로 생성해서라도 즉시 위젯 1개를 출력할 것. 절대로 2개 이상의 위젯을 만들지 말 것.`;
 }
 
 // ─── Claude 생성 ─────────────────────────────────────────────────
@@ -88,12 +35,12 @@ async function handleClaude(
   model: string = HAIKU_MODEL
 ): Promise<ReadableStream<Uint8Array>> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || undefined });
 
   const resp = await client.messages.create({
     model,
     max_tokens: 600,
-    system: [{ type: "text", text: buildClaudeSystem(solution), cache_control: { type: "ephemeral" } }],
+    system: buildClaudeSystem(solution),
     messages: messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
   });
 
@@ -107,58 +54,32 @@ async function handleClaude(
   });
 }
 
-// ─── POST 핸들러 ────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const { messages, solution, provider } = await req.json();
+  const { messages, solution } = await req.json();
   const sol = (solution as string) ?? "guard";
 
-  // Gemini 경로
-  if (provider === "gemini-flash-lite") {
-    if (!process.env.GOOGLE_API_KEY) {
-      // Google 키 없으면 Claude Haiku로 대체
-      try {
-        const stream = await handleClaude(messages, sol, HAIKU_MODEL);
-        return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
-      } catch {
-        return new Response("API 오류가 발생했습니다. 다시 시도해주세요.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-      }
-    }
-    try {
-      const stream = await handleGemini(messages, sol);
-      return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
-    } catch (e) {
-      console.error("[Gemini chat error]", e);
-      // Gemini 실패 시 Claude Haiku로 자동 전환
-      try {
-        const stream = await handleClaude(messages, sol, HAIKU_MODEL);
-        return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
-      } catch {
-        return new Response("AI 연결 오류가 발생했습니다. 다시 시도해주세요.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-      }
+  // ─── 핵심: 프론트에서 온 메시지 배열 중 마지막 user 메시지 1개만 추출 ───
+  // 과거 대화 기록을 AI에게 주면 이전 위젯 요청을 다시 만드는 버그가 발생하므로
+  // 무조건 현재 요청 1건만 전달합니다.
+  let lastUserContent = "";
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user" && messages[i].content?.trim()) {
+      lastUserContent = messages[i].content.trim();
+      break;
     }
   }
 
-  // Claude 경로
-  const claudeModel =
-    provider === "claude-opus"   ? OPUS_MODEL   :
-    provider === "claude-sonnet" ? SONNET_MODEL :
-    HAIKU_MODEL;
-
-  if (provider === "claude-haiku" || provider === "claude-sonnet" || provider === "claude-opus") {
-    try {
-      const stream = await handleClaude(messages, sol, claudeModel);
-      return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
-    } catch (e) {
-      console.error("[Claude chat error]", e);
-      return new Response("Claude API 오류가 발생했습니다. 다시 시도해주세요.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-    }
+  if (!lastUserContent) {
+    return new Response("메시지가 비어있습니다.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
 
-  // 미매칭 provider → 기본 Claude Haiku
+  const singleMessage = [{ role: "user", content: lastUserContent }];
+
   try {
-    const stream = await handleClaude(messages, sol, HAIKU_MODEL);
+    const stream = await handleClaude(singleMessage, sol, HAIKU_MODEL);
     return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
-  } catch {
-    return new Response("AI 연결 오류가 발생했습니다.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  } catch (e: any) {
+    console.error("[Claude chat error]", e);
+    return new Response(`API 연결 오류가 발생했습니다: ${e.message || "알 수 없는 오류"}`, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
 }

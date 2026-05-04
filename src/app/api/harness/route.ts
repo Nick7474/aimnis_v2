@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-const GEMINI_MODEL = "gemini-2.0-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const SONNET_MODEL = "claude-sonnet-4-6";
 const OPUS_MODEL = "claude-opus-4-6";
@@ -120,7 +120,7 @@ async function claudeStream(
   prompt: string
 ): Promise<ReadableStream<Uint8Array>> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || undefined });
 
   const stream = await client.messages.create({
     model,
@@ -158,11 +158,18 @@ export async function POST(req: NextRequest) {
       rawStream = await claudeStream(SONNET_MODEL, HARNESS_SYSTEM, specPrompt);
     } else if (provider === "claude-haiku") {
       rawStream = await claudeStream(HAIKU_MODEL, HARNESS_SYSTEM, specPrompt);
-    } else if (process.env.GOOGLE_API_KEY) {
-      // Gemini Flash-Lite
-      rawStream = await geminiStream(HARNESS_SYSTEM, specPrompt);
+    } else if (provider === "gemini-flash-lite") {
+      if (process.env.GOOGLE_API_KEY) {
+        try {
+          rawStream = await geminiStream(HARNESS_SYSTEM, specPrompt);
+        } catch {
+          rawStream = await claudeStream(HAIKU_MODEL, HARNESS_SYSTEM, specPrompt);
+        }
+      } else {
+        rawStream = await claudeStream(HAIKU_MODEL, HARNESS_SYSTEM, specPrompt);
+      }
     } else {
-      // Google 키 없으면 Claude Haiku fallback
+      // 기본값
       rawStream = await claudeStream(HAIKU_MODEL, HARNESS_SYSTEM, specPrompt);
     }
 
