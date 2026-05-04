@@ -229,11 +229,11 @@ export default function FloatingToolbar() {
                 )}
               </>
             ) : (
-              /* 비-위젯 섹션 (map, header 등) — 간단한 설정 링크 */
+              /* 비-위젯 섹션 (map, header 등) — 설정 → 우측 패널 오픈 */
               <ToolbarButton
                 icon={<Database size={13} />}
                 label="설정"
-                onClick={() => setRightPanel("settings")}
+                onClick={() => { setRightPanel("settings"); setShowRightPanel(true); }}
               />
             )}
 
