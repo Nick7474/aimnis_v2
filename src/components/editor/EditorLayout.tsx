@@ -284,9 +284,13 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
 
         {/* 우측: 액션 버튼 */}
         <div className="relative z-20 flex items-center gap-1.5">
-          {/* 편집 모드 토글 */}
+          {/* 편집 모드 토글 — 전체 브랜드 설정 진입점 */}
           <button
-            onClick={() => setShowRightPanel(!showRightPanel)}
+            onClick={() => {
+              const next = !showRightPanel;
+              setShowRightPanel(next);
+              if (next) useEditorStore.getState().setRightPanel("settings");
+            }}
             className={cn(
               "flex h-8 w-[64px] shrink-0 items-center justify-center gap-1.5 rounded-lg border text-xs leading-none transition-colors",
               showRightPanel
