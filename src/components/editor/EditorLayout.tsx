@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, type CSSProperties } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Save, Maximize2, Globe, X, Check, FileCode2, LayoutDashboard, Database, Rocket } from "lucide-react";
+import { Shield, Save, Maximize2, Globe, X, Check, LayoutDashboard, Database, Rocket, Monitor, Network } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DndContext, DragOverlay, type DragEndEvent } from "@dnd-kit/core";
@@ -11,18 +11,17 @@ import { useProjectStore } from "@/store/projectStore";
 import { useRouter } from "next/navigation";
 import type { OverlayWidget } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
+import { brandToCssVars } from "@/lib/brandPresets";
 import dynamic from "next/dynamic";
 import ChatPanel from "./ChatPanel";
-import CanvasPanel from "./CanvasPanel";
 import FloatingToolbar from "./FloatingToolbar";
 import DynamicPanel from "./panels/DynamicPanel";
 import RightSidebarDropZone from "./RightSidebarDropZone";
 
 const MonitorWrapper = dynamic(() => import("./MonitorWrapper"), { ssr: false });
 const OverlayCanvas = dynamic(() => import("./OverlayCanvas"), { ssr: false });
+const MappingCanvas = dynamic(() => import("./MappingCanvas"), { ssr: false });
 import type { SolutionManifest, SolutionTemplate, SolutionWidget } from "@/lib/solutionLoader";
-
-const LS_KEY = "aimnis_harness_draft";
 
 interface EditorLayoutProps {
   solution: SolutionManifest;
@@ -40,12 +39,45 @@ const EDITOR_NAV = [
 const EDITOR_PANEL_MIN = 240;
 const EDITOR_PANEL_MAX = 600;
 
+function TopIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="flex h-3.5 w-3.5 shrink-0 items-center justify-center leading-none"
+      style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
+    >
+      {children}
+    </span>
+  );
+}
+
 export default function EditorLayout({ solution, template, widgets }: EditorLayoutProps) {
   const pathname = usePathname();
   const [chatPanelWidth, setChatPanelWidth] = useState(280);
   const chatDragging = useRef(false);
   const chatDragStartX = useRef(0);
   const chatDragStartW = useRef(280);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousHtmlHeight = html.style.height;
+    const previousBodyHeight = body.style.height;
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.height = "100%";
+    body.style.height = "100%";
+    window.scrollTo(0, 0);
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+      html.style.height = previousHtmlHeight;
+      body.style.height = previousBodyHeight;
+    };
+  }, []);
 
   const handleChatPanelDrag = (e: React.MouseEvent) => {
     chatDragging.current = true;
@@ -68,8 +100,18 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
   };
-  const { rightPanel, setRightPanel, brand, isFullscreen, setFullscreen, publishedUrl, setPublishedUrl,
-          addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel } = useEditorStore();
+  const { centerView, setCenterView, isFullscreen, setFullscreen, publishedUrl, setPublishedUrl,
+          addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel, brand,
+          showRightPanel, setShowRightPanel, selectedElement } = useEditorStore();
+
+  useEffect(() => {
+    if (selectedElement) setShowRightPanel(true);
+  }, [selectedElement, setShowRightPanel]);
+
+  useEffect(() => {
+    if (centerView === "mapping") setShowRightPanel(true);
+  }, [centerView, setShowRightPanel]);
+  const brandVars = brandToCssVars(brand) as CSSProperties;
 
   const [activeDragWidget, setActiveDragWidget] = useState<OverlayWidget | null>(null);
 
@@ -113,26 +155,9 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
   const publishProject = useProjectStore(s => s.publish);
   const [saved, setSaved] = useState(false);
   const [showPublishToast, setShowPublishToast] = useState(false);
-  const [harnessBadge, setHarnessBadge] = useState<string | null>(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishForm, setPublishForm] = useState({ name: "", client: "", versionNote: "" });
   const [publishDone, setPublishDone] = useState<{ id: string } | null>(null);
-
-  // localStorage에서 harness 데이터 복원
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY) ?? sessionStorage.getItem(LS_KEY);
-      if (raw) {
-        const data = JSON.parse(raw) as { md: string; scenario: string; savedAt: number };
-        // 24시간 이내 데이터만 사용
-        if (Date.now() - data.savedAt < 86_400_000 && data.scenario) {
-          setHarnessBadge(data.scenario);
-        }
-      }
-    } catch {
-      // 파싱 오류 무시
-    }
-  }, []);
 
   const handleSave = () => {
     setSaved(true);
@@ -171,14 +196,14 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveDragWidget(null)}
     >
-    <div className="flex h-screen flex-col overflow-hidden bg-[#080810]">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#080810]">
       {/* 전역 플로팅 툴바 — portal로 body에 마운트 */}
       <FloatingToolbar />
 
       {/* 상단 툴바 */}
       <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0a0a14] px-4">
         {/* 좌측: 로고 + 솔루션명 */}
-        <div className="flex items-center gap-3">
+        <div className="relative z-20 flex items-center gap-3">
           <Link href="/home" className="flex items-center gap-2.5">
             <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS Logo" className="h-[24px] w-[24px] object-contain drop-shadow-xl" />
             <span className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-montserrat)" }}>AIMNIS</span>
@@ -190,19 +215,37 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
             </div>
             <span className="text-xs font-medium text-white/80">{solution.name}</span>
           </div>
-          {/* Harness 뱃지 */}
-          <AnimatePresence>
-            {harnessBadge && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-1 rounded-md border border-brand-500/20 bg-brand-500/10 px-2 py-0.5"
-              >
-                <FileCode2 className="h-2.5 w-2.5 text-brand-400" />
-                <span className="text-[9px] text-brand-400">{harnessBadge} 하네스 로드됨</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="relative z-20 ml-1 flex h-8 shrink-0 items-center rounded-lg border border-white/[0.08] bg-white/[0.03] p-0.5">
+            <button
+              type="button"
+              onClick={() => setCenterView("monitor")}
+              className={cn(
+                "flex h-7 w-[72px] shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent text-[10px] font-medium leading-none transition-colors",
+                centerView === "monitor"
+                  ? "bg-white/10 text-white shadow-sm"
+                  : "text-white/[0.35] hover:text-white/60"
+              )}
+            >
+              <TopIcon><Monitor className="h-3 w-3" /></TopIcon>
+              <span className="block">모니터</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCenterView("mapping");
+                useEditorStore.getState().setRightPanel("mapping");
+              }}
+              className={cn(
+                "flex h-7 w-[92px] shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent text-[10px] font-medium leading-none transition-colors",
+                centerView === "mapping"
+                  ? "bg-emerald-500/15 text-emerald-200 shadow-sm ring-1 ring-emerald-400/20"
+                  : "text-white/[0.35] hover:text-white/60"
+              )}
+            >
+              <TopIcon><Network className="h-3 w-3" /></TopIcon>
+              <span className="block">데이터 매핑</span>
+            </button>
+          </div>
 
           {/* 저장 상태 */}
           <AnimatePresence>
@@ -213,20 +256,20 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
                 exit={{ opacity: 0 }}
                 className="flex items-center gap-1 text-[10px] text-emerald-400"
               >
-                <Check className="h-3 w-3" /> 저장됨
+                <Check className="h-3 w-3 shrink-0" /> 저장됨
               </motion.span>
             )}
           </AnimatePresence>
         </div>
 
         {/* 중앙: 네비게이션 (홈과 동일) */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 h-14">
+        <div className="pointer-events-auto absolute left-1/2 z-0 flex h-14 -translate-x-1/2 items-center gap-1">
           {EDITOR_NAV.map(({ href, label, Icon }) => {
             const isActive = pathname === href || (href === "/editor" && pathname?.startsWith("/editor"));
             return (
               <Link key={href} href={href}
                 className={cn(
-                  "relative flex items-center gap-1.5 px-3 h-14 text-xs transition-colors border-b-2",
+                  "relative flex h-14 min-w-[78px] shrink-0 items-center justify-center gap-1.5 border-b-2 px-3 text-xs transition-colors",
                   isActive
                     ? "text-white border-violet-500"
                     : "text-white/40 border-transparent hover:text-white/70"
@@ -238,81 +281,117 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
                 )}
-                <Icon className="relative h-3.5 w-3.5" />
-                <span className="relative">{label}</span>
+                <Icon className="relative h-3.5 w-3.5 shrink-0" />
+                <span className="relative whitespace-nowrap leading-none">{label}</span>
               </Link>
             );
           })}
         </div>
 
         {/* 우측: 액션 버튼 */}
-        <div className="flex items-center gap-1.5">
+        <div className="relative z-20 flex items-center gap-1.5">
           <button
             onClick={handleSave}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/50 hover:text-white/80 transition-colors"
+            className="flex h-8 w-[64px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-xs leading-none text-white/50 transition-colors hover:text-white/80"
           >
-            <Save className="h-3 w-3" />
-            저장
+            <TopIcon><Save className="h-3 w-3" /></TopIcon>
+            <span className="block">저장</span>
           </button>
           <button
             onClick={() => setFullscreen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/50 hover:text-white/80 transition-colors"
+            className="flex h-8 w-[64px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-xs leading-none text-white/50 transition-colors hover:text-white/80"
           >
-            <Maximize2 className="h-3 w-3" />
-            확대
+            <TopIcon><Maximize2 className="h-3 w-3" /></TopIcon>
+            <span className="block">확대</span>
           </button>
           <button
             onClick={handlePublish}
-            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-1.5 text-xs text-white shadow-lg shadow-violet-500/20 hover:from-violet-500 hover:to-indigo-500 transition-all"
+            className="flex h-8 w-[86px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 text-xs leading-none text-white shadow-lg shadow-violet-500/20 transition-colors hover:from-violet-500 hover:to-indigo-500"
           >
-            <Rocket className="h-3 w-3" />
-            퍼블리시
+            <TopIcon><Rocket className="h-3 w-3" /></TopIcon>
+            <span className="block">퍼블리시</span>
           </button>
         </div>
       </header>
 
       {/* 3패널 본문 */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* 좌측 채팅 패널 — 리사이즈 가능 */}
-        <div style={{ display: "flex", flexShrink: 0, height: "100%" }}>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* 좌측 채팅 패널 — 기본 표시, 우측 패널 열리면 160px로 축소 */}
+        <motion.div
+          animate={{ width: showRightPanel ? 160 : chatPanelWidth }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          style={{ display: "flex", flexShrink: 0, height: "100%", minHeight: 0 }}
+        >
           <aside
-            style={{ width: chatPanelWidth, flexShrink: 0 }}
-            className="flex flex-col bg-[#0a0a14] overflow-hidden"
+            style={{ width: "100%", flexShrink: 0 }}
+            className="flex min-h-0 flex-col overflow-hidden bg-[#0a0a14]"
           >
-            <div className="border-b border-white/5 px-4 py-2.5">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">AI 어시스턴트</p>
+            <div
+              className={cn(
+                "border-b border-white/5 px-4 py-2.5",
+                showRightPanel && "cursor-pointer transition-colors hover:bg-white/5"
+              )}
+              onClick={() => showRightPanel && setShowRightPanel(false)}
+            >
+              <p className="text-[10px] font-medium uppercase tracking-wider text-white/30 truncate">
+                {showRightPanel ? "← AI" : "AI 어시스턴트"}
+              </p>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-hidden">
               <ChatPanel solutionId={solution.id} />
             </div>
           </aside>
-          {/* 1px 드래그 핸들 */}
-          <div
-            onMouseDown={handleChatPanelDrag}
-            style={{
-              width: 1, flexShrink: 0, cursor: "col-resize",
-              background: "rgba(255,255,255,0.05)",
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = "var(--primary)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-          />
-        </div>
+          {/* 드래그 핸들 — 우측 패널 닫혔을 때만 */}
+          {!showRightPanel && (
+            <div
+              onMouseDown={handleChatPanelDrag}
+              style={{
+                width: 1, flexShrink: 0, cursor: "col-resize",
+                background: "rgba(255,255,255,0.05)",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--primary)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+            />
+          )}
+        </motion.div>
 
-        {/* 중앙 캔버스 flex-1 — 빈 영역 클릭 시 선택 해제 */}
+        {/* 중앙 캔버스 flex-1 — 빈 영역 클릭 시 선택 해제 + 우측 패널 닫기 */}
         <main
-          className="relative flex-1 overflow-hidden"
-          onClick={() => useEditorStore.getState().setSelectedElement(null)}
+          className="relative h-full min-h-0 flex-1 overflow-hidden"
+          onClick={() => {
+            useEditorStore.getState().setSelectedElement(null);
+            if (useEditorStore.getState().centerView !== "mapping") {
+              useEditorStore.getState().setShowRightPanel(false);
+            }
+          }}
         >
-          <MonitorWrapper />
-          <OverlayCanvas />
-          <RightSidebarDropZone />
+          {centerView === "monitor" ? (
+            <>
+              <MonitorWrapper />
+              <OverlayCanvas />
+              <RightSidebarDropZone />
+            </>
+          ) : (
+            <MappingCanvas dataConnectors={solution.dataConnectors} solutionName={solution.name} />
+          )}
         </main>
 
-        {/* 우측 패널 320px */}
-        <aside className="flex w-[320px] flex-shrink-0 flex-col border-l border-white/5 bg-[#0a0a14]">
-          <DynamicPanel dataConnectors={solution.dataConnectors} widgets={widgets} />
-        </aside>
+        {/* 우측 패널 — 컨텍스트 기반, 필요할 때만 슬라이드인 */}
+        <AnimatePresence>
+          {showRightPanel && (
+            <motion.aside
+              key="right-panel"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 320, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="flex h-full min-h-0 flex-shrink-0 flex-col overflow-hidden border-l border-white/5 bg-[#0a0a14]"
+            >
+              <DynamicPanel dataConnectors={solution.dataConnectors} widgets={widgets} />
+            </motion.aside>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 풀스크린 모달 (F-012) */}
@@ -332,8 +411,14 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <MonitorWrapper />
-            <OverlayCanvas />
+            {centerView === "monitor" ? (
+              <>
+                <MonitorWrapper />
+                <OverlayCanvas />
+              </>
+            ) : (
+              <MappingCanvas dataConnectors={solution.dataConnectors} solutionName={solution.name} />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -455,11 +540,12 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
           style={{
             width: activeDragWidget.w,
             height: activeDragWidget.h,
-            background: "rgba(7,15,36,0.88)",
+            ...brandVars,
+            background: "color-mix(in srgb, var(--guard-color-surface) 88%, transparent)",
             backdropFilter: "blur(18px)",
-            border: "1px solid rgba(0,212,255,0.45)",
+            border: "1px solid color-mix(in srgb, var(--guard-color-secondary) 45%, transparent)",
             borderRadius: 12,
-            boxShadow: "0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,212,255,0.15)",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px color-mix(in srgb, var(--guard-color-secondary) 15%, transparent)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -468,11 +554,21 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
             cursor: "grabbing",
           }}
         >
-          <span className="text-xs font-semibold text-brand-300">{activeDragWidget.title}</span>
-          <span className="rounded-md bg-brand-500/10 px-2 py-0.5 text-[9px] text-brand-400/70">
+          <span className="text-xs font-semibold" style={{ color: "var(--guard-color-text-strong)" }}>
+            {activeDragWidget.title}
+          </span>
+          <span
+            className="rounded-md px-2 py-0.5 text-[9px]"
+            style={{
+              background: "color-mix(in srgb, var(--guard-color-primary) 10%, transparent)",
+              color: "var(--guard-color-accent)",
+            }}
+          >
             {activeDragWidget.type}
           </span>
-          <span className="text-[8px] text-white/20">우측 패널로 드롭 또는 캔버스에서 이동</span>
+          <span className="text-[8px]" style={{ color: "var(--guard-color-text-faint)" }}>
+            우측 패널로 드롭 또는 캔버스에서 이동
+          </span>
         </div>
       )}
     </DragOverlay>

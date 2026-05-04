@@ -1,6 +1,49 @@
 import { create } from "zustand";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { Node, Edge } from "reactflow";
+import { BRAND_PRESETS, DEFAULT_BRAND, type BrandPreset, type BrandSettings } from "@/lib/brandPresets";
+
+const CUSTOM_BRAND_PRESETS_KEY = "aimnis.customBrandPresets.v1";
+const BRAND_PRESET_OVERRIDES_KEY = "aimnis.brandPresetOverrides.v1";
+type BrandPresetOverrides = Record<string, BrandPreset>;
+
+function readCustomBrandPresets(): BrandPreset[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_BRAND_PRESETS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as BrandPreset[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCustomBrandPresets(presets: BrandPreset[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CUSTOM_BRAND_PRESETS_KEY, JSON.stringify(presets));
+}
+
+function readBrandPresetOverrides(): BrandPresetOverrides {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(BRAND_PRESET_OVERRIDES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as BrandPresetOverrides;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeBrandPresetOverrides(overrides: BrandPresetOverrides) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(BRAND_PRESET_OVERRIDES_KEY, JSON.stringify(overrides));
+}
+
+function getBaseBrandPreset(id: string) {
+  return BRAND_PRESETS.find((preset) => preset.id === id) ?? BRAND_PRESETS[0];
+}
 
 // ─── 오버레이 위젯 (MonitorWrapper 위에 float) ─────────────────
 
@@ -91,20 +134,49 @@ export interface ChatMessage {
   streaming?: boolean;
 }
 
-export interface BrandSettings {
-  primaryColor: string;
-  secondaryColor: string;
-  fontFamily: string;
-  logoUrl: string | null;
-}
-
 export interface NodeMapping {
   nodeId: string;
   dataConnector: string;
   fieldBindings: Record<string, string>;
 }
 
-type RightPanel = "mapping" | "settings" | "brand" | "gis" | "alarm" | "navigation";
+// ─── 드롭 기반 데이터 매핑 소스 ────────────────────────────────
+
+export type MappingSourceKind = "demo" | "file" | "folder" | "api";
+
+export interface MappingField {
+  id: string;
+  name: string;
+  path: string;
+  type: "string" | "number" | "boolean" | "array" | "object" | "unknown";
+  sample?: string;
+}
+
+export interface MappingSource {
+  id: string;
+  name: string;
+  kind: MappingSourceKind;
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  endpoint?: string;
+  description?: string;
+  fileCount?: number;
+  fields: MappingField[];
+  createdAt: number;
+}
+
+// ─── 매핑 엣지 (비주얼 데이터 매핑) ─────────────────────────
+
+export interface MappingEdge {
+  id: string;
+  sourceConnector: string;   // "energy-sensor"
+  sourceField: string;       // "currentKw"
+  targetWidgetId: string;    // "w-12345"
+  targetProperty: string;    // "value"
+}
+
+export type CenterView = "monitor" | "mapping";
+
+type RightPanel = "mapping" | "settings" | "brand" | "gis" | "alarm" | "navigation" | "widget";
 
 // ─── 스왑 패널 위젯 ───────────────────────────────────────────
 
@@ -113,8 +185,230 @@ export interface SwappedPanelWidget {
   type: string;
   title: string;
   data: WidgetData;
+  properties?: WidgetProperties;
   visible: boolean;
   originalWidget: OverlayWidget; // "원래대로" 복원용
+}
+
+export type SectionStyleKey = "header" | "sidebar" | "map" | "alarm-panel" | "floor-status";
+export type SectionStyleOverrides = Partial<BrandSettings>;
+
+type BrandColorKey =
+  | "primaryColor"
+  | "secondaryColor"
+  | "accentColor"
+  | "successColor"
+  | "warningColor"
+  | "dangerColor";
+
+const LEGACY_WIDGET_COLORS = new Set(
+  [
+    "#14b8a6",
+    "#0ea5e9",
+    "#00c8ff",
+    "#60a5fa",
+    "#6366f1",
+    "#8b5cf6",
+    "#a78bfa",
+    "#f59e0b",
+    "#f97316",
+    "#22c55e",
+    "#16a34a",
+    "#ef4444",
+    "#dc2626",
+    "#e11d48",
+    "#38bdf8",
+  ].map((color) => color.toLowerCase())
+);
+
+const WIDGET_COLOR_TOKEN: Record<string, BrandColorKey> = {
+  kpi: "secondaryColor",
+  "chart-line": "secondaryColor",
+  "chart-bar": "primaryColor",
+  "chart-donut": "accentColor",
+  gauge: "warningColor",
+  "alert-panel": "dangerColor",
+};
+
+function normalizeColorValue(color?: string) {
+  return color?.trim().toLowerCase() ?? "";
+}
+
+function widgetBrandColor(type: string, brand: BrandSettings) {
+  const key = WIDGET_COLOR_TOKEN[type] ?? "accentColor";
+  return brand[key];
+}
+
+function brandColorPalette(brand: BrandSettings) {
+  return [
+    brand.primaryColor,
+    brand.secondaryColor,
+    brand.accentColor,
+    brand.successColor,
+    brand.warningColor,
+    brand.dangerColor,
+  ].map((color) => normalizeColorValue(color));
+}
+
+function shouldFollowBrandColor(color: string | undefined, previousBrand: BrandSettings) {
+  const normalized = normalizeColorValue(color);
+  if (!normalized) return true;
+  if (normalized.startsWith("var(--guard-color-")) return true;
+  if (LEGACY_WIDGET_COLORS.has(normalized)) return true;
+  return brandColorPalette(previousBrand).includes(normalized);
+}
+
+function syncWidgetDataToBrand<T extends { type: string; data: WidgetData }>(
+  widget: T,
+  previousBrand: BrandSettings,
+  nextBrand: BrandSettings = previousBrand
+): T {
+  if (!shouldFollowBrandColor(widget.data.color, previousBrand)) return widget;
+  return {
+    ...widget,
+    data: {
+      ...widget.data,
+      color: widgetBrandColor(widget.type, nextBrand),
+    },
+  };
+}
+
+function syncActiveWidgetToBrand(
+  widget: ActiveWidget,
+  previousBrand: BrandSettings,
+  nextBrand: BrandSettings = previousBrand
+): ActiveWidget {
+  const current = typeof widget.properties.themeColor === "string"
+    ? widget.properties.themeColor
+    : undefined;
+  if (!shouldFollowBrandColor(current, previousBrand)) return widget;
+  return {
+    ...widget,
+    properties: {
+      ...widget.properties,
+      themeColor: widgetBrandColor(widget.type, nextBrand),
+    },
+  };
+}
+
+function syncPanelWidgetToBrand(
+  widget: SwappedPanelWidget,
+  previousBrand: BrandSettings,
+  nextBrand: BrandSettings = previousBrand
+): SwappedPanelWidget {
+  const syncedWidget = syncWidgetDataToBrand(widget, previousBrand, nextBrand);
+  return {
+    ...syncedWidget,
+    originalWidget: syncWidgetDataToBrand(widget.originalWidget, previousBrand, nextBrand),
+  };
+}
+
+function applyActivePropertiesToWidget(
+  widget: OverlayWidget,
+  active?: ActiveWidget
+): OverlayWidget {
+  if (!active) return widget;
+
+  const data = { ...widget.data };
+  const { properties } = active;
+
+  if (typeof properties.themeColor === "string") data.color = properties.themeColor;
+  if (typeof properties.value === "number") data.gaugeValue = properties.value;
+  if (typeof properties.max === "number") data.gaugeMax = properties.max;
+
+  return {
+    ...widget,
+    title: properties.title ?? widget.title,
+    data,
+  };
+}
+
+function toRightPanelWidget(widget: OverlayWidget, active?: ActiveWidget): SwappedPanelWidget {
+  const resolvedWidget = applyActivePropertiesToWidget(widget, active);
+  return {
+    id: resolvedWidget.id,
+    type: resolvedWidget.type,
+    title: resolvedWidget.title,
+    data: resolvedWidget.data,
+    properties: active?.properties ? { ...active.properties } : undefined,
+    visible: true,
+    originalWidget: resolvedWidget,
+  };
+}
+
+function applyWidgetPropertyToPanelWidget(
+  widget: SwappedPanelWidget,
+  key: keyof WidgetProperties,
+  value: unknown
+): SwappedPanelWidget {
+  const properties = { ...(widget.properties ?? {}), [key]: value };
+  switch (key) {
+    case "title": {
+      const title = value as string;
+      return {
+        ...widget,
+        title,
+        properties,
+        originalWidget: { ...widget.originalWidget, title },
+      };
+    }
+    case "themeColor": {
+      const color = value as string;
+      return {
+        ...widget,
+        data: { ...widget.data, color },
+        properties,
+        originalWidget: {
+          ...widget.originalWidget,
+          data: { ...widget.originalWidget.data, color },
+        },
+      };
+    }
+    case "value": {
+      const gaugeValue = value as number;
+      return {
+        ...widget,
+        data: { ...widget.data, gaugeValue },
+        properties,
+        originalWidget: {
+          ...widget.originalWidget,
+          data: { ...widget.originalWidget.data, gaugeValue },
+        },
+      };
+    }
+    case "max": {
+      const gaugeMax = value as number;
+      return {
+        ...widget,
+        data: { ...widget.data, gaugeMax },
+        properties,
+        originalWidget: {
+          ...widget.originalWidget,
+          data: { ...widget.originalWidget.data, gaugeMax },
+        },
+      };
+    }
+    default:
+      return { ...widget, properties };
+  }
+}
+
+function syncWidgetCollectionsToBrand(
+  state: EditorState,
+  previousBrand: BrandSettings,
+  nextBrand: BrandSettings
+) {
+  return {
+    overlayWidgets: state.overlayWidgets.map((widget) =>
+      syncWidgetDataToBrand(widget, previousBrand, nextBrand)
+    ),
+    activeWidgets: state.activeWidgets.map((widget) =>
+      syncActiveWidgetToBrand(widget, previousBrand, nextBrand)
+    ),
+    rightPanelWidgets: state.rightPanelWidgets.map((widget) =>
+      syncPanelWidgetToBrand(widget, previousBrand, nextBrand)
+    ),
+  };
 }
 
 // ─── 스토어 ───────────────────────────────────────────────────
@@ -150,6 +444,10 @@ interface EditorState {
 
   // 브랜드 설정
   brand: BrandSettings;
+  selectedBrandPresetId: string;
+  brandPresetOverrides: BrandPresetOverrides;
+  customBrandPresets: BrandPreset[];
+  sectionStyles: Partial<Record<SectionStyleKey, SectionStyleOverrides>>;
 
   // iframe postMessage 브릿지
   lastCommand: { userText: string; aiResponse: string; timestamp: number } | null;
@@ -157,6 +455,20 @@ interface EditorState {
   // 퍼블리시
   publishedUrl: string | null;
   isFullscreen: boolean;
+
+  // 중앙 뷰 모드
+  centerView: CenterView;
+  setCenterView: (view: CenterView) => void;
+
+  // 비주얼 매핑 엣지
+  mappingSources: MappingSource[];
+  addMappingSource: (source: MappingSource) => void;
+  removeMappingSource: (id: string) => void;
+  clearMappingSources: () => void;
+  mappingEdges: MappingEdge[];
+  addMappingEdge: (edge: MappingEdge) => void;
+  removeMappingEdge: (id: string) => void;
+  clearMappingEdges: () => void;
 
   // EditableSection
   selectedElement: SelectedElement | null;
@@ -180,6 +492,14 @@ interface EditorState {
 
   // 액션 — 브랜드
   updateBrand: (partial: Partial<BrandSettings>) => void;
+  updateSectionStyle: (section: SectionStyleKey, partial: SectionStyleOverrides) => void;
+  resetSectionStyle: (section: SectionStyleKey) => void;
+  resetAllSectionStyles: () => void;
+  saveCurrentBrandPreset: (label?: string) => void;
+  deleteCustomBrandPreset: (id: string) => void;
+  selectBrandPreset: (id: string) => void;
+  saveBrandPreset: (label?: string) => void;
+  resetBrandPreset: (id?: string) => void;
 
   // 액션 — iframe 브릿지
   setLastCommand: (cmd: { userText: string; aiResponse: string; timestamp: number }) => void;
@@ -200,6 +520,10 @@ interface EditorState {
   // AIM GUARD 기존 패널 가시성
   hiddenMonitorPanels: string[];
   toggleMonitorPanel: (panelId: string) => void;
+
+  // 패널 모드 (UX: AI 기본, 설정 컨텍스트 기반)
+  showRightPanel: boolean;
+  setShowRightPanel: (show: boolean) => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -211,22 +535,25 @@ export const useEditorStore = create<EditorState>((set) => ({
   overlayWidgets: [],
   canvasSize: { w: 800, h: 600 },
   addOverlayWidget: (w) =>
-    set((s) => ({
-      overlayWidgets: [...s.overlayWidgets, w],
-      // activeWidget 동시 생성
-      activeWidgets: [
-        ...s.activeWidgets,
-        {
-          id: w.id,
-          type: w.type,
-          properties: {
-            title: w.title,
-            themeColor: w.data.color ?? "#14b8a6",
-            value: w.data.gaugeValue,
+    set((s) => {
+      const widget = syncWidgetDataToBrand(w, s.brand);
+      return {
+        overlayWidgets: [...s.overlayWidgets, widget],
+        // activeWidget 동시 생성
+        activeWidgets: [
+          ...s.activeWidgets,
+          {
+            id: widget.id,
+            type: widget.type,
+            properties: {
+              title: widget.title,
+              themeColor: widget.data.color,
+              value: widget.data.gaugeValue,
+            },
           },
-        },
-      ],
-    })),
+        ],
+      };
+    }),
   removeOverlayWidget: (id) =>
     set((s) => ({
       overlayWidgets: s.overlayWidgets.filter((w) => w.id !== id),
@@ -271,6 +598,9 @@ export const useEditorStore = create<EditorState>((set) => ({
             return ow;
         }
       }),
+      rightPanelWidgets: s.rightPanelWidgets.map((pw) =>
+        pw.id === id ? applyWidgetPropertyToPanelWidget(pw, key, value) : pw
+      ),
     })),
   setSystemTitle: (systemTitle) => set({ systemTitle }),
 
@@ -288,11 +618,12 @@ export const useEditorStore = create<EditorState>((set) => ({
   mappings: {},
 
   brand: {
-    primaryColor: "#14b8a6",
-    secondaryColor: "#06b6d4",
-    fontFamily: "Inter",
-    logoUrl: null,
+    ...(readBrandPresetOverrides()[BRAND_PRESETS[0]?.id] ?? BRAND_PRESETS[0] ?? DEFAULT_BRAND),
   },
+  selectedBrandPresetId: BRAND_PRESETS[0]?.id ?? "default",
+  brandPresetOverrides: readBrandPresetOverrides(),
+  customBrandPresets: readCustomBrandPresets(),
+  sectionStyles: {},
 
   lastCommand: null,
   publishedUrl: null,
@@ -329,7 +660,101 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   // 브랜드
   updateBrand: (partial) =>
-    set((s) => ({ brand: { ...s.brand, ...partial } })),
+    set((s) => {
+      const brand = { ...s.brand, ...partial };
+      return {
+        brand,
+        ...syncWidgetCollectionsToBrand(s, s.brand, brand),
+      };
+    }),
+  updateSectionStyle: (section, partial) =>
+    set((s) => ({
+      sectionStyles: {
+        ...s.sectionStyles,
+        [section]: {
+          ...(s.sectionStyles[section] ?? {}),
+          ...partial,
+        },
+      },
+    })),
+  resetSectionStyle: (section) =>
+    set((s) => {
+      const next = { ...s.sectionStyles };
+      delete next[section];
+      return { sectionStyles: next };
+    }),
+  resetAllSectionStyles: () => set({ sectionStyles: {} }),
+  saveCurrentBrandPreset: (label) =>
+    set((s) => {
+      const trimmed = label?.trim();
+      const presetLabel = trimmed || `${s.brand.tenantName} ${s.brand.productName}`;
+      const preset: BrandPreset = {
+        ...s.brand,
+        id: `custom-${Date.now()}`,
+        label: presetLabel,
+        description: "사용자가 저장한 화이트 라벨 프리셋",
+      };
+      const customBrandPresets = [
+        preset,
+        ...s.customBrandPresets.filter((item) => item.label !== presetLabel),
+      ].slice(0, 8);
+      writeCustomBrandPresets(customBrandPresets);
+      return { customBrandPresets };
+    }),
+  deleteCustomBrandPreset: (id) =>
+    set((s) => {
+      const customBrandPresets = s.customBrandPresets.filter((item) => item.id !== id);
+      writeCustomBrandPresets(customBrandPresets);
+      return { customBrandPresets };
+    }),
+  selectBrandPreset: (id) =>
+    set((s) => {
+      const preset = s.brandPresetOverrides[id] ?? getBaseBrandPreset(id);
+      if (!preset) return s;
+      return {
+        selectedBrandPresetId: id,
+        brand: { ...preset },
+        systemTitle: preset.serviceName,
+        sectionStyles: {},
+        ...syncWidgetCollectionsToBrand(s, s.brand, preset),
+      };
+    }),
+  saveBrandPreset: (label) =>
+    set((s) => {
+      const base = getBaseBrandPreset(s.selectedBrandPresetId);
+      if (!base) return s;
+      const preset: BrandPreset = {
+        ...s.brand,
+        id: base.id,
+        label: label?.trim() || base.label,
+        description: base.description,
+      };
+      const brandPresetOverrides = { ...s.brandPresetOverrides, [base.id]: preset };
+      writeBrandPresetOverrides(brandPresetOverrides);
+      return {
+        brandPresetOverrides,
+        brand: { ...preset },
+        systemTitle: preset.serviceName,
+        ...syncWidgetCollectionsToBrand(s, s.brand, preset),
+      };
+    }),
+  resetBrandPreset: (id) =>
+    set((s) => {
+      const targetId = id ?? s.selectedBrandPresetId;
+      const base = getBaseBrandPreset(targetId);
+      if (!base) return s;
+      const brandPresetOverrides = { ...s.brandPresetOverrides };
+      delete brandPresetOverrides[targetId];
+      writeBrandPresetOverrides(brandPresetOverrides);
+      return {
+        brandPresetOverrides,
+        selectedBrandPresetId: targetId,
+        brand: { ...base },
+        systemTitle: base.serviceName,
+        sectionStyles: {},
+        ...syncWidgetCollectionsToBrand(s, s.brand, base),
+      };
+    }),
 
   // iframe 브릿지
   setLastCommand: (lastCommand) => set({ lastCommand }),
@@ -337,6 +762,36 @@ export const useEditorStore = create<EditorState>((set) => ({
   // 퍼블리시
   setPublishedUrl: (publishedUrl) => set({ publishedUrl }),
   setFullscreen: (isFullscreen) => set({ isFullscreen }),
+
+  // 중앙 뷰 모드
+  centerView: "monitor",
+  setCenterView: (centerView) => set({ centerView }),
+
+  // 비주얼 매핑 엣지
+  mappingSources: [],
+  addMappingSource: (source) =>
+    set((s) => ({
+      mappingSources: [
+        source,
+        ...s.mappingSources.filter((item) => item.id !== source.id),
+      ].slice(0, 8),
+    })),
+  removeMappingSource: (id) =>
+    set((s) => ({
+      mappingSources: s.mappingSources.filter((source) => source.id !== id),
+      mappingEdges: s.mappingEdges.filter((edge) => edge.sourceConnector !== id),
+    })),
+  clearMappingSources: () => set({ mappingSources: [], mappingEdges: [] }),
+  mappingEdges: [],
+  addMappingEdge: (edge) =>
+    set((s) => ({
+      mappingEdges: s.mappingEdges.some((e) => e.id === edge.id)
+        ? s.mappingEdges
+        : [...s.mappingEdges, edge],
+    })),
+  removeMappingEdge: (id) =>
+    set((s) => ({ mappingEdges: s.mappingEdges.filter((e) => e.id !== id) })),
+  clearMappingEdges: () => set({ mappingEdges: [] }),
 
   selectedElement: null,
   setSelectedElement: (selectedElement) => set({ selectedElement }),
@@ -346,27 +801,27 @@ export const useEditorStore = create<EditorState>((set) => ({
   addToRightPanel: (widget) =>
     set((s) => {
       if (s.rightPanelWidgets.some((w) => w.id === widget.id)) return s;
+      const activeWidget = s.activeWidgets.find((aw) => aw.id === widget.id);
+      const panelWidget = toRightPanelWidget(widget, activeWidget);
       return {
-        overlayWidgets: s.overlayWidgets.filter((w) => w.id !== widget.id),
+        overlayWidgets: s.overlayWidgets.filter((w) => w.id !== panelWidget.id),
         activeWidgets: s.activeWidgets.filter((aw) => aw.id !== widget.id),
         rightPanelWidgets: [
           ...s.rightPanelWidgets,
-          { id: widget.id, type: widget.type, title: widget.title, data: widget.data, visible: true, originalWidget: widget },
+          panelWidget,
         ],
       };
     }),
   insertToRightPanel: (widget, index) =>
     set((s) => {
       if (s.rightPanelWidgets.some((w) => w.id === widget.id)) return s;
-      const newItem: SwappedPanelWidget = {
-        id: widget.id, type: widget.type, title: widget.title,
-        data: widget.data, visible: true, originalWidget: widget,
-      };
+      const activeWidget = s.activeWidgets.find((aw) => aw.id === widget.id);
+      const newItem = toRightPanelWidget(widget, activeWidget);
       const updated = [...s.rightPanelWidgets];
       updated.splice(index, 0, newItem);
       return {
-        overlayWidgets: s.overlayWidgets.filter((w) => w.id !== widget.id),
-        activeWidgets: s.activeWidgets.filter((aw) => aw.id !== widget.id),
+        overlayWidgets: s.overlayWidgets.filter((w) => w.id !== newItem.id),
+        activeWidgets: s.activeWidgets.filter((aw) => aw.id !== newItem.id),
         rightPanelWidgets: updated,
       };
     }),
@@ -393,14 +848,26 @@ export const useEditorStore = create<EditorState>((set) => ({
       rightPanelWidgets: [],
       overlayWidgets: [
         ...s.overlayWidgets,
-        ...s.rightPanelWidgets.map((w) => w.originalWidget),
+        ...s.rightPanelWidgets.map((w) =>
+          syncWidgetDataToBrand(w.originalWidget, s.brand)
+        ),
       ],
       activeWidgets: [
         ...s.activeWidgets,
-        ...s.rightPanelWidgets.map((w) => ({
-          id: w.id, type: w.type,
-          properties: { title: w.title, themeColor: w.data.color ?? "#14b8a6" },
-        })),
+        ...s.rightPanelWidgets.map((w) => {
+          const widget = syncPanelWidgetToBrand(w, s.brand);
+          return {
+            id: widget.id,
+            type: widget.type,
+            properties: {
+              ...widget.properties,
+              title: widget.title,
+              themeColor: widget.data.color,
+              value: widget.data.gaugeValue,
+              max: widget.data.gaugeMax,
+            },
+          };
+        }),
       ],
     })),
 
@@ -412,4 +879,8 @@ export const useEditorStore = create<EditorState>((set) => ({
         ? s.hiddenMonitorPanels.filter((id) => id !== panelId)
         : [...s.hiddenMonitorPanels, panelId],
     })),
+
+  // 패널 모드
+  showRightPanel: false,
+  setShowRightPanel: (showRightPanel) => set({ showRightPanel }),
 }));
