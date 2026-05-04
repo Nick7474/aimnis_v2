@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, type CSSProperties } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Save, Maximize2, Globe, X, Check, LayoutDashboard, Database, Rocket, Monitor, Network } from "lucide-react";
+import { Shield, Save, Maximize2, Globe, X, Check, LayoutDashboard, Database, Rocket, Monitor, Network, Edit3, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DndContext, DragOverlay, type DragEndEvent } from "@dnd-kit/core";
@@ -290,6 +290,19 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
 
         {/* 우측: 액션 버튼 */}
         <div className="relative z-20 flex items-center gap-1.5">
+          {/* 편집 모드 토글 */}
+          <button
+            onClick={() => setShowRightPanel(!showRightPanel)}
+            className={cn(
+              "flex h-8 w-[64px] shrink-0 items-center justify-center gap-1.5 rounded-lg border text-xs leading-none transition-colors",
+              showRightPanel
+                ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
+                : "border-white/10 bg-white/5 text-white/50 hover:text-white/80"
+            )}
+          >
+            <TopIcon><Edit3 className="h-3 w-3" /></TopIcon>
+            <span className="block">편집</span>
+          </button>
           <button
             onClick={handleSave}
             className="flex h-8 w-[64px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-xs leading-none text-white/50 transition-colors hover:text-white/80"
@@ -316,36 +329,52 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
 
       {/* 3패널 본문 */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* 좌측 채팅 패널 — 기본 표시, 우측 패널 열리면 160px로 축소 */}
-        <motion.div
-          animate={{ width: showRightPanel ? 160 : chatPanelWidth }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          style={{ display: "flex", flexShrink: 0, height: "100%", minHeight: 0 }}
-        >
-          <aside
+        {/* 좌측 채팅 패널 — 항상 동일 크기, 편집 모드 시 딤 오버레이 */}
+        <div style={{ position: "relative", display: "flex", flexShrink: 0, height: "100%", minHeight: 0, width: chatPanelWidth }}>
+          <motion.aside
+            animate={{ x: showRightPanel ? -8 : 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
             style={{ width: "100%", flexShrink: 0 }}
             className="flex min-h-0 flex-col overflow-hidden bg-[#0a0a14]"
           >
-            <div
-              className={cn(
-                "border-b border-white/5 px-4 py-2.5",
-                showRightPanel && "cursor-pointer transition-colors hover:bg-white/5"
-              )}
-              onClick={() => showRightPanel && setShowRightPanel(false)}
-            >
-              <p className="text-[10px] font-medium uppercase tracking-wider text-white/30 truncate">
-                {showRightPanel ? "← AI" : "AI 어시스턴트"}
-              </p>
+            <div className="border-b border-white/5 px-4 py-2.5">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">AI 어시스턴트</p>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">
               <ChatPanel solutionId={solution.id} />
             </div>
-          </aside>
-          {/* 드래그 핸들 — 우측 패널 닫혔을 때만 */}
+          </motion.aside>
+
+          {/* 딤 오버레이 — 편집 모드 시 Chat 위에 씌워짐 */}
+          <AnimatePresence>
+            {showRightPanel && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/60 backdrop-blur-[1px] group"
+                onClick={() => setShowRightPanel(false)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 0 }}
+                  whileHover={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/20"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 드래그 핸들 — 편집 모드 아닐 때만 */}
           {!showRightPanel && (
             <div
               onMouseDown={handleChatPanelDrag}
               style={{
+                position: "absolute", right: 0, top: 0, bottom: 0,
                 width: 1, flexShrink: 0, cursor: "col-resize",
                 background: "rgba(255,255,255,0.05)",
                 transition: "background 0.15s",
@@ -354,7 +383,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
               onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
             />
           )}
-        </motion.div>
+        </div>
 
         {/* 중앙 캔버스 flex-1 — 빈 영역 클릭 시 선택 해제 + 우측 패널 닫기 */}
         <main
