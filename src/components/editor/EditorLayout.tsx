@@ -329,11 +329,13 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
 
       {/* 3패널 본문 */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* 좌측 채팅 패널 — 항상 동일 크기, 편집 모드 시 딤 오버레이 */}
-        <div style={{ position: "relative", display: "flex", flexShrink: 0, height: "100%", minHeight: 0, width: chatPanelWidth }}>
-          <motion.aside
-            animate={{ x: showRightPanel ? -8 : 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        {/* 좌측 채팅 패널 — 편집 모드 시 210px 왼쪽으로 이동 + 딤 오버레이 */}
+        <motion.div
+          animate={{ marginLeft: showRightPanel ? -210 : 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          style={{ position: "relative", display: "flex", flexShrink: 0, height: "100%", minHeight: 0, width: chatPanelWidth }}
+        >
+          <aside
             style={{ width: "100%", flexShrink: 0 }}
             className="flex min-h-0 flex-col overflow-hidden bg-[#0a0a14]"
           >
@@ -343,9 +345,9 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
             <div className="min-h-0 flex-1 overflow-hidden">
               <ChatPanel solutionId={solution.id} />
             </div>
-          </motion.aside>
+          </aside>
 
-          {/* 딤 오버레이 — 편집 모드 시 Chat 위에 씌워짐 */}
+          {/* 딤 오버레이 — 보이는 70px 스트립에 화살표 우측 배치 */}
           <AnimatePresence>
             {showRightPanel && (
               <motion.div
@@ -353,18 +355,13 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/60 backdrop-blur-[1px] group"
+                className="absolute inset-0 z-10 flex cursor-pointer items-center justify-end bg-black/60 backdrop-blur-[1px] group"
+                style={{ paddingRight: 14 }}
                 onClick={() => setShowRightPanel(false)}
               >
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 0 }}
-                  whileHover={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.15 }}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/20"
-                >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/20 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                   <ChevronLeft className="h-5 w-5" />
-                </motion.div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -375,7 +372,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
               onMouseDown={handleChatPanelDrag}
               style={{
                 position: "absolute", right: 0, top: 0, bottom: 0,
-                width: 1, flexShrink: 0, cursor: "col-resize",
+                width: 1, cursor: "col-resize",
                 background: "rgba(255,255,255,0.05)",
                 transition: "background 0.15s",
               }}
@@ -383,7 +380,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
               onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
             />
           )}
-        </div>
+        </motion.div>
 
         {/* 중앙 캔버스 flex-1 — 빈 영역 클릭 시 선택 해제 + 우측 패널 닫기 */}
         <main
