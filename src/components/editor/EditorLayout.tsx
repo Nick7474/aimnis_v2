@@ -104,13 +104,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
           addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel, brand,
           showRightPanel, setShowRightPanel, selectedElement } = useEditorStore();
 
-  useEffect(() => {
-    if (selectedElement) setShowRightPanel(true);
-  }, [selectedElement, setShowRightPanel]);
-
-  useEffect(() => {
-    if (centerView === "mapping") setShowRightPanel(true);
-  }, [centerView, setShowRightPanel]);
+  // 패널 열림/닫힘은 편집 버튼 단일 진입점으로만 제어
   const brandVars = brandToCssVars(brand) as CSSProperties;
 
   const [activeDragWidget, setActiveDragWidget] = useState<OverlayWidget | null>(null);
@@ -331,7 +325,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* 좌측 채팅 패널 — 편집 모드 시 210px 왼쪽으로 이동 + 딤 오버레이 */}
         <motion.div
-          animate={{ marginLeft: showRightPanel ? -210 : 0 }}
+          animate={{ marginLeft: showRightPanel ? -(chatPanelWidth - 70) : 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           style={{ position: "relative", display: "flex", flexShrink: 0, height: "100%", minHeight: 0, width: chatPanelWidth }}
         >
@@ -385,12 +379,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
         {/* 중앙 캔버스 flex-1 — 빈 영역 클릭 시 선택 해제 + 우측 패널 닫기 */}
         <main
           className="relative h-full min-h-0 flex-1 overflow-hidden"
-          onClick={() => {
-            useEditorStore.getState().setSelectedElement(null);
-            if (useEditorStore.getState().centerView !== "mapping") {
-              useEditorStore.getState().setShowRightPanel(false);
-            }
-          }}
+          onClick={() => useEditorStore.getState().setSelectedElement(null)}
         >
           {centerView === "monitor" ? (
             <>
