@@ -133,11 +133,13 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       if (over?.id.toString().startsWith("rp-slot-")) {
         const index = parseInt(over.id.toString().replace("rp-slot-", ""), 10);
         insertToRightPanel(widget, index);
+        useEditorStore.getState().setShowRightPanel(true);
       } else if (
         over?.id === "right-sidebar-dropzone" ||
         over?.id.toString().startsWith("rp-card-")
       ) {
         addToRightPanel(widget);
+        useEditorStore.getState().setShowRightPanel(true);
       } else {
         // 캔버스에서 드롭 → 위치 이동
         updateOverlayWidgetPosition(widget.id, widget.x + delta.x, widget.y + delta.y);

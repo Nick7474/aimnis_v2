@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, GripVertical } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { useEditorStore } from "@/store/editorStore";
+import { brandToCssVars } from "@/lib/brandPresets";
 import KpiWidget from "./widgets/KpiWidget";
 import LineChartWidget from "./widgets/LineChartWidget";
 import BarChartWidget from "./widgets/BarChartWidget";
@@ -41,7 +42,7 @@ interface OverlayCardProps {
 }
 
 function OverlayCard({ widget: w, index }: OverlayCardProps) {
-  const { removeOverlayWidget, setSelectedElement, setRightPanel, activeWidgets } = useEditorStore();
+  const { removeOverlayWidget, setSelectedElement, setRightPanel, setShowRightPanel, activeWidgets } = useEditorStore();
 
   const activeTitle = activeWidgets.find((aw) => aw.id === w.id)?.properties.title ?? w.title;
 
@@ -63,9 +64,10 @@ function OverlayCard({ widget: w, index }: OverlayCardProps) {
         panelType: "widget",
         rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
       });
-      setRightPanel("mapping");
+      setRightPanel("widget");
+      setShowRightPanel(true);
     },
-    [w, activeTitle, setSelectedElement, setRightPanel]
+    [w, activeTitle, setSelectedElement, setRightPanel, setShowRightPanel]
   );
 
   return (
@@ -94,11 +96,11 @@ function OverlayCard({ widget: w, index }: OverlayCardProps) {
       <div
         className="group relative h-full w-full rounded-xl"
         style={{
-          background: "rgba(7, 15, 36, 0.82)",
+          background: "color-mix(in srgb, var(--guard-color-surface) 82%, transparent)",
           backdropFilter: "blur(18px) saturate(1.4)",
           WebkitBackdropFilter: "blur(18px) saturate(1.4)",
-          border: "1px solid rgba(0, 212, 255, 0.18)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,212,255,0.06)",
+          border: "1px solid color-mix(in srgb, var(--guard-color-border) 72%, transparent)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px color-mix(in srgb, var(--guard-color-primary) 12%, transparent)",
           cursor: "pointer",
           overflow: "visible",
         }}
@@ -116,8 +118,14 @@ function OverlayCard({ widget: w, index }: OverlayCardProps) {
           {...listeners}
           {...attributes}
           onClick={(e) => e.stopPropagation()}
-          className="absolute hidden h-6 w-6 cursor-grab items-center justify-center rounded-md bg-brand-500/20 text-brand-400 active:cursor-grabbing group-hover:flex"
-          style={{ top: -8, left: -8, zIndex: 51 }}
+          className="absolute hidden h-6 w-6 cursor-grab items-center justify-center rounded-md active:cursor-grabbing group-hover:flex"
+          style={{
+            top: -8,
+            left: -8,
+            zIndex: 51,
+            background: "color-mix(in srgb, var(--guard-color-primary) 20%, transparent)",
+            color: "var(--guard-color-accent)",
+          }}
           title="우측 패널로 드래그"
         >
           <GripVertical className="h-3 w-3" />
@@ -127,7 +135,7 @@ function OverlayCard({ widget: w, index }: OverlayCardProps) {
         <button
           onClick={(e) => { e.stopPropagation(); removeOverlayWidget(w.id); }}
           className="absolute z-50 hidden h-6 w-6 items-center justify-center rounded-full bg-red-500/90 text-white shadow-lg group-hover:flex"
-          style={{ top: -8, right: -8 }}
+          style={{ top: -8, right: -8, background: "var(--guard-color-danger)" }}
         >
           <X className="h-3 w-3" />
         </button>
@@ -137,15 +145,20 @@ function OverlayCard({ widget: w, index }: OverlayCardProps) {
           <motion.span
             animate={{ opacity: [1, 0.2, 1] }}
             transition={{ repeat: Infinity, duration: 1.2 }}
-            className="h-1.5 w-1.5 rounded-full bg-emerald-400"
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: "var(--guard-color-success)" }}
           />
-          <span className="text-[9px] text-emerald-400/70">LIVE</span>
+          <span className="text-[9px]" style={{ color: "color-mix(in srgb, var(--guard-color-success) 70%, transparent)" }}>LIVE</span>
         </div>
 
         {/* 드래그 힌트 툴팁 — hover 시 */}
         <div
-          className="pointer-events-none absolute -top-7 left-0 hidden rounded-md bg-black/70 px-2 py-1 text-[9px] text-brand-300 group-hover:block"
-          style={{ whiteSpace: "nowrap" }}
+          className="pointer-events-none absolute -top-7 left-0 hidden rounded-md px-2 py-1 text-[9px] group-hover:block"
+          style={{
+            whiteSpace: "nowrap",
+            background: "color-mix(in srgb, var(--guard-color-surface) 88%, #000)",
+            color: "var(--guard-color-accent)",
+          }}
         >
           ← 드래그하여 우측 패널로 이동
         </div>
@@ -161,9 +174,9 @@ function OverlayCardBorder({ widgetId }: { widgetId: string }) {
     <div
       className="pointer-events-none absolute inset-0 rounded-xl transition-all duration-150"
       style={{
-        outline: isSelected ? "2px solid #735FE9" : "2px solid transparent",
+        outline: isSelected ? "2px solid var(--guard-color-primary)" : "2px solid transparent",
         outlineOffset: "-1px",
-        boxShadow: isSelected ? "0 0 12px rgba(0,212,255,0.25)" : "none",
+        boxShadow: isSelected ? "0 0 12px color-mix(in srgb, var(--guard-color-secondary) 28%, transparent)" : "none",
       }}
     />
   );
@@ -173,7 +186,8 @@ function OverlayCardBorder({ widgetId }: { widgetId: string }) {
 
 export default function OverlayCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { overlayWidgets, setCanvasSize } = useEditorStore();
+  const { overlayWidgets, setCanvasSize, brand } = useEditorStore();
+  const brandVars = brandToCssVars(brand) as CSSProperties;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -187,7 +201,11 @@ export default function OverlayCanvas() {
   }, [setCanvasSize]);
 
   return (
-    <div ref={containerRef} className="pointer-events-none absolute inset-0" style={{ zIndex: 25 }}>
+    <div
+      ref={containerRef}
+      className="pointer-events-none absolute inset-0"
+      style={{ zIndex: 25, ...brandVars }}
+    >
       <AnimatePresence>
         {overlayWidgets.map((w, i) => (
           <div key={w.id} style={{ pointerEvents: "auto" }}>
@@ -198,11 +216,12 @@ export default function OverlayCanvas() {
 
       {overlayWidgets.length > 0 && (
         <div
-          className="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] text-white/40"
+          className="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px]"
           style={{
-            background: "rgba(255,255,255,0.05)",
+            background: "color-mix(in srgb, var(--guard-color-surface) 72%, transparent)",
             backdropFilter: "blur(8px)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            border: "1px solid color-mix(in srgb, var(--guard-color-border) 48%, transparent)",
+            color: "var(--guard-color-text-soft)",
             pointerEvents: "none",
           }}
         >

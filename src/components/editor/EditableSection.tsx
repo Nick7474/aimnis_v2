@@ -18,6 +18,7 @@ interface EditableSectionProps {
    * 배경 클릭은 Monitor로 통과, 귀퉁이 배지만 클릭 가능.
    */
   variant?: "default" | "overlay";
+  badgePosition?: "top-left" | "top-right";
 }
 
 // panelType → rightPanel 패널 탭 매핑
@@ -26,7 +27,7 @@ const PANEL_MAP: Record<PanelType, string> = {
   navigation: "navigation",
   gis: "gis",
   alarm: "alarm",
-  widget: "mapping",
+  widget: "widget",
   empty: "settings",
 };
 
@@ -39,11 +40,12 @@ export default function EditableSection({
   className,
   style,
   variant = "default",
+  badgePosition = "top-right",
 }: EditableSectionProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
 
-  const { selectedElement, setSelectedElement, setRightPanel } = useEditorStore();
+  const { selectedElement, setSelectedElement, setRightPanel, setShowRightPanel } = useEditorStore();
   const isSelected = selectedElement?.sectionId === sectionId;
 
   const select = useCallback(
@@ -56,8 +58,9 @@ export default function EditableSection({
         rect: { top: r.top, left: r.left, width: r.width, height: r.height },
       });
       setRightPanel(PANEL_MAP[panelType] as Parameters<typeof setRightPanel>[0]);
+      setShowRightPanel(true);
     },
-    [sectionId, type, label, panelType, setSelectedElement, setRightPanel]
+    [sectionId, type, label, panelType, setSelectedElement, setRightPanel, setShowRightPanel]
   );
 
   // ── overlay 모드: Monitor 위 투명 레이어 ──────────────────
@@ -65,12 +68,13 @@ export default function EditableSection({
     return (
       <div
         ref={ref}
+        data-editable-section
         className={cn("absolute", className)}
         style={{
           ...style,
           pointerEvents: "none", // Monitor 클릭 통과
           zIndex: 20,
-          outline: isSelected ? "2px solid #735FE9" : hovered ? "1px dashed rgba(0,212,255,0.4)" : "none",
+          outline: isSelected ? "2px solid #00C8FF" : hovered ? "1px dashed rgba(0,212,255,0.4)" : "none",
           outlineOffset: "-2px",
           transition: "outline 0.12s ease",
         }}
@@ -85,7 +89,8 @@ export default function EditableSection({
             pointerEvents: "auto",
             position: "absolute",
             top: 6,
-            right: 6,
+            right: badgePosition === "top-right" ? 6 : "auto",
+            left: badgePosition === "top-left" ? 6 : "auto",
             zIndex: 30,
             display: "flex",
             alignItems: "center",
@@ -95,8 +100,8 @@ export default function EditableSection({
             fontSize: 9,
             fontWeight: 700,
             letterSpacing: "0.06em",
-            color: isSelected ? "#000" : "#735FE9",
-            background: isSelected ? "#735FE9" : "rgba(0,20,32,0.75)",
+            color: isSelected ? "#021018" : "#67E8F9",
+            background: isSelected ? "#00C8FF" : "rgba(0,20,32,0.75)",
             border: "1px solid rgba(0,212,255,0.45)",
             backdropFilter: "blur(8px)",
             cursor: "pointer",
@@ -128,11 +133,12 @@ export default function EditableSection({
   return (
     <div
       ref={ref}
+      data-editable-section
       className={cn("relative group", className)}
       style={{
         ...style,
         outline: isSelected
-          ? "2px solid #735FE9"
+          ? "2px solid #00C8FF"
           : hovered
           ? "1px dashed rgba(0,212,255,0.35)"
           : "2px solid transparent",
@@ -165,8 +171,8 @@ export default function EditableSection({
           aria-hidden
           className="pointer-events-none absolute left-0 top-0 z-20 flex items-center gap-1 rounded-br-md px-2 py-0.5"
           style={{
-            background: "#735FE9", fontSize: 10, fontWeight: 600,
-            color: "#000", letterSpacing: "0.04em",
+            background: "#00C8FF", fontSize: 10, fontWeight: 600,
+            color: "#021018", letterSpacing: "0.04em",
           }}
         >
           {label}
