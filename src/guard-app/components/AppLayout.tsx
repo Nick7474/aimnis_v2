@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, type CSSProperties } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Badge, Button, ConfigProvider, Dropdown, Menu, theme, Tooltip } from 'antd';
 import {
@@ -12,6 +12,8 @@ import { useAlarmStore, useAuthStore, processAlarmEvent } from '../stores';
 import AimGuardLogo from './AimGuardLogo';
 import PageBuilder from './PageBuilder';
 import { useGuardPagesStore, AVAILABLE_PAGES } from '@/store/guardPagesStore';
+import { useEditorStore } from '@/store/editorStore';
+import { brandToAntToken, brandToCssVars, type BrandSettings } from '@/lib/brandPresets';
 
 const ICON_COMP: Record<string, React.ReactNode> = {
   MonitorOutlined:    <MonitorOutlined />,
@@ -27,20 +29,23 @@ const BASE_MENU = [
   { key: '/monitor', icon: 'MonitorOutlined', label: 'Map 기반 모니터링' },
 ];
 
-const AIM_DARK_THEME = {
-  algorithm: theme.darkAlgorithm,
-  token: {
-    colorPrimary: '#2563EB',
-    colorBgBase: '#070F24',
-    colorBgContainer: '#0C1733',
-    colorBgElevated: '#0F1E3D',
-    colorBorder: '#1E3A5F',
-    colorText: '#e2e8f0',
-    colorTextSecondary: '#94a3b8',
-    borderRadius: 6,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif",
-  },
-};
+function buildGuardTheme(brand: BrandSettings) {
+  return {
+    algorithm: theme.darkAlgorithm,
+    token: brandToAntToken(brand),
+  };
+}
+
+function renderProductName(productName: string, primaryColor: string) {
+  const [first, ...rest] = productName.split(' ');
+  if (!first) return null;
+  return (
+    <>
+      <span style={{ color: primaryColor }}>{first}</span>
+      {rest.length > 0 ? ` ${rest.join(' ')}` : null}
+    </>
+  );
+}
 
 const AppLayout: React.FC = () => {
   const navigate    = useNavigate();
@@ -48,6 +53,8 @@ const AppLayout: React.FC = () => {
   const alarms      = useAlarmStore((s) => s.alarms);
   const { user, logout } = useAuthStore();
   const unacked     = alarms.length;
+  const brand       = useEditorStore((s) => s.brand);
+  const sectionStyles = useEditorStore((s) => s.sectionStyles);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [builderOpen, setBuilderOpen] = useState(false);
   const { addedPages } = useGuardPagesStore();
@@ -80,28 +87,44 @@ const AppLayout: React.FC = () => {
   ];
 
   const selectedKey = location.pathname;
+  const guardTheme = useMemo(() => buildGuardTheme(brand), [brand]);
+  const guardVars = brandToCssVars(brand) as CSSProperties;
+
+  // sectionStyles 오버라이드 — 에디터에서 변경한 섹션별 색상을 실제 뷰에 반영
+  const headerStyle  = sectionStyles.header   ?? {};
+  const sidebarStyle = sectionStyles.sidebar  ?? {};
+  const alarmStyle   = sectionStyles['alarm-panel'] ?? {};
+
+  const headerInlineStyle: CSSProperties = {
+    ...(headerStyle.surfaceColor  && { background: headerStyle.surfaceColor }),
+    ...(headerStyle.borderColor   && { borderBottomColor: headerStyle.borderColor }),
+  };
+  const sidebarInlineStyle: CSSProperties = {
+    ...(sidebarStyle.surfaceColor && { background: sidebarStyle.surfaceColor }),
+    ...(sidebarStyle.borderColor  && { borderRightColor: sidebarStyle.borderColor }),
+  };
 
   return (
-    <ConfigProvider theme={AIM_DARK_THEME}>
-      <div className="app-layout">
+    <ConfigProvider theme={guardTheme}>
+      <div className="app-layout" style={{ ...guardVars, background: 'var(--guard-color-bg)', fontFamily: 'var(--guard-font-family)' }}>
 
         {/* ── Header ── */}
-        <header className="app-header">
+        <header className="app-header" style={headerInlineStyle}>
           <div className="header-brand" onClick={() => navigate('/monitor')} style={{ cursor: 'pointer' }}>
-            <AimGuardLogo size={32} />
+            <AimGuardLogo size={brand.logoSize} src={brand.logoUrl} alt={`${brand.tenantName} logo`} />
             <div className="header-brand-text">
-              <span className="header-brand-product"><span>AIM</span>&nbsp;GUARD</span>
+              <span className="header-brand-product">{renderProductName(brand.productName, brand.primaryColor)}</span>
             </div>
           </div>
 
-          <span className="header-subtitle">통합 보안 모니터링 시스템</span>
+          <span className="header-subtitle">{brand.serviceName}</span>
           <div className="header-spacer" />
 
           <Tooltip title={`미확인 알람 ${unacked}건`}>
             <Badge count={unacked} overflowCount={99}
-              styles={{ indicator: { background: '#DC2626', boxShadow: '0 0 6px #DC2626' } }}>
+              styles={{ indicator: { background: 'var(--guard-color-danger)', boxShadow: '0 0 6px var(--guard-color-danger)' } }}>
               <Button type="text" icon={<BellOutlined />}
-                style={{ color: unacked > 0 ? '#FCA5A5' : '#94a3b8' }}
+                style={{ color: unacked > 0 ? 'var(--guard-color-danger)' : 'var(--guard-color-text-soft)' }}
                 onClick={() => navigate('/events?ackStatus=UNACKED')} />
             </Badge>
           </Tooltip>
@@ -116,7 +139,7 @@ const AppLayout: React.FC = () => {
               ],
             }}
           >
-            <Button type="text" icon={<UserOutlined />} style={{ color: '#94a3b8' }}>
+            <Button type="text" icon={<UserOutlined />} style={{ color: 'var(--guard-color-text-soft)' }}>
               {user?.name ?? '사용자'}
             </Button>
           </Dropdown>
@@ -127,8 +150,8 @@ const AppLayout: React.FC = () => {
           <aside style={{
             width: sidebarOpen ? 200 : 56,
             flexShrink: 0,
-            background: '#0C1733',
-            borderRight: '1px solid #1E3A5F',
+            background: sidebarStyle.surfaceColor ?? 'var(--guard-color-surface)',
+            borderRight: `1px solid ${sidebarStyle.borderColor ?? 'var(--guard-color-border)'}`,
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden', transition: 'width 0.22s ease',
           }}>
@@ -142,7 +165,7 @@ const AppLayout: React.FC = () => {
                 <Button type="text" size="small"
                   icon={sidebarOpen ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
                   onClick={() => setSidebarOpen((v) => !v)}
-                  style={{ color: '#94a3b8', padding: '0 4px', height: 20, minWidth: 20 }} />
+                  style={{ color: 'var(--guard-color-text-soft)', padding: '0 4px', height: 20, minWidth: 20 }} />
               </Tooltip>
             </div>
 
@@ -163,7 +186,7 @@ const AppLayout: React.FC = () => {
                   return (
                     <React.Fragment key={item.key}>
                       {isAdmin && prevIsNonAdmin && (
-                        <div style={{ height: 1, background: '#1E3A5F', margin: '4px 10px' }} />
+                        <div style={{ height: 1, background: 'var(--guard-color-border)', margin: '4px 10px' }} />
                       )}
                       <Tooltip title={item.label} placement="right">
                         <div
@@ -171,11 +194,11 @@ const AppLayout: React.FC = () => {
                           style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             height: 40, margin: '2px 9px', borderRadius: 8, cursor: 'pointer',
-                            background: selectedKey === item.key ? 'rgba(37,99,235,0.22)' : 'transparent',
-                            color: selectedKey === item.key ? '#60A5FA' : '#64748b',
+                            background: selectedKey === item.key ? 'color-mix(in srgb, var(--guard-color-primary) 22%, transparent)' : 'transparent',
+                            color: selectedKey === item.key ? 'var(--guard-color-accent)' : 'var(--guard-color-text-faint)',
                             fontSize: 16, transition: 'background 0.15s, color 0.15s',
                           }}
-                          onMouseEnter={e => { if (selectedKey !== item.key) (e.currentTarget as HTMLDivElement).style.background = 'rgba(37,99,235,0.10)'; }}
+                          onMouseEnter={e => { if (selectedKey !== item.key) (e.currentTarget as HTMLDivElement).style.background = 'color-mix(in srgb, var(--guard-color-primary) 10%, transparent)'; }}
                           onMouseLeave={e => { if (selectedKey !== item.key) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                         >
                           {ICON_COMP[item.icon] ?? null}
@@ -190,7 +213,7 @@ const AppLayout: React.FC = () => {
             {/* 페이지 추가 버튼 */}
             <div style={{
               padding: sidebarOpen ? '10px 12px' : '10px 9px',
-              borderTop: '1px solid #1E3A5F', flexShrink: 0,
+              borderTop: '1px solid var(--guard-color-border)', flexShrink: 0,
             }}>
               <Tooltip title={sidebarOpen ? '' : '페이지 추가'} placement="right">
                 <button
@@ -200,18 +223,18 @@ const AppLayout: React.FC = () => {
                     gap: sidebarOpen ? 8 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center',
                     padding: sidebarOpen ? '8px 10px' : '8px 0',
                     borderRadius: 8, cursor: 'pointer',
-                    border: '1px dashed rgba(37,99,235,0.35)',
-                    background: 'rgba(37,99,235,0.06)',
-                    color: '#3b82f6', fontSize: 12, fontWeight: 500,
+                    border: '1px dashed color-mix(in srgb, var(--guard-color-primary) 42%, transparent)',
+                    background: 'color-mix(in srgb, var(--guard-color-primary) 8%, transparent)',
+                    color: 'var(--guard-color-accent)', fontSize: 12, fontWeight: 500,
                     transition: 'all .15s',
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(37,99,235,0.14)';
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(37,99,235,0.6)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--guard-color-primary) 16%, transparent)';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'color-mix(in srgb, var(--guard-color-primary) 68%, transparent)';
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(37,99,235,0.06)';
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(37,99,235,0.35)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--guard-color-primary) 8%, transparent)';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'color-mix(in srgb, var(--guard-color-primary) 42%, transparent)';
                   }}
                 >
                   <PlusOutlined style={{ fontSize: 13 }} />
@@ -225,10 +248,10 @@ const AppLayout: React.FC = () => {
               <div style={{
                 height: 38, flexShrink: 0,
                 display: 'flex', alignItems: 'center',
-                padding: '0 16px', fontSize: 10, color: '#64748b',
-                borderTop: '1px solid #1E3A5F', letterSpacing: 1, whiteSpace: 'nowrap',
+                padding: '0 16px', fontSize: 10, color: 'var(--guard-color-muted)',
+                borderTop: '1px solid var(--guard-color-border)', letterSpacing: 1, whiteSpace: 'nowrap',
               }}>
-                AIM GUARD v1.0.0-mockup
+                {brand.productName} v1.0.0-mockup
               </div>
             )}
           </aside>
@@ -264,14 +287,14 @@ const AppLayout: React.FC = () => {
 
         {/* ── StatusBar ── */}
         <footer className="app-status-bar">
-          <span><span className="live-dot" style={{ background: '#16A34A' }} />Senstar-1F: 연결</span>
-          <span><span className="live-dot" style={{ background: '#16A34A' }} />ADAM-1F: 연결</span>
-          <span><span className="live-dot" style={{ background: '#DC2626', animationDuration: '.6s' }} />출입-A: 끊김</span>
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#94a3b8' }}>
-            <WifiOutlined style={{ color: '#60A5FA' }} />
-            WS:&nbsp;<span style={{ color: '#16A34A' }}>● 연결됨</span>
+          <span><span className="live-dot" style={{ background: 'var(--guard-color-success)' }} />Senstar-1F: 연결</span>
+          <span><span className="live-dot" style={{ background: 'var(--guard-color-success)' }} />ADAM-1F: 연결</span>
+          <span><span className="live-dot" style={{ background: 'var(--guard-color-danger)', animationDuration: '.6s' }} />출입-A: 끊김</span>
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--guard-color-text-soft)' }}>
+            <WifiOutlined style={{ color: 'var(--guard-color-accent)' }} />
+            WS:&nbsp;<span style={{ color: 'var(--guard-color-success)' }}>● 연결됨</span>
           </span>
-          <span style={{ color: '#60A5FA' }}>{new Date().toLocaleTimeString('ko-KR')}</span>
+          <span style={{ color: 'var(--guard-color-accent)' }}>{new Date().toLocaleTimeString('ko-KR')}</span>
         </footer>
       </div>
     </ConfigProvider>
