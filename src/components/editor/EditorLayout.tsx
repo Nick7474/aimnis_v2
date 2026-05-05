@@ -102,7 +102,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
   };
   const { centerView, setCenterView, isFullscreen, setFullscreen, publishedUrl, setPublishedUrl,
           addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel, brand,
-          showRightPanel, setShowRightPanel, selectedElement } = useEditorStore();
+          showRightPanel, setShowRightPanel, selectedElement, sectionStyles, systemTitle } = useEditorStore();
 
   // 패널 열림/닫힘은 편집 버튼 단일 진입점으로만 제어
   const brandVars = brandToCssVars(brand) as CSSProperties;
@@ -177,6 +177,10 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       stats: { alerts: 0, uptime: "100%", sensors: 0 },
       harnessFile: null,
       industry: "enterprise",
+      // 브랜드 스냅샷 — publish 시점 설정 보존
+      brandSnapshot: { ...brand },
+      sectionStylesSnapshot: { ...sectionStyles },
+      systemTitle,
     });
     setPublishDone({ id: project.id });
     // 기존 publishedUrl도 세팅 (토스트 표시)

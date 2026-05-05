@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { BrandSettings, BrandPreset } from "@/lib/brandPresets";
+import type { SectionStyleKey, SectionStyleOverrides } from "@/store/editorStore";
 
 export interface PublishedProject {
   id: string;
@@ -16,6 +18,10 @@ export interface PublishedProject {
   stats: { alerts: number; uptime: string; sensors: number };
   harnessFile: string | null;
   industry: string;
+  // 브랜드 스냅샷 — publish 시점의 에디터 설정 보존
+  brandSnapshot?: Partial<BrandSettings & BrandPreset>;
+  sectionStylesSnapshot?: Partial<Record<SectionStyleKey, SectionStyleOverrides>>;
+  systemTitle?: string;
 }
 
 interface ProjectState {

@@ -4,8 +4,9 @@ import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import { useProjectStore } from "@/store/projectStore";
+import { useEditorStore } from "@/store/editorStore";
 import { ChevronDown, Shield } from "lucide-react";
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 
 const GuardApp = dynamic(() => import("@/components/guard/GuardApp"), {
   ssr: false,
@@ -20,12 +21,29 @@ function ProjectBadge() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { projects } = useProjectStore();
+  const { updateBrand, updateSectionStyle, setSystemTitle } = useEditorStore();
   const [open, setOpen] = useState(false);
 
   // URL에서 projectId 읽기, 없으면 최신 guard 프로젝트
   const projectId = searchParams.get("project");
   const guardProjects = projects.filter(p => p.solution === "guard");
   const active = guardProjects.find(p => p.id === projectId) ?? guardProjects[0];
+
+  // 활성 프로젝트의 brandSnapshot → editorStore에 주입
+  useEffect(() => {
+    if (!active) return;
+    if (active.brandSnapshot) {
+      updateBrand(active.brandSnapshot as Parameters<typeof updateBrand>[0]);
+    }
+    if (active.sectionStylesSnapshot) {
+      (Object.entries(active.sectionStylesSnapshot) as [Parameters<typeof updateSectionStyle>[0], Parameters<typeof updateSectionStyle>[1]][])
+        .forEach(([section, style]) => updateSectionStyle(section, style));
+    }
+    if (active.systemTitle) {
+      setSystemTitle(active.systemTitle);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id]);
 
   if (guardProjects.length === 0) return null;
 
