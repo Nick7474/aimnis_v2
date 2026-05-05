@@ -9,7 +9,13 @@ import { MOCK_STATS } from '../mock/data';
 
 const { RangePicker } = DatePicker;
 
-const DEV_COLORS = ['#2563EB', '#7C3AED', '#5a3ee1', '#059669', '#D97706'];
+const DEV_COLORS = [
+  'var(--guard-color-primary)',
+  'var(--guard-color-secondary)',
+  'var(--guard-color-accent)',
+  'var(--guard-color-success)',
+  'var(--guard-color-warning)',
+];
 
 /* ── KPI 카드 ─────────────────────────────────── */
 const KpiCard: React.FC<{
@@ -22,8 +28,8 @@ const KpiCard: React.FC<{
   glow?: boolean;
 }> = ({ title, value, unit, icon, color, trend, glow }) => (
   <div style={{
-    background: '#0C1733',
-    border: `1px solid ${color}44`,
+    background: 'var(--guard-color-surface)',
+    border: `1px solid color-mix(in srgb, ${color} 44%, transparent)`,
     borderLeft: `3px solid ${color}`,
     borderRadius: 8,
     padding: '18px 20px',
@@ -34,7 +40,7 @@ const KpiCard: React.FC<{
     height: '100%',
   }}>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 13, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>{title}</span>
+      <span style={{ fontSize: 13, color: 'var(--guard-color-text-soft)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>{title}</span>
       <span style={{ color, fontSize: 16, opacity: 0.8 }}>{icon}</span>
     </div>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
@@ -43,10 +49,10 @@ const KpiCard: React.FC<{
         textShadow: glow ? `0 0 12px ${color}88` : 'none',
         lineHeight: 1,
       }}>{value}</span>
-      {unit && <span style={{ fontSize: 14, color: '#94a3b8' }}>{unit}</span>}
+      {unit && <span style={{ fontSize: 14, color: 'var(--guard-color-text-soft)' }}>{unit}</span>}
     </div>
     {trend && (
-      <div style={{ fontSize: 11, color: trend.up ? '#16A34A' : '#DC2626', display: 'flex', alignItems: 'center', gap: 3 }}>
+      <div style={{ fontSize: 11, color: trend.up ? 'var(--guard-color-success)' : 'var(--guard-color-danger)', display: 'flex', alignItems: 'center', gap: 3 }}>
         {trend.up ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
         {trend.label}
       </div>
@@ -65,11 +71,11 @@ const BarChart: React.FC<{
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height }}>
       {data.map((d, i) => {
         const barH = Math.max(Math.round((d.value / max) * (height - 36)), 4);
-        const color = d.color ?? '#2563EB';
+        const color = d.color ?? 'var(--guard-color-primary)';
         return (
           <div key={d.name} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
             {showValue && (
-              <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>{d.value}</span>
+              <span style={{ fontSize: 10, color: 'var(--guard-color-text-soft)', fontWeight: 600 }}>{d.value}</span>
             )}
             <div style={{ width: '100%', position: 'relative' }}>
               <div style={{
@@ -82,7 +88,7 @@ const BarChart: React.FC<{
               }} />
             </div>
             <span style={{
-              fontSize: 9, color: '#475569', textAlign: 'center',
+              fontSize: 9, color: 'var(--guard-color-text-faint)', textAlign: 'center',
               lineHeight: 1.2, whiteSpace: 'nowrap',
             }}>{d.name}</span>
           </div>
@@ -116,26 +122,26 @@ const DonutChart: React.FC<{ data: { name: string; value: number }[] }> = ({ dat
           width: 140, height: 140,
           borderRadius: '50%',
           background: `conic-gradient(${gradientStops})`,
-          boxShadow: '0 0 24px rgba(37,99,235,.25)',
+          boxShadow: '0 0 24px color-mix(in srgb, var(--guard-color-primary) 25%, transparent)',
         }} />
         <div style={{
           position: 'absolute', inset: 28,
           borderRadius: '50%',
-          background: '#0C1733',
+          background: 'var(--guard-color-surface)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexDirection: 'column',
         }}>
-          <span style={{ fontSize: 20, fontWeight: 800, color: '#e2e8f0', lineHeight: 1 }}>{total}</span>
-          <span style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>총계</span>
+          <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--guard-color-text-strong)', lineHeight: 1 }}>{total}</span>
+          <span style={{ fontSize: 11, color: 'var(--guard-color-text-faint)', marginTop: 2 }}>총계</span>
         </div>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {segments.map((s) => (
           <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <div style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: 13, color: '#cbd5e1' }}>{s.name}</span>
+            <span style={{ flex: 1, fontSize: 13, color: 'var(--guard-color-text)' }}>{s.name}</span>
             <span style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.value}</span>
-            <span style={{ fontSize: 12, color: '#64748b', minWidth: 40, textAlign: 'right' }}>
+            <span style={{ fontSize: 12, color: 'var(--guard-color-text-faint)', minWidth: 40, textAlign: 'right' }}>
               ({s.pct.toFixed(0)}%)
             </span>
           </div>
@@ -148,14 +154,14 @@ const DonutChart: React.FC<{ data: { name: string; value: number }[] }> = ({ dat
 /* ── 섹션 헤더 ────────────────────────────────── */
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div style={{
-    fontSize: 12, fontWeight: 700, color: '#64748b',
+    fontSize: 12, fontWeight: 700, color: 'var(--guard-color-text-faint)',
     textTransform: 'uppercase', letterSpacing: 1.5,
     marginBottom: 14,
     paddingBottom: 8,
-    borderBottom: '1px solid #1E3A5F',
+    borderBottom: '1px solid var(--guard-color-border)',
     display: 'flex', alignItems: 'center', gap: 6,
   }}>
-    <span style={{ width: 3, height: 12, background: '#2563EB', borderRadius: 2, display: 'inline-block' }} />
+    <span style={{ width: 3, height: 12, background: 'var(--guard-color-primary)', borderRadius: 2, display: 'inline-block' }} />
     {children}
   </div>
 );
@@ -163,8 +169,8 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 /* ── 패널 래퍼 ────────────────────────────────── */
 const Panel: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
   <div style={{
-    background: '#0C1733',
-    border: '1px solid #1E3A5F',
+    background: 'var(--guard-color-surface)',
+    border: '1px solid var(--guard-color-border)',
     borderRadius: 8,
     padding: '16px 18px',
     height: '100%',
@@ -182,7 +188,7 @@ const StatsPage: React.FC = () => {
     Array.from({ length: 24 }, (_, i) => ({
       name: `${i}시`,
       value: Math.round(Math.random() * 70 + 5),
-      color: '#2563EB',
+      color: 'var(--guard-color-primary)',
     })), []);
 
   const topZoneTotal = s.topZones.reduce((a, z) => a + z.count, 0);
@@ -192,14 +198,14 @@ const StatsPage: React.FC = () => {
       title: 'Zone',
       dataIndex: 'name',
       key: 'name',
-      render: (v: string) => <span style={{ color: '#e2e8f0', fontSize: 12 }}>{v}</span>,
+      render: (v: string) => <span style={{ color: 'var(--guard-color-text-strong)', fontSize: 12 }}>{v}</span>,
     },
     {
       title: '이벤트',
       dataIndex: 'count',
       key: 'count',
       width: 70,
-      render: (v: number) => <span style={{ color: '#2563EB', fontWeight: 700 }}>{v}</span>,
+      render: (v: number) => <span style={{ color: 'var(--guard-color-primary)', fontWeight: 700 }}>{v}</span>,
     },
     {
       title: '비율',
@@ -208,14 +214,14 @@ const StatsPage: React.FC = () => {
         const pct = Math.round((r.count / topZoneTotal) * 100);
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <div style={{ flex: 1, height: 6, background: '#0F1E3D', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ flex: 1, height: 6, background: 'color-mix(in srgb, var(--guard-color-border) 24%, var(--guard-color-surface))', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{
                 width: `${pct}%`, height: '100%',
-                background: 'linear-gradient(90deg, #2563EB, #60A5FA)',
+                background: 'linear-gradient(90deg, var(--guard-color-primary), var(--guard-color-accent))',
                 borderRadius: 3,
               }} />
             </div>
-            <span style={{ fontSize: 11, color: '#64748b', minWidth: 28, textAlign: 'right' }}>{pct}%</span>
+            <span style={{ fontSize: 11, color: 'var(--guard-color-text-faint)', minWidth: 28, textAlign: 'right' }}>{pct}%</span>
           </div>
         );
       },
@@ -228,8 +234,8 @@ const StatsPage: React.FC = () => {
       {/* ── 헤더 ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', letterSpacing: 0.5 }}>통계 대시보드</div>
-          <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 3 }}>실시간 보안 이벤트 현황</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--guard-color-text-strong)', letterSpacing: 0.5 }}>통계 대시보드</div>
+          <div style={{ fontSize: 13, color: 'var(--guard-color-text-soft)', marginTop: 3 }}>실시간 보안 이벤트 현황</div>
         </div>
         <Space wrap>
           <Select
@@ -254,7 +260,7 @@ const StatsPage: React.FC = () => {
             value={s.totalEvents.toLocaleString()}
             unit="건"
             icon={<ThunderboltOutlined />}
-            color="#2563EB"
+            color="var(--guard-color-primary)"
             trend={{ label: '전일 대비 +87건', up: true }}
           />
         </Col>
@@ -264,7 +270,7 @@ const StatsPage: React.FC = () => {
             value={s.critical}
             unit="건"
             icon={<AlertOutlined />}
-            color="#DC2626"
+            color="var(--guard-color-danger)"
             trend={{ label: '전일 대비 +3건', up: false }}
             glow
           />
@@ -275,7 +281,7 @@ const StatsPage: React.FC = () => {
             value={s.unacked}
             unit="건"
             icon={<ClockCircleOutlined />}
-            color="#EA580C"
+            color="var(--guard-color-warning)"
           />
         </Col>
         <Col xs={24} sm={12} xl={6}>
@@ -284,7 +290,7 @@ const StatsPage: React.FC = () => {
             value={s.ackRate}
             unit="%"
             icon={<CheckCircleOutlined />}
-            color="#16A34A"
+            color="var(--guard-color-success)"
             trend={{ label: '전일 대비 +2.1%', up: true }}
           />
         </Col>

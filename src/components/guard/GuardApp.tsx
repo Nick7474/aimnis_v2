@@ -1,29 +1,29 @@
 "use client";
 
-import React, { lazy, Suspense, useEffect } from "react";
+import React, { lazy, Suspense, useEffect, useMemo } from "react";
 import { MemoryRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { ConfigProvider, Spin, theme } from "antd";
 import { useEditorStore } from "@/store/editorStore";
 import { useAlarmStore, useAuthStore } from "@/guard-app/stores";
 import AppLayout from "@/guard-app/components/AppLayout";
+import { brandToAntToken, type BrandSettings } from "@/lib/brandPresets";
 import "@/guard-app/aim-guard.css";
 
-// ── Ant Design 다크 테마 (AIM GUARD 브랜드) ──────────
-const AIM_DARK_THEME = {
-  algorithm: theme.darkAlgorithm,
-  token: {
-    colorPrimary: "#2563EB",
-    colorBgBase: "#070F24",
-    colorBgContainer: "#0C1733",
-    colorBgElevated: "#0F1E3D",
-    colorBorder: "#1E3A5F",
-    colorText: "#e2e8f0",
-    colorTextSecondary: "#94a3b8",
-    borderRadius: 6,
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif",
-  },
-};
+function buildGuardTheme(brand: BrandSettings) {
+  const lightSurface = isLightBrandSurface(brand.backgroundColor);
+  return {
+    algorithm: lightSurface ? theme.defaultAlgorithm : theme.darkAlgorithm,
+    token: brandToAntToken(brand),
+  };
+}
+
+function isLightBrandSurface(hex: string) {
+  const clean = hex.replace("#", "").slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return false;
+  const [r, g, b] = [0, 2, 4].map((index) => Number.parseInt(clean.slice(index, index + 2), 16) / 255);
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.72;
+}
 
 // ── 레이지 로드 페이지 ────────────────────────────────
 const MonitorPage    = lazy(() => import("@/guard-app/pages/Monitor"));
@@ -51,6 +51,7 @@ const Loading = () => (
 // ── AI 명령 → 알람 브릿지 ────────────────────────────
 const AlarmBridge: React.FC = () => {
   const lastCommand = useEditorStore((s) => s.lastCommand);
+  const brand = useEditorStore((s) => s.brand);
   const addAlarm    = useAlarmStore((s) => s.addAlarm);
 
   useEffect(() => {
@@ -64,7 +65,7 @@ const AlarmBridge: React.FC = () => {
     else if (text.includes("low") || text.includes("낮음"))   severity = "LOW";
 
     const SEV_COLOR: Record<string, string> = {
-      CRITICAL: "#DC2626", HIGH: "#EA580C", MEDIUM: "#CA8A04", LOW: "#2563EB",
+      CRITICAL: brand.dangerColor, HIGH: brand.warningColor, MEDIUM: brand.accentColor, LOW: brand.primaryColor,
     };
     addAlarm({
       eventId:    `ai-${lastCommand.timestamp}`,
@@ -77,7 +78,7 @@ const AlarmBridge: React.FC = () => {
       ackStatus:  "UNACKED",
       eventType:  "AI_COMMAND",
     });
-  }, [lastCommand, addAlarm]);
+  }, [lastCommand, addAlarm, brand]);
 
   return null;
 };
@@ -103,29 +104,34 @@ const Protected: React.FC = () => {
 };
 
 // ── 메인 GuardApp 컴포넌트 ──────────────────────────
-const GuardApp: React.FC = () => (
-  <ConfigProvider theme={AIM_DARK_THEME}>
-    <MemoryRouter initialEntries={["/monitor"]}>
-      <AutoLogin />
-      <AlarmBridge />
-      <Suspense fallback={<Loading />}>
-        <Routes>
-          <Route element={<Protected />}>
-            <Route element={<AppLayout />}>
-              <Route index element={<Navigate to="/monitor" replace />} />
-              <Route path="/monitor" element={<MonitorPage />} />
-              <Route path="/cctv"    element={<CctvDashboard />} />
-              <Route path="/events"  element={<EventsPage />} />
-              <Route path="/stats"   element={<StatsPage />} />
-              <Route path="/admin/event-rules" element={<EventRulesPage />} />
-              <Route path="/admin/settings"    element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/monitor" replace />} />
+const GuardApp: React.FC = () => {
+  const brand = useEditorStore((s) => s.brand);
+  const guardTheme = useMemo(() => buildGuardTheme(brand), [brand]);
+
+  return (
+    <ConfigProvider theme={guardTheme}>
+      <MemoryRouter initialEntries={["/monitor"]}>
+        <AutoLogin />
+        <AlarmBridge />
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            <Route element={<Protected />}>
+              <Route element={<AppLayout />}>
+                <Route index element={<Navigate to="/monitor" replace />} />
+                <Route path="/monitor" element={<MonitorPage />} />
+                <Route path="/cctv"    element={<CctvDashboard />} />
+                <Route path="/events"  element={<EventsPage />} />
+                <Route path="/stats"   element={<StatsPage />} />
+                <Route path="/admin/event-rules" element={<EventRulesPage />} />
+                <Route path="/admin/settings"    element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/monitor" replace />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </Suspense>
-    </MemoryRouter>
-  </ConfigProvider>
-);
+          </Routes>
+        </Suspense>
+      </MemoryRouter>
+    </ConfigProvider>
+  );
+};
 
 export default GuardApp;

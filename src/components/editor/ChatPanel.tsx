@@ -10,6 +10,7 @@ import { computeNextPosition, getWidgetSize } from "./SmartGridEngine";
 import type { WidgetData } from "@/store/editorStore";
 import { detectBrandSuggestion, encodeBrandSuggestion, parseBrandSuggestion } from "@/lib/brandAgent";
 import type { BrandAgentSuggestion } from "@/lib/brandAgent";
+import { parseIntent } from "@/lib/intentParser";
 
 const LOGS = [
   "✓ solution loader initialized",
@@ -174,6 +175,37 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
     const userMsg = { id: Date.now().toString(), role: "user" as const, content: text };
     addMessage(userMsg);
 
+    // ── Intent Parser — 즉시 실행 (API 불필요) ──────────────
+    const intent = parseIntent(text);
+    if (intent.type !== "unknown") {
+      const store = useEditorStore.getState();
+      switch (intent.type) {
+        case "brand_preset":
+          store.selectBrandPreset(intent.params.presetId);
+          if (intent.params.title) store.setSystemTitle(intent.params.title);
+          break;
+        case "tenant_name":
+          store.updateBrand({ tenantName: intent.params.name });
+          break;
+        case "system_title":
+          store.setSystemTitle(intent.params.title);
+          break;
+        case "view_mapping":
+          store.setCenterView("mapping");
+          store.setRightPanel("mapping");
+          break;
+        case "view_monitor":
+          store.setCenterView("monitor");
+          break;
+        case "clear_widgets":
+          store.overlayWidgets.forEach(w => store.removeOverlayWidget(w.id));
+          break;
+      }
+      const aiId = (Date.now() + 1).toString();
+      addMessage({ id: aiId, role: "assistant", content: intent.ackMessage });
+      return;
+    }
+
     const brandSuggestion = detectBrandSuggestion(text);
     if (brandSuggestion) {
       const aiId = (Date.now() + 1).toString();
@@ -290,11 +322,15 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
-                className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}
+                className={cn("flex gap-2", msg.role === "user" ? "justify-end" : "justify-start items-start")}
               >
+                {/* 에임이 아바타 — assistant 메시지 전용 */}
+                {msg.role === "assistant" && (
+                  <img src="/img/ch6.png" alt="에임이" className="h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20 mt-1" />
+                )}
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed",
+                    "max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap",
                     msg.role === "user"
                       ? "bg-purple-500/20 text-purple-100"
                       : "bg-white/5 text-white/80"

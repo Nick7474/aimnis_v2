@@ -1,14 +1,12 @@
 "use client";
 
-import { useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Settings2, Sliders, Type, Palette, LayoutGrid } from "lucide-react";
+import { Sliders, LayoutGrid } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
-import { cn } from "@/lib/utils";
 import type { SolutionWidget } from "@/lib/solutionLoader";
 import type { WidgetProperties } from "@/store/editorStore";
-
-const FONTS = ["Inter", "Pretendard", "Noto Sans KR", "IBM Plex Sans", "JetBrains Mono"];
+import BrandKitControls from "./BrandKitControls";
+import ColorTokenPicker from "./ColorTokenPicker";
 
 interface SettingsPanelProps {
   widgets: SolutionWidget[];
@@ -71,18 +69,7 @@ function ColorPickerRow({
       <span className="text-xs text-white/60">{label}</span>
       <div className="flex items-center gap-2">
         <span className="font-mono text-[10px] text-white/35">{value}</span>
-        <label className="cursor-pointer">
-          <div
-            className="h-6 w-6 rounded-lg border border-white/20"
-            style={{ backgroundColor: value }}
-          />
-          <input
-            type="color"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="sr-only"
-          />
-        </label>
+        <ColorTokenPicker label={label} value={value} onChange={onChange} />
       </div>
     </div>
   );
@@ -235,17 +222,10 @@ function WidgetEditorSection() {
 // ── 메인 ─────────────────────────────────────────────────────
 
 export default function SettingsPanel({ widgets }: SettingsPanelProps) {
-  const { brand, updateBrand, systemTitle, setSystemTitle, selectedElement } = useEditorStore();
-  const logoInputRef = useRef<HTMLInputElement>(null);
+  const { selectedElement } = useEditorStore();
 
   const hasWidgetSelected =
     selectedElement?.type === "widget" && !!selectedElement.sectionId;
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    updateBrand({ logoUrl: URL.createObjectURL(file) });
-  };
 
   return (
     <div className="overflow-y-auto custom-scrollbar p-4 space-y-5">
@@ -265,90 +245,30 @@ export default function SettingsPanel({ widgets }: SettingsPanelProps) {
         )}
       </AnimatePresence>
 
-      {/* 시스템 타이틀 */}
-      <section className="flex flex-col gap-2">
-        <SectionHeader icon={Type} title="시스템 타이틀" />
-        <TextRow
-          label="명칭"
-          value={systemTitle}
-          onChange={(v) => setSystemTitle(v)}
-        />
-        <p className="text-[9px] text-white/20">GNB 헤더에 즉시 반영됩니다</p>
-      </section>
+      <BrandKitControls />
 
-      {/* 브랜드 컬러 */}
-      <section className="flex flex-col gap-2">
-        <SectionHeader icon={Palette} title="브랜드 컬러" />
-        <ColorPickerRow
-          label="주 컬러"
-          value={brand.primaryColor}
-          onChange={(v) => {
-            updateBrand({ primaryColor: v });
-            document.documentElement.style.setProperty("--guard-color-primary", v);
-          }}
-        />
-        <ColorPickerRow
-          label="보조 컬러"
-          value={brand.secondaryColor}
-          onChange={(v) => {
-            updateBrand({ secondaryColor: v });
-            document.documentElement.style.setProperty("--guard-color-accent", v);
-          }}
-        />
-      </section>
-
-      {/* 로고 */}
-      <section className="flex flex-col gap-2">
-        <SectionHeader icon={Upload} title="로고" />
-        <button
-          onClick={() => logoInputRef.current?.click()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.03] py-4 text-xs text-white/30 hover:border-purple-500/30 hover:text-white/50 transition-all"
-        >
-          {brand.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={brand.logoUrl} alt="logo" className="h-8 object-contain" />
-          ) : (
-            <>
-              <Upload className="h-3.5 w-3.5" />
-              로고 업로드 (PNG, SVG)
-            </>
-          )}
-        </button>
-        <input
-          ref={logoInputRef}
-          type="file"
-          accept=".png,.svg,.jpg"
-          className="hidden"
-          onChange={handleLogoChange}
-        />
-      </section>
-
-      {/* 폰트 */}
-      <section className="flex flex-col gap-2">
-        <SectionHeader icon={Type} title="폰트" />
-        <div className="flex flex-col gap-1">
-          {FONTS.map((font) => (
-            <button
-              key={font}
-              onClick={() => updateBrand({ fontFamily: font })}
-              className={cn(
-                "rounded-lg px-3 py-2 text-left text-xs transition-all",
-                brand.fontFamily === font
-                  ? "bg-purple-500/20 text-purple-200 border border-purple-500/30"
-                  : "bg-white/5 text-white/40 hover:bg-white/10"
-              )}
-              style={{ fontFamily: font }}
-            >
-              {font}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* 기능 모듈 토글 */}
+      {/* 기능 모듈 요약 */}
       <section className="flex flex-col gap-2">
         <SectionHeader icon={LayoutGrid} title="기능 모듈" />
-        <div className="flex flex-col gap-2">
+        <div className="rounded-xl border border-white/5 bg-white/[0.025] px-3 py-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-white/55">활성 위젯</span>
+            <span className="rounded-md border border-emerald-400/15 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+              {widgets.length}개
+            </span>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {widgets.slice(0, 6).map((widget) => (
+              <span
+                key={widget.id}
+                className="rounded-md border border-white/[0.06] bg-white/[0.04] px-2 py-1 text-[10px] text-white/40"
+              >
+                {widget.name}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="hidden">
           {widgets.map((widget) => (
             <WidgetToggle key={widget.id} widget={widget} />
           ))}

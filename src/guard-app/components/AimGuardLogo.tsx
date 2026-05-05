@@ -1,9 +1,13 @@
 import React from 'react';
 
-const AimGuardLogo: React.FC<{ size?: number }> = ({ size = 32 }) => (
+const AimGuardLogo: React.FC<{ size?: number; src?: string | null; alt?: string }> = ({
+  size = 32,
+  src,
+  alt = 'AIM GUARD Logo',
+}) => (
   <img
-    src="/img/logo.png"
-    alt="AIM GUARD Logo"
+    src={src || "/img/logo.png"}
+    alt={alt}
     style={{ height: size, width: 'auto', display: 'block', objectFit: 'contain' }}
   />
 );

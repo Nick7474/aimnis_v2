@@ -1,0 +1,46 @@
+{
+  "provider": "Hanwha Vision VMS",
+  "siteId": "AIM-GUARD-FACTORY-01",
+  "snapshotAt": "2026-04-29T21:55:00+09:00",
+  "activeCameras": 39,
+  "totalCameras": 42,
+  "streamHealth": "degraded",
+  "locations": [
+    {
+      "cameraId": "CAM-A-014",
+      "name": "Battery Storage A - Thermal",
+      "zone": "Battery Storage A",
+      "lat": 34.9401,
+      "lng": 127.6954,
+      "floor": "1F",
+      "status": "online"
+    },
+    {
+      "cameraId": "CAM-C-003",
+      "name": "Restricted Gate C",
+      "zone": "Gate C",
+      "lat": 34.9417,
+      "lng": 127.6928,
+      "floor": "1F",
+      "status": "online"
+    }
+  ],
+  "alertCameras": [
+    {
+      "cameraId": "CAM-A-014",
+      "eventType": "motion_detected",
+      "severity": "warning",
+      "confidence": 0.94,
+      "thumbnailUrl": "vms://hanwha/cam-a-014/thumb/latest"
+    },
+    {
+      "cameraId": "CAM-C-003",
+      "eventType": "unauthorized_entry",
+      "severity": "critical",
+      "confidence": 0.88,
+      "thumbnailUrl": "vms://hanwha/cam-c-003/thumb/latest"
+    }
+  ],
+  "cameraId": "CAM-A-014",
+  "status": "motion_detected"
+}

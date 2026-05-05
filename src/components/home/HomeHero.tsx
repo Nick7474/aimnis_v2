@@ -13,7 +13,6 @@ import { useLLMStore } from "@/store/llmStore";
 import { useProjectStore } from "@/store/projectStore";
 import { scenarios } from "@/data/scenarios";
 import ParticleWaves from "./ParticleWaves";
-import ProviderPicker from "@/components/shared/ProviderPicker";
 
 interface HomeHeroProps {
   solutions: SolutionManifest[];
@@ -30,7 +29,6 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
   const [activeSolution, setActiveSolution] = useState<string | null>(null);
 
   const { setIsWorking, setSelectedScenario } = useHomeStore();
-  const { provider } = useLLMStore();
   const { projects: savedProjects } = useProjectStore();
   const [showProjectSuggestions, setShowProjectSuggestions] = useState(false);
 
@@ -78,7 +76,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
       const res = await fetch("/api/home", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, solution: solId, provider }),
+        body: JSON.stringify({ prompt: text, solution: solId }),
       });
 
       const reader = res.body?.getReader();
@@ -303,26 +301,26 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                     style={{ maxHeight: 320, overflowY: "auto", padding: "16px 16px 12px", display: "flex", flexDirection: "column", gap: 10 }}
                     className="custom-scrollbar"
                   >
-                    {chatHistory.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[88%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                    {/* 에임이 첫 메시지 — 히스토리 없을 때 */}
+                    {chatHistory.length === 0 && aiState !== "streaming" && (
+                      <div className="flex justify-start gap-2.5 mb-2">
+                        <img src="/img/ch6.png" alt="에임이" className="h-7 w-7 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/25 mt-0.5" />
+                        <div className="max-w-[88%] rounded-xl rounded-tl-sm border border-white/[0.07] bg-white/[0.03] px-3 py-2.5 text-sm text-white/80 leading-relaxed whitespace-pre-line">
+                          {"안녕하세요! 저는 에임이예요 🦊\n보안·에너지·스마트시티, 어떤 현장이든\n맞춤 관제 시스템을 함께 만들어 드릴게요.\n\n어떤 현장을 구축하고 싶으신가요?"}
+                        </div>
+                      </div>
+                    )}
+                  {chatHistory.map((msg, i) => (
+                      <div key={i} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                        {msg.role === "ai" && (
+                          <img src="/img/ch6.png" alt="에임이" className="h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20 mt-0.5" />
+                        )}
+                        <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
                           msg.role === "user"
                             ? "bg-purple-500/20 text-purple-100"
-                            : "bg-white/5 text-white/80 whitespace-pre-wrap"
+                            : "bg-white/5 text-white/80"
                         }`}>
                           {msg.text}
-                          {msg.role === "ai" && i === chatHistory.length - 1 && aiState === "done" && (
-                            <div className="mt-3 flex items-center gap-2">
-                              <div className="flex-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-400">✓ 생성 완료</div>
-                              <button
-                                type="button"
-                                onClick={() => router.push(`/editor?solution=${pendingSolution ?? "guard"}`)}
-                                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-2.5 py-1 text-[10px] text-white hover:from-violet-500 hover:to-indigo-500 transition-all"
-                              >
-                                에디터 열기 <ExternalLink className="h-2.5 w-2.5" />
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     ))}
@@ -397,8 +395,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                   className="hidden"
                 />
 
-                {/* AI 엔진 선택 */}
-                <ProviderPicker compact dropUp />
+
 
                 {/* 솔루션 칩 */}
                 <SolutionChips

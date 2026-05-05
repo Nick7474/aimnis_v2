@@ -68,7 +68,7 @@ export interface SpecGroup {
 export const scenarios: Scenario[] = [
   {
     id: "energy",
-    label: "국가 에너지 관제",
+    label: "에너지 시설 통합 관제",
     subLabel: "KEPCO",
     icon: "Zap",
     color: "#735FE9",
@@ -97,7 +97,7 @@ export const scenarios: Scenario[] = [
   },
   {
     id: "manufacturing",
-    label: "하이테크 제조 관제",
+    label: "스마트 제조 이상 감지",
     subLabel: "대기업",
     icon: "Factory",
     color: "#7c3aed",
@@ -126,7 +126,7 @@ export const scenarios: Scenario[] = [
   },
   {
     id: "smartcity",
-    label: "스마트시티 재난 대응",
+    label: "스마트시티 안전 관제",
     subLabel: "지자체",
     icon: "Building2",
     color: "#059669",

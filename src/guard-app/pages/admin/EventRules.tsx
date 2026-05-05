@@ -17,10 +17,10 @@ import {
 
 /* ── 심각도 / 이벤트 타입 옵션 ── */
 const SEV_OPTIONS: { value: SeverityLevel; label: string; color: string }[] = [
-  { value: 'CRITICAL', label: 'CRITICAL', color: '#DC2626' },
-  { value: 'HIGH',     label: 'HIGH',     color: '#EA580C' },
-  { value: 'MEDIUM',   label: 'MEDIUM',   color: '#CA8A04' },
-  { value: 'LOW',      label: 'LOW',      color: '#2563EB' },
+  { value: 'CRITICAL', label: 'CRITICAL', color: 'var(--guard-color-danger)' },
+  { value: 'HIGH',     label: 'HIGH',     color: 'var(--guard-color-warning)' },
+  { value: 'MEDIUM',   label: 'MEDIUM',   color: 'var(--guard-color-accent)' },
+  { value: 'LOW',      label: 'LOW',      color: 'var(--guard-color-primary)' },
 ];
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
@@ -57,13 +57,13 @@ const ActionCard: React.FC<{
 
   return (
     <div style={{
-      background: '#070F24', border: '1px solid #1E3A5F', borderRadius: 6,
+      background: 'var(--guard-color-bg)', border: '1px solid var(--guard-color-border)', borderRadius: 6,
       padding: '10px 12px', marginBottom: 8, position: 'relative',
     }}>
       {/* 액션 타입 라벨 */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
-        color: '#60a5fa', fontWeight: 700, fontSize: 12,
+        color: 'var(--guard-color-accent)', fontWeight: 700, fontSize: 12,
       }}>
         {ACTION_ICONS[action.type]}
         {ACTION_LABELS[action.type]}
@@ -71,7 +71,7 @@ const ActionCard: React.FC<{
           onClick={() => onRemove(idx)}
           style={{
             marginLeft: 'auto', background: 'none', border: 'none',
-            color: '#475569', cursor: 'pointer', fontSize: 14, padding: 0,
+            color: 'var(--guard-color-text-faint)', cursor: 'pointer', fontSize: 14, padding: 0,
             lineHeight: 1,
           }}
         >✕</button>
@@ -146,7 +146,7 @@ const ActionCard: React.FC<{
                   value={action.pulseSec ?? 5}
                   onChange={(e) => onChange(idx, { ...action, pulseSec: Number(e.target.value) })}
                 />
-                <span style={{ color: '#64748b', fontSize: 11 }}>초</span>
+                <span style={{ color: 'var(--guard-color-text-faint)', fontSize: 11 }}>초</span>
               </Space>
             )}
           </Space>
@@ -240,13 +240,13 @@ const EventRulesPage: React.FC = () => {
     {
       title: '규칙명', dataIndex: 'name', width: 200,
       render: (v, r) => (
-        <span style={{ fontWeight: 600, color: r.enabled ? '#e2e8f0' : '#475569' }}>{v}</span>
+        <span style={{ fontWeight: 600, color: r.enabled ? 'var(--guard-color-text-strong)' : 'var(--guard-color-text-faint)' }}>{v}</span>
       ),
     },
     {
       title: '트리거', key: 'trigger',
       render: (_, r) => (
-        <span style={{ fontSize: 11, color: '#94a3b8' }}>{summarizeTrigger(r.trigger)}</span>
+        <span style={{ fontSize: 11, color: 'var(--guard-color-text-soft)' }}>{summarizeTrigger(r.trigger)}</span>
       ),
     },
     {
@@ -351,7 +351,7 @@ const EventRulesPage: React.FC = () => {
                   {/* 이벤트 유형 */}
                   <Form.Item label="이벤트 유형" style={{ margin: 0 }}>
                     <div style={{
-                      background: '#070F24', border: '1px solid #1E3A5F',
+                      background: 'var(--guard-color-bg)', border: '1px solid var(--guard-color-border)',
                       borderRadius: 6, padding: '8px 12px',
                     }}>
                       <Checkbox.Group
@@ -372,7 +372,7 @@ const EventRulesPage: React.FC = () => {
                   {/* 심각도 */}
                   <Form.Item label="심각도" style={{ margin: 0 }}>
                     <div style={{
-                      background: '#070F24', border: '1px solid #1E3A5F',
+                      background: 'var(--guard-color-bg)', border: '1px solid var(--guard-color-border)',
                       borderRadius: 6, padding: '8px 12px',
                       display: 'flex', gap: 16,
                     }}>
@@ -416,7 +416,7 @@ const EventRulesPage: React.FC = () => {
 
                   {actions.length === 0 && (
                     <div style={{
-                      textAlign: 'center', color: '#475569', padding: '24px 0',
+                      textAlign: 'center', color: 'var(--guard-color-text-faint)', padding: '24px 0',
                       fontSize: 12,
                     }}>
                       액션이 없습니다. 아래에서 추가하세요.

@@ -2,33 +2,55 @@
 
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
 import { cn } from "@/lib/utils";
 
+// 시나리오별 에임이 환영 메시지
+const AIMI_GREETING: Record<string, string> = {
+  default:      "에임이가 현장에 맞는 최적 설정을 도와드릴게요.\n왼쪽에서 시나리오를 선택해 주세요 👆",
+  energy:       "에너지 시설 전문가 모드예요 ⚡\n항목을 직접 선택하거나\n'전문가 추천으로 해줘'라고 말씀하세요.",
+  manufacturing:"스마트 제조 현장 전문가 모드예요 🏭\n항목을 채우거나 자유롭게 말씀하세요.",
+  smartcity:    "스마트시티 관제 전문가 모드예요 🏙\n지자체 표준 설정을 바로 적용할 수 있어요.",
+};
+
 export default function ChatArea() {
-  const { messages, isThinking } = useHomeStore();
+  const { messages, isThinking, selectedScenario } = useHomeStore();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
 
+  const greeting = AIMI_GREETING[selectedScenario ?? "default"] ?? AIMI_GREETING.default;
+
   if (messages.length === 0 && !isThinking) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+      <div className="flex flex-1 flex-col gap-3 pt-2">
+        {/* 에임이 환영 버블 */}
         <motion.div
-          animate={{ y: [0, -6, 0] }}
-          transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand-500/20 bg-brand-500/10"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          key={selectedScenario ?? "default"}
+          className="flex items-start gap-2.5"
         >
-          <Bot className="h-5 w-5 text-brand-400" />
+          <div className="relative flex-shrink-0 mt-0.5">
+            <motion.img
+              src="/img/ch6.png"
+              alt="에임이"
+              animate={{ y: [0, -4, 0] }}
+              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+              className="h-7 w-7 rounded-full object-cover ring-1 ring-violet-500/30"
+            />
+            <span className="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          </div>
+          <div
+            className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed border border-white/[0.07] text-white/80 whitespace-pre-line"
+            style={{ background: "rgba(255,255,255,0.03)" }}
+          >
+            {greeting}
+          </div>
         </motion.div>
-        <p className="text-sm text-white/30">
-          시나리오를 선택하거나 요구사항을 입력하면
-          <br />
-          AI 아키텍트가 역질문을 시작합니다
-        </p>
       </div>
     );
   }
@@ -45,21 +67,25 @@ export default function ChatArea() {
             className={cn("flex gap-2.5", msg.role === "user" ? "justify-end" : "justify-start")}
           >
             {msg.role === "assistant" && (
-              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-brand-500/20 bg-brand-500/10 mt-0.5">
-                <Bot className="h-3.5 w-3.5 text-brand-400" />
+              <div className="relative flex-shrink-0 mt-0.5">
+                <img
+                  src="/img/ch6.png"
+                  alt="에임이"
+                  className="h-7 w-7 rounded-full object-cover ring-1 ring-violet-500/20"
+                />
               </div>
             )}
             <div
               className={cn(
-                "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line",
                 msg.role === "user"
-                  ? "rounded-tr-sm bg-white/10 text-white"
-                  : "rounded-tl-sm border border-white/8 bg-white/[0.04] text-white/85"
+                  ? "rounded-tr-sm text-white"
+                  : "rounded-tl-sm border border-white/[0.07] text-white/85"
               )}
               style={
                 msg.role === "user"
                   ? { background: "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,180,220,0.08))" }
-                  : undefined
+                  : { background: "rgba(255,255,255,0.03)" }
               }
             >
               {msg.content || (
@@ -69,7 +95,7 @@ export default function ChatArea() {
           </motion.div>
         ))}
 
-        {/* Thinking 애니메이션 */}
+        {/* 에임이 Thinking */}
         {isThinking && (
           <motion.div
             key="thinking"
@@ -78,16 +104,17 @@ export default function ChatArea() {
             exit={{ opacity: 0 }}
             className="flex items-start gap-2.5"
           >
-            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-brand-500/20 bg-brand-500/10 mt-0.5">
-              <motion.div
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ repeat: Infinity, duration: 1.5 }}
-              >
-                <Bot className="h-3.5 w-3.5 text-brand-400" />
-              </motion.div>
+            <div className="relative flex-shrink-0 mt-0.5">
+              <motion.img
+                src="/img/ch6.png"
+                alt="에임이"
+                animate={{ opacity: [0.6, 1, 0.6] }}
+                transition={{ repeat: Infinity, duration: 1.4 }}
+                className="h-7 w-7 rounded-full object-cover ring-1 ring-violet-500/30"
+              />
             </div>
             <div
-              className="rounded-2xl rounded-tl-sm border border-white/8 px-4 py-3"
+              className="rounded-2xl rounded-tl-sm border border-white/[0.07] px-4 py-3"
               style={{ background: "rgba(0,212,255,0.04)" }}
             >
               <div className="flex items-center gap-1.5">

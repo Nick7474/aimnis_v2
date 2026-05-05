@@ -1,0 +1,80 @@
+{
+  "siteId": "POSCO-GWANGYANG-SAFETY-01",
+  "siteName": "POSCO Gwangyang Smart Safety Center",
+  "generatedAt": "2026-04-29T09:30:00+09:00",
+  "operations": {
+    "overallRiskScore": 73,
+    "riskLevel": "warning",
+    "activeWorkers": 128,
+    "restrictedZoneEntries": 3,
+    "openIncidents": 8
+  },
+  "energy": {
+    "currentKw": 247,
+    "peakKw": 312,
+    "dailyKwh": 1580,
+    "voltage": 380,
+    "current": 48,
+    "timeSeries": [
+      { "time": "09:00", "value": 210 },
+      { "time": "10:00", "value": 247 },
+      { "time": "11:00", "value": 231 },
+      { "time": "12:00", "value": 268 },
+      { "time": "13:00", "value": 255 },
+      { "time": "14:00", "value": 280 }
+    ]
+  },
+  "cctv": {
+    "activeCameras": 39,
+    "totalCameras": 42,
+    "alertCameras": [
+      {
+        "cameraId": "CAM-A-014",
+        "zone": "Battery Storage A",
+        "status": "motion_detected",
+        "confidence": 0.94
+      },
+      {
+        "cameraId": "CAM-C-003",
+        "zone": "Restricted Gate C",
+        "status": "unauthorized_entry",
+        "confidence": 0.88
+      }
+    ],
+    "locations": [
+      { "cameraId": "CAM-A-014", "lat": 34.9401, "lng": 127.6954 },
+      { "cameraId": "CAM-C-003", "lat": 34.9417, "lng": 127.6928 }
+    ]
+  },
+  "airQuality": {
+    "pm25": 35,
+    "pm10": 48,
+    "co2": 420,
+    "temperature": 23.8,
+    "humidity": 47
+  },
+  "workerSafety": {
+    "onSite": 128,
+    "helmetCompliance": 97,
+    "recentAlerts": [
+      {
+        "level": "critical",
+        "msg": "Restricted Gate C unauthorized entry",
+        "workerId": "WK-1281",
+        "zone": "Gate C"
+      },
+      {
+        "level": "warning",
+        "msg": "Camera CAM-A-014 motion detected near battery rack",
+        "workerId": "unknown",
+        "zone": "Battery Storage A"
+      },
+      {
+        "level": "info",
+        "msg": "Zone-B gas sensor returned to normal",
+        "workerId": "WK-0942",
+        "zone": "Zone B"
+      }
+    ]
+  }
+}

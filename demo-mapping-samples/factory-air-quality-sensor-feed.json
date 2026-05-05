@@ -1,0 +1,26 @@
+{
+  "source": "AIM GUARD Environmental Sensor Gateway",
+  "siteId": "POSCO-GWANGYANG-SAFETY-01",
+  "measuredAt": "2026-04-29T21:55:00+09:00",
+  "pm25": 35,
+  "pm10": 48,
+  "co2": 420,
+  "temperature": 23.8,
+  "humidity": 47,
+  "sensorStatus": [
+    {
+      "sensorId": "AIR-1F-A-002",
+      "zone": "Battery Storage A",
+      "status": "normal",
+      "pm25": 35,
+      "co2": 420
+    },
+    {
+      "sensorId": "AIR-1F-C-011",
+      "zone": "Gate C",
+      "status": "warning",
+      "pm25": 42,
+      "co2": 470
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link2, Sparkles, ChevronDown, ChevronRight, Check, Zap } from "lucide-react";
+import { Link2, Sparkles, ChevronDown, ChevronRight, Check, Zap, Network } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import type { WidgetData } from "@/store/editorStore";
@@ -86,7 +86,7 @@ function SourceItem({ source, isOpen, onToggle, connectedFields, onConnect, widg
   const recs = new Set(WIDGET_RECS[widgetType] ?? []);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-white/8 bg-white/[0.03]">
+    <div className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.03]">
       <button
         onClick={onToggle}
         className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
@@ -143,7 +143,7 @@ function SourceItem({ source, isOpen, onToggle, connectedFields, onConnect, widg
                         "rounded px-2 py-0.5 text-[9px] font-medium transition-all",
                         connected
                           ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-white/8 text-white/35 hover:bg-purple-500/20 hover:text-purple-300"
+                          : "bg-white/[0.08] text-white/[0.35] hover:bg-purple-500/20 hover:text-purple-300"
                       )}
                     >
                       {connected ? "연결됨" : "연결"}
@@ -166,8 +166,10 @@ export default function MappingPanel({ dataConnectors: _dataConnectors }: Mappin
     selectedElement,
     overlayWidgets,
     mappings,
+    mappingEdges,
     updateMapping,
     updateOverlayWidgetData,
+    setCenterView,
   } = useEditorStore();
 
   const [openSource, setOpenSource] = useState<string | null>("energy-sensor");
@@ -182,8 +184,16 @@ export default function MappingPanel({ dataConnectors: _dataConnectors }: Mappin
           <Link2 className="h-4 w-4 text-white/30" />
         </div>
         <p className="text-xs text-white/30">
-          캔버스에서 위젯을 선택하면<br />API 매핑을 편집할 수 있습니다
+          캔버스에서 위젯을 선택하면<br />연결 상태를 확인할 수 있습니다
         </p>
+        <button
+          type="button"
+          onClick={() => setCenterView("mapping")}
+          className="mt-2 flex items-center gap-1.5 rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-[10px] font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/15"
+        >
+          <Network className="h-3 w-3" />
+          데이터 매핑 스튜디오 열기
+        </button>
       </div>
     );
   }
@@ -245,6 +255,27 @@ export default function MappingPanel({ dataConnectors: _dataConnectors }: Mappin
           </div>
         </motion.div>
 
+        <button
+          type="button"
+          onClick={() => setCenterView("mapping")}
+          className="flex items-center justify-between rounded-xl border border-emerald-400/[0.18] bg-emerald-500/[0.08] px-3 py-2.5 text-left transition-colors hover:bg-emerald-500/[0.12]"
+        >
+          <span className="flex items-center gap-2">
+            <Network className="h-3.5 w-3.5 text-emerald-300" />
+            <span>
+              <span className="block text-[11px] font-semibold text-emerald-200">
+                시각 매핑 캔버스
+              </span>
+              <span className="block text-[9px] text-emerald-100/[0.45]">
+                파일/폴더 드롭 후 선으로 연결
+              </span>
+            </span>
+          </span>
+          <span className="rounded-md bg-emerald-400/10 px-2 py-1 text-[9px] font-semibold text-emerald-300">
+            {mappingEdges.length} links
+          </span>
+        </button>
+
         {/* AI 추천 필드 */}
         {(WIDGET_RECS[widget.type]?.length ?? 0) > 0 && (
           <div>
@@ -267,7 +298,7 @@ export default function MappingPanel({ dataConnectors: _dataConnectors }: Mappin
                       "flex items-center gap-2 rounded-lg border px-3 py-2 transition-all",
                       connected
                         ? "border-emerald-500/25 bg-emerald-500/8"
-                        : "border-white/6 bg-white/[0.03]"
+                        : "border-white/[0.06] bg-white/[0.03]"
                     )}
                   >
                     <div className={cn(
@@ -286,7 +317,7 @@ export default function MappingPanel({ dataConnectors: _dataConnectors }: Mappin
                         "rounded px-2 py-0.5 text-[9px] font-medium transition-all",
                         connected
                           ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-white/8 text-white/35 hover:bg-purple-500/20 hover:text-purple-300"
+                          : "bg-white/[0.08] text-white/[0.35] hover:bg-purple-500/20 hover:text-purple-300"
                       )}
                     >
                       {connected ? "연결됨" : "연결"}

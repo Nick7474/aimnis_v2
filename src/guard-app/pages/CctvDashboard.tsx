@@ -91,13 +91,13 @@ const MockVideoFeed: React.FC<{ camera: Camera; muted: boolean }> = ({ camera, m
         padding: '7px 10px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <span style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, letterSpacing: 0.8,
+        <span style={{ color: 'var(--guard-color-text-strong)', fontSize: 12, fontWeight: 700, letterSpacing: 0.8,
           textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
           {camera.channelId}
         </span>
         {camera.hasAlarm && (
           <span style={{
-            background: '#DC2626', color: '#fff', fontSize: 10, fontWeight: 700,
+            background: 'var(--guard-color-danger)', color: '#fff', fontSize: 10, fontWeight: 700,
             padding: '2px 6px', borderRadius: 3, letterSpacing: 1,
             animation: 'cctv-blink 1s step-end infinite',
           }}>
@@ -113,16 +113,16 @@ const MockVideoFeed: React.FC<{ camera: Camera; muted: boolean }> = ({ camera, m
         padding: '7px 10px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <span style={{ color: '#cbd5e1', fontSize: 12, fontWeight: 500,
+        <span style={{ color: 'var(--guard-color-text)', fontSize: 12, fontWeight: 500,
           textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>{camera.name}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{
             width: 7, height: 7, borderRadius: '50%',
-            background: camera.status === 'online' ? '#16A34A' : '#DC2626',
+            background: camera.status === 'online' ? 'var(--guard-color-success)' : 'var(--guard-color-danger)',
             display: 'inline-block',
-            boxShadow: camera.status === 'online' ? '0 0 5px #16A34A' : '0 0 5px #DC2626',
+            boxShadow: camera.status === 'online' ? '0 0 5px var(--guard-color-success)' : '0 0 5px var(--guard-color-danger)',
           }} />
-          <span style={{ color: camera.status === 'online' ? '#4ade80' : '#f87171', fontSize: 11,
+          <span style={{ color: camera.status === 'online' ? 'var(--guard-color-success)' : 'var(--guard-color-danger)', fontSize: 11,
             fontWeight: 600, letterSpacing: 0.5, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
             {camera.status === 'online' ? 'LIVE' : 'OFFLINE'}
           </span>
@@ -132,7 +132,7 @@ const MockVideoFeed: React.FC<{ camera: Camera; muted: boolean }> = ({ camera, m
       {/* 알람 상태면 붉은 테두리 */}
       {camera.hasAlarm && (
         <div style={{
-          position: 'absolute', inset: 0, border: '2px solid #DC2626',
+          position: 'absolute', inset: 0, border: '2px solid var(--guard-color-danger)',
           pointerEvents: 'none', borderRadius: 1,
           boxShadow: 'inset 0 0 12px rgba(220,38,38,0.4)',
           animation: 'cctv-border-blink 1s step-end infinite',
@@ -155,10 +155,10 @@ const EmptyCell: React.FC<{
       style={{
         width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: compact ? 3 : 8,
-        background: over ? 'rgba(37,99,235,0.12)' : '#060d1e',
-        border: `1.5px dashed ${over ? '#2563EB' : '#1E3A5F'}`,
+        background: over ? 'color-mix(in srgb, var(--guard-color-primary) 12%, transparent)' : 'color-mix(in srgb, var(--guard-color-bg) 88%, #000)',
+        border: `1.5px dashed ${over ? 'var(--guard-color-primary)' : 'var(--guard-color-border)'}`,
         borderRadius: 4, cursor: 'default', transition: 'all 0.15s',
-        color: over ? '#60a5fa' : '#64748b',
+        color: over ? 'var(--guard-color-accent)' : 'var(--guard-color-text-faint)',
       }}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
@@ -193,11 +193,11 @@ const CameraCell: React.FC<{
     <div
       style={{
         width: '100%', height: '100%', position: 'relative',
-        background: '#0a0f1e', borderRadius: 4, overflow: 'hidden',
-        border: `1.5px solid ${over ? '#2563EB' : zoomed ? '#2563EB' : camera.hasAlarm ? '#DC2626' : '#1E3A5F'}`,
+        background: 'var(--guard-map-bg)', borderRadius: 4, overflow: 'hidden',
+        border: `1.5px solid ${over ? 'var(--guard-color-primary)' : zoomed ? 'var(--guard-color-primary)' : camera.hasAlarm ? 'var(--guard-color-danger)' : 'var(--guard-color-border)'}`,
         transition: 'border-color 0.15s',
         cursor: 'pointer',
-        boxShadow: zoomed ? '0 0 0 2px rgba(37,99,235,0.5)' : 'none',
+        boxShadow: zoomed ? '0 0 0 2px color-mix(in srgb, var(--guard-color-primary) 50%, transparent)' : 'none',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -217,7 +217,7 @@ const CameraCell: React.FC<{
       {hovered && !zoomed && (
         <div style={{
           position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.75)', color: '#cbd5e1', fontSize: 11,
+          background: 'rgba(0,0,0,0.75)', color: 'var(--guard-color-text)', fontSize: 11,
           padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none',
           fontWeight: 500, letterSpacing: 0.3,
         }}>
@@ -227,7 +227,7 @@ const CameraCell: React.FC<{
       {zoomed && hovered && (
         <div style={{
           position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(37,99,235,0.85)', color: '#fff', fontSize: 11,
+          background: 'color-mix(in srgb, var(--guard-color-primary) 85%, transparent)', color: '#fff', fontSize: 11,
           padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none',
           fontWeight: 500, letterSpacing: 0.3,
         }}>
@@ -255,7 +255,7 @@ const CameraCell: React.FC<{
             </button>
           </Tooltip>
           <Tooltip title="제거">
-            <button style={{ ...cellBtnStyle, background: 'rgba(220,38,38,0.8)' }}
+            <button style={{ ...cellBtnStyle, background: 'color-mix(in srgb, var(--guard-color-danger) 80%, transparent)' }}
               onClick={(e) => { e.stopPropagation(); onRemove(cellIdx); }}>
               <CloseOutlined style={{ fontSize: 11 }} />
             </button>
@@ -268,7 +268,7 @@ const CameraCell: React.FC<{
 
 const cellBtnStyle: React.CSSProperties = {
   width: 22, height: 22, borderRadius: 3, border: 'none', cursor: 'pointer',
-  background: 'rgba(0,0,0,0.65)', color: '#e2e8f0',
+  background: 'rgba(0,0,0,0.65)', color: 'var(--guard-color-text-strong)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
 };
 
@@ -283,13 +283,13 @@ const FullscreenModal: React.FC<{
   }}>
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '8px 16px', background: '#0C1733', borderBottom: '1px solid #1E3A5F',
+      padding: '8px 16px', background: 'var(--guard-color-surface)', borderBottom: '1px solid var(--guard-color-border)',
     }}>
-      <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+      <span style={{ color: 'var(--guard-color-text-strong)', fontWeight: 600 }}>
         {camera.channelId} — {camera.name}
       </span>
       <Button
-        type="text" icon={<CloseOutlined />} style={{ color: '#94a3b8' }}
+        type="text" icon={<CloseOutlined />} style={{ color: 'var(--guard-color-text-soft)' }}
         onClick={onClose}
       />
     </div>
@@ -379,7 +379,7 @@ const CctvDashboard: React.FC = () => {
   const handleClearAll = () => setCells(Array(32).fill(null));
 
   return (
-    <div style={{ display: 'flex', height: '100%', background: '#070F24', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100%', background: 'var(--guard-color-bg)', overflow: 'hidden' }}>
       <style>{`
         @keyframes cctv-blink { 0%,100%{opacity:1} 50%{opacity:0} }
         @keyframes cctv-border-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
@@ -387,14 +387,14 @@ const CctvDashboard: React.FC = () => {
 
       {/* ── 좌측 장치 목록 패널 ── */}
       <aside style={{
-        width: 180, flexShrink: 0, background: '#0C1733',
-        borderRight: '1px solid #1E3A5F', display: 'flex', flexDirection: 'column',
+        width: 180, flexShrink: 0, background: 'var(--guard-color-surface)',
+        borderRight: '1px solid var(--guard-color-border)', display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
       }}>
         <div style={{
           height: 38, flexShrink: 0, display: 'flex', alignItems: 'center',
-          padding: '0 12px', borderBottom: '1px solid #1E3A5F',
-          fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase',
+          padding: '0 12px', borderBottom: '1px solid var(--guard-color-border)',
+          fontSize: 12, fontWeight: 700, color: 'var(--guard-color-text-soft)', letterSpacing: 1, textTransform: 'uppercase',
         }}>
           장치 목록
         </div>
@@ -406,7 +406,7 @@ const CctvDashboard: React.FC = () => {
               <div key={group.key}>
                 <div style={{
                   padding: '8px 12px 4px', fontSize: 11, fontWeight: 700,
-                  color: '#64748b', letterSpacing: 0.5,
+                  color: 'var(--guard-color-text-faint)', letterSpacing: 0.5,
                 }}>
                   {group.label}
                 </div>
@@ -421,13 +421,13 @@ const CctvDashboard: React.FC = () => {
                         padding: '6px 10px 6px 16px',
                         display: 'flex', alignItems: 'center', gap: 8,
                         cursor: 'grab', userSelect: 'none',
-                        background: isAssigned ? 'rgba(37,99,235,0.1)' : 'transparent',
-                        borderLeft: isAssigned ? '2px solid #2563EB' : '2px solid transparent',
+                        background: isAssigned ? 'color-mix(in srgb, var(--guard-color-primary) 10%, transparent)' : 'transparent',
+                        borderLeft: isAssigned ? '2px solid var(--guard-color-primary)' : '2px solid transparent',
                         transition: 'background 0.1s',
                         opacity: cam.status === 'offline' ? 0.5 : 1,
                       }}
                       onMouseEnter={(e) => {
-                        if (!isAssigned) (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.06)';
+                        if (!isAssigned) (e.currentTarget as HTMLDivElement).style.background = 'color-mix(in srgb, var(--guard-color-primary) 7%, transparent)';
                       }}
                       onMouseLeave={(e) => {
                         if (!isAssigned) (e.currentTarget as HTMLDivElement).style.background = 'transparent';
@@ -435,20 +435,20 @@ const CctvDashboard: React.FC = () => {
                     >
                       <VideoCameraOutlined style={{
                         fontSize: 13,
-                        color: cam.status === 'offline' ? '#64748b'
-                          : cam.hasAlarm ? '#DC2626'
-                          : isAssigned ? '#60A5FA' : '#94a3b8',
+                        color: cam.status === 'offline' ? 'var(--guard-color-text-faint)'
+                          : cam.hasAlarm ? 'var(--guard-color-danger)'
+                          : isAssigned ? 'var(--guard-color-accent)' : 'var(--guard-color-text-soft)',
                       }} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{
-                          fontSize: 12, color: isAssigned ? '#e2e8f0' : '#cbd5e1',
+                          fontSize: 12, color: isAssigned ? 'var(--guard-color-text-strong)' : 'var(--guard-color-text)',
                           fontWeight: isAssigned ? 600 : 400,
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         }}>
                           {cam.name} {cam.channelId}
                         </div>
                         {cam.status === 'offline' && (
-                          <div style={{ fontSize: 10, color: '#ef4444' }}>오프라인</div>
+                          <div style={{ fontSize: 10, color: 'var(--guard-color-danger)' }}>오프라인</div>
                         )}
                       </div>
                     </div>
@@ -461,11 +461,11 @@ const CctvDashboard: React.FC = () => {
 
         {/* 빠른 작업 버튼 */}
         <div style={{
-          padding: '8px 10px', borderTop: '1px solid #1E3A5F',
+          padding: '8px 10px', borderTop: '1px solid var(--guard-color-border)',
           display: 'flex', flexDirection: 'column', gap: 5,
         }}>
           <Button size="small" block onClick={handleAutoFill}
-            style={{ fontSize: 12, height: 30, fontWeight: 600, background: '#1E40AF', borderColor: '#3B82F6', color: '#e0effe' }}>
+            style={{ fontSize: 12, height: 30, fontWeight: 600, background: 'var(--guard-color-primary)', borderColor: 'var(--guard-color-primary)', color: '#fff' }}>
             자동 배치
           </Button>
           <Button size="small" block onClick={handleClearAll} danger
@@ -481,17 +481,17 @@ const CctvDashboard: React.FC = () => {
         {/* 상단 툴바 */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 16px', background: '#0C1733', borderBottom: '1px solid #1E3A5F',
+          padding: '8px 16px', background: 'var(--guard-color-surface)', borderBottom: '1px solid var(--guard-color-border)',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <VideoCameraOutlined style={{ color: '#2563EB', fontSize: 16 }} />
-            <span style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 14, letterSpacing: 0.5 }}>
+            <VideoCameraOutlined style={{ color: 'var(--guard-color-primary)', fontSize: 16 }} />
+            <span style={{ color: 'var(--guard-color-text-strong)', fontWeight: 700, fontSize: 14, letterSpacing: 0.5 }}>
               CCTV 통합 관제센터
             </span>
             <span style={{
-              fontSize: 10, color: '#4ade80', background: 'rgba(22,163,74,0.15)',
-              padding: '1px 6px', borderRadius: 10, border: '1px solid rgba(22,163,74,0.3)',
+              fontSize: 10, color: 'var(--guard-color-success)', background: 'color-mix(in srgb, var(--guard-color-success) 15%, transparent)',
+              padding: '1px 6px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--guard-color-success) 30%, transparent)',
             }}>
               ● LIVE
             </span>
@@ -500,9 +500,9 @@ const CctvDashboard: React.FC = () => {
                 onClick={() => handleDoubleClick(0)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  background: 'rgba(37,99,235,0.2)', border: '1px solid #2563EB',
+                  background: 'color-mix(in srgb, var(--guard-color-primary) 20%, transparent)', border: '1px solid var(--guard-color-primary)',
                   borderRadius: 4, padding: '2px 10px', cursor: 'pointer',
-                  color: '#93c5fd', fontSize: 11, fontWeight: 600,
+                  color: 'var(--guard-color-accent)', fontSize: 11, fontWeight: 600,
                 }}
               >
                 ↩ {prevLayout}분할 복귀
@@ -512,17 +512,17 @@ const CctvDashboard: React.FC = () => {
 
           {/* 레이아웃 선택 */}
           <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#64748b', marginRight: 4, fontWeight: 600 }}>분할</span>
+            <span style={{ fontSize: 11, color: 'var(--guard-color-text-faint)', marginRight: 4, fontWeight: 600 }}>분할</span>
             {([1, 4, 9, 16, 32] as Layout[]).map((l) => (
               <button
                 key={l}
                 onClick={() => handleLayoutChange(l)}
                 style={{
                   minWidth: 36, padding: '3px 8px', fontSize: 12, fontWeight: 700,
-                  border: `1px solid ${layout === l ? '#2563EB' : '#2D4A6B'}`,
+                  border: `1px solid ${layout === l ? 'var(--guard-color-primary)' : 'var(--guard-color-border)'}`,
                   borderRadius: 4, cursor: 'pointer',
-                  background: layout === l ? '#2563EB' : '#0f1e3d',
-                  color: layout === l ? '#fff' : '#94a3b8',
+                  background: layout === l ? 'var(--guard-color-primary)' : 'var(--guard-color-surface-strong)',
+                  color: layout === l ? '#fff' : 'var(--guard-color-text-soft)',
                   transition: 'all 0.15s',
                 }}
               >

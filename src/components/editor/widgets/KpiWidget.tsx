@@ -10,16 +10,21 @@ interface KpiWidgetProps {
 }
 
 export default function KpiWidget({ title, data }: KpiWidgetProps) {
-  const { value, unit, trend, trendUp, color = "#14b8a6", description } = data;
+  const { value, unit, trend, trendUp, color = "var(--guard-color-secondary)", description } = data;
 
   return (
     <motion.div
       initial={{ scale: 0.6, opacity: 0, y: 20 }}
       animate={{ scale: 1, opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 320, damping: 22 }}
-      className="flex h-full flex-col justify-between rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+      className="flex h-full flex-col justify-between rounded-xl border p-4 backdrop-blur-sm"
+      style={{
+        background: "color-mix(in srgb, var(--guard-color-surface) 72%, transparent)",
+        borderColor: "color-mix(in srgb, var(--guard-color-border) 72%, transparent)",
+        color: "var(--guard-color-text)",
+      }}
     >
-      <p className="text-[11px] font-medium text-white/50 truncate">{title}</p>
+      <p className="text-[11px] font-medium truncate" style={{ color: "var(--guard-color-text-soft)" }}>{title}</p>
       <div className="flex items-end justify-between gap-2 mt-2">
         <div className="flex items-baseline gap-1">
           <motion.span
@@ -31,16 +36,20 @@ export default function KpiWidget({ title, data }: KpiWidgetProps) {
           >
             {value ?? "—"}
           </motion.span>
-          {unit && <span className="text-xs text-white/40">{unit}</span>}
+          {unit && <span className="text-xs" style={{ color: "var(--guard-color-text-faint)" }}>{unit}</span>}
         </div>
         {trend && (
           <motion.div
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.25, type: "spring" }}
-            className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-              trendUp ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"
-            }`}
+            className="flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+            style={{
+              background: trendUp
+                ? "color-mix(in srgb, var(--guard-color-success) 15%, transparent)"
+                : "color-mix(in srgb, var(--guard-color-danger) 15%, transparent)",
+              color: trendUp ? "var(--guard-color-success)" : "var(--guard-color-danger)",
+            }}
           >
             {trendUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
             {trend}
@@ -48,7 +57,7 @@ export default function KpiWidget({ title, data }: KpiWidgetProps) {
         )}
       </div>
       {description && (
-        <p className="mt-1.5 text-[10px] text-white/30 truncate">{description}</p>
+        <p className="mt-1.5 text-[10px] truncate" style={{ color: "var(--guard-color-text-faint)" }}>{description}</p>
       )}
     </motion.div>
   );

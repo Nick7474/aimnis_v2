@@ -82,6 +82,40 @@
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
+
+  .color-hue-slider {
+    background-image: linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000);
+  }
+
+  .color-alpha-slider {
+    background-image:
+      linear-gradient(90deg, transparent, var(--alpha-color, #2563EB)),
+      linear-gradient(45deg, #fff 25%, transparent 25% 75%, #fff 75%),
+      linear-gradient(45deg, #d7dce6 25%, transparent 25% 75%, #d7dce6 75%);
+    background-size: 100% 100%, 12px 12px, 12px 12px;
+    background-position: 0 0, 0 0, 6px 6px;
+  }
+
+  .color-hue-slider::-webkit-slider-thumb,
+  .color-alpha-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #fff;
+    border: 3px solid #0b0d14;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.65), 0 2px 10px rgba(0,0,0,.45);
+  }
+
+  .color-hue-slider::-moz-range-thumb,
+  .color-alpha-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #fff;
+    border: 3px solid #0b0d14;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.65), 0 2px 10px rgba(0,0,0,.45);
+  }
 }
 
 /* Antigravity keyframe animations */

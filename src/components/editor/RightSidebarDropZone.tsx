@@ -7,11 +7,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Eye, EyeOff, RotateCcw, GripVertical, ChevronDown } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import type { SwappedPanelWidget } from "@/store/editorStore";
+import { brandToCssVars } from "@/lib/brandPresets";
 import KpiWidget from "./widgets/KpiWidget";
 import LineChartWidget from "./widgets/LineChartWidget";
 import BarChartWidget from "./widgets/BarChartWidget";
@@ -40,7 +41,7 @@ function renderWidget(w: SwappedPanelWidget) {
     default:
       return (
         <div className="flex h-full items-center justify-center text-[11px]"
-          style={{ color: "#475569" }}>{w.title}</div>
+          style={{ color: "var(--guard-color-text-faint)" }}>{w.title}</div>
       );
   }
 }
@@ -58,21 +59,21 @@ function PanelCard({
   const h = getWidgetH(widget.type);
 
   return (
-    <div style={{ borderBottom: "1px solid #1E3A5F" }}>
+    <div style={{ borderBottom: "1px solid var(--guard-color-border)" }}>
       {/* 섹션 헤더 */}
       <div
         className="flex items-center gap-1.5 px-3 cursor-pointer select-none"
         style={{
           height: 36,
-          background: "#0C1733",
-          borderBottom: collapsed ? "none" : "1px solid #1E3A5F",
+          background: "var(--guard-color-surface)",
+          borderBottom: collapsed ? "none" : "1px solid var(--guard-color-border)",
         }}
         onClick={() => setCollapsed((v) => !v)}
       >
         <div
           {...dragHandleProps}
           className="touch-none cursor-grab active:cursor-grabbing flex-shrink-0"
-          style={{ color: "#334155" }}
+          style={{ color: "var(--guard-color-text-faint)" }}
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical className="h-3.5 w-3.5" />
@@ -80,16 +81,19 @@ function PanelCard({
         <ChevronDown
           className="h-3 w-3 flex-shrink-0 transition-transform duration-150"
           style={{
-            color: "#60A5FA",
+            color: "var(--guard-color-accent)",
             transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
           }}
         />
-        <span className="flex-1 min-w-0 truncate text-xs font-medium" style={{ color: "#e2e8f0" }}>
+        <span className="flex-1 min-w-0 truncate text-xs font-medium" style={{ color: "var(--guard-color-text-strong)" }}>
           {widget.title}
         </span>
         <span
           className="rounded text-[8px] px-1.5 py-0.5 flex-shrink-0"
-          style={{ background: "rgba(37,99,235,0.18)", color: "#60A5FA" }}
+          style={{
+            background: "color-mix(in srgb, var(--guard-color-primary) 18%, transparent)",
+            color: "var(--guard-color-accent)",
+          }}
         >
           {widget.type}
         </span>
@@ -98,7 +102,7 @@ function PanelCard({
             animate={{ opacity: [1, 0.15, 1] }}
             transition={{ repeat: Infinity, duration: 1.6 }}
             className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-            style={{ background: "#16A34A" }}
+            style={{ background: "var(--guard-color-success)" }}
           />
         )}
         <div
@@ -108,18 +112,18 @@ function PanelCard({
           <button
             onClick={() => toggleRightPanelWidget(widget.id)}
             className="p-0.5 rounded"
-            style={{ color: "#475569" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#94a3b8")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
+            style={{ color: "var(--guard-color-text-faint)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--guard-color-text-soft)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--guard-color-text-faint)")}
           >
             {widget.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
           </button>
           <button
             onClick={() => removeFromRightPanel(widget.id)}
             className="p-0.5 rounded"
-            style={{ color: "#475569" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#f87171")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
+            style={{ color: "var(--guard-color-text-faint)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--guard-color-danger)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--guard-color-text-faint)")}
           >
             <X className="h-3 w-3" />
           </button>
@@ -134,7 +138,7 @@ function PanelCard({
             animate={{ height: h }}
             exit={{ height: 0 }}
             transition={{ type: "spring", stiffness: 420, damping: 36 }}
-            style={{ overflow: "hidden", background: "#070F24" }}
+            style={{ overflow: "hidden", background: "var(--guard-color-bg)" }}
           >
             {/* 모든 위젯 — 라운드·테두리·배경 제거, KPI는 패딩 축소로 잘림 방지 */}
             <div
@@ -213,14 +217,14 @@ function DropSlot({ index, active }: { index: number; active: boolean }) {
       transition={{ duration: 0.12, ease: "easeOut" }}
       className="overflow-hidden"
       style={{
-        background: isOver ? "rgba(37,99,235,0.1)" : "transparent",
-        borderTop: isOver ? "1px solid rgba(37,99,235,0.4)" : "1px solid transparent",
-        borderBottom: isOver ? "1px solid rgba(37,99,235,0.4)" : "1px solid transparent",
+        background: isOver ? "color-mix(in srgb, var(--guard-color-primary) 10%, transparent)" : "transparent",
+        borderTop: isOver ? "1px solid color-mix(in srgb, var(--guard-color-primary) 40%, transparent)" : "1px solid transparent",
+        borderBottom: isOver ? "1px solid color-mix(in srgb, var(--guard-color-primary) 40%, transparent)" : "1px solid transparent",
       }}
     >
       {isOver && (
         <div className="flex h-full items-center justify-center text-[9px]"
-          style={{ color: "#60A5FA" }}>
+          style={{ color: "var(--guard-color-accent)" }}>
           ▼ 여기에 추가
         </div>
       )}
@@ -230,7 +234,8 @@ function DropSlot({ index, active }: { index: number; active: boolean }) {
 
 // ── 메인 ─────────────────────────────────────────────────────────
 export default function RightSidebarDropZone() {
-  const { rightPanelWidgets, resetRightPanel } = useEditorStore();
+  const { rightPanelWidgets, resetRightPanel, brand } = useEditorStore();
+  const brandVars = brandToCssVars(brand) as CSSProperties;
   const hasWidgets = rightPanelWidgets.length > 0;
   const [canvasDragging, setCanvasDragging] = useState(false);
 
@@ -255,8 +260,9 @@ export default function RightSidebarDropZone() {
         width: 300,
         zIndex: 28,
         pointerEvents: "none",
-        borderLeft: hasWidgets || canvasDragging ? "1px solid #1E3A5F" : "1px solid transparent",
+        borderLeft: hasWidgets || canvasDragging ? "1px solid var(--guard-color-border)" : "1px solid transparent",
         transition: "border-color 0.2s",
+        ...brandVars,
       }}
     >
       <AnimatePresence>
@@ -270,23 +276,27 @@ export default function RightSidebarDropZone() {
             className="absolute inset-0 flex flex-col"
             style={{
               pointerEvents: "auto",
-              background: "#070F24",
+              background: "var(--guard-color-bg)",
             }}
           >
             {/* 패널 헤더 */}
             <div
               className="flex flex-shrink-0 items-center justify-between px-3"
-              style={{ height: 32, background: "#0A1428", borderBottom: "1px solid #1E3A5F" }}
+              style={{
+                height: 32,
+                background: "var(--guard-color-surface-strong)",
+                borderBottom: "1px solid var(--guard-color-border)",
+              }}
             >
-              <span className="text-[10px] font-medium" style={{ color: "#94a3b8" }}>
+              <span className="text-[10px] font-medium" style={{ color: "var(--guard-color-text-soft)" }}>
                 커스텀 패널 ({rightPanelWidgets.length})
               </span>
               <button
                 onClick={resetRightPanel}
                 className="flex items-center gap-1 text-[9px] transition-colors"
-                style={{ color: "#475569" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#94a3b8")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
+                style={{ color: "var(--guard-color-text-faint)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--guard-color-text-soft)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--guard-color-text-faint)")}
               >
                 <RotateCcw className="h-2.5 w-2.5" />
                 원래대로
@@ -296,7 +306,7 @@ export default function RightSidebarDropZone() {
             {/* 통합 스크롤 리스트: 커스텀 위젯 → 알람 패널 → 장비 상태 */}
             <div
               className="flex-1 overflow-y-auto"
-              style={{ scrollbarWidth: "thin", scrollbarColor: "#1E3A5F transparent" }}
+              style={{ scrollbarWidth: "thin", scrollbarColor: "var(--guard-color-border) transparent" }}
             >
               <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                 {rightPanelWidgets.map((w, i) => (
@@ -328,13 +338,13 @@ export default function RightSidebarDropZone() {
             <div
               className="rounded-lg border px-5 py-3 text-center"
               style={{
-                background: "rgba(10,20,40,0.95)",
-                borderColor: "#2563EB",
+                background: "color-mix(in srgb, var(--guard-color-surface) 95%, transparent)",
+                borderColor: "var(--guard-color-primary)",
                 backdropFilter: "blur(8px)",
               }}
             >
-              <p className="text-xs font-semibold" style={{ color: "#60A5FA" }}>패널에 추가</p>
-              <p className="mt-0.5 text-[9px]" style={{ color: "#475569" }}>여기에 드롭</p>
+              <p className="text-xs font-semibold" style={{ color: "var(--guard-color-accent)" }}>패널에 추가</p>
+              <p className="mt-0.5 text-[9px]" style={{ color: "var(--guard-color-text-faint)" }}>여기에 드롭</p>
             </div>
           </motion.div>
         )}

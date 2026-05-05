@@ -1,0 +1,24 @@
+{
+  "source": "POSCO Energy Meter Gateway",
+  "siteId": "POSCO-GWANGYANG-SAFETY-01",
+  "measuredAt": "2026-04-29T21:55:00+09:00",
+  "currentKw": 247,
+  "peakKw": 312,
+  "dailyKwh": 1580,
+  "voltage": 380,
+  "current": 48,
+  "timeSeries": [
+    { "time": "09:00", "value": 210 },
+    { "time": "10:00", "value": 247 },
+    { "time": "11:00", "value": 231 },
+    { "time": "12:00", "value": 268 },
+    { "time": "13:00", "value": 255 },
+    { "time": "14:00", "value": 280 }
+  ],
+  "kpi": {
+    "label": "실시간 전력 소비",
+    "value": 247,
+    "unit": "kW",
+    "trend": "+3.2%"
+  }
+}

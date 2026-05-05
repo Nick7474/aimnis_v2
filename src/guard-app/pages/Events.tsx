@@ -54,7 +54,7 @@ const EventListPage: React.FC = () => {
       {/* 필터 영역 */}
       <Space wrap style={{ marginBottom: 16 }}>
         <RangePicker showTime
-          style={{ borderColor: '#2D4A6B' }}
+          style={{ borderColor: 'var(--guard-color-border)' }}
           placeholder={['시작일', '종료일']}
         />
         <Select
@@ -129,7 +129,7 @@ const EventListPage: React.FC = () => {
             <div className="video-placeholder" style={{ height: 200 }}>
               <span style={{ fontSize: 32 }}>📷</span>
               <span>이벤트 전후 클립</span>
-              <span style={{ fontSize: 11, color: '#666' }}>
+              <span style={{ fontSize: 11, color: 'var(--guard-color-text-faint)' }}>
                 이벤트 발생 ±30초 구간
               </span>
               <Space>
@@ -140,8 +140,9 @@ const EventListPage: React.FC = () => {
 
             {/* 맵 위치 미니뷰 */}
             <div style={{ marginTop: 16, fontWeight: 600, marginBottom: 8 }}>맵 위치</div>
-            <div style={{ height: 160, background: '#1a1a2e', borderRadius: 6, display: 'flex',
-                           alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 12 }}>
+            <div style={{ height: 160, background: 'var(--guard-map-bg)', borderRadius: 6, display: 'flex',
+                           alignItems: 'center', justifyContent: 'center', color: 'var(--guard-color-text-faint)', fontSize: 12,
+                           border: '1px solid var(--guard-color-border)' }}>
               맵 위 Zone 위치 표시 (목업)
             </div>
 

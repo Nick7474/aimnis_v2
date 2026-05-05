@@ -1,0 +1,28 @@
+{
+  "tenantId": "aim-guard-demo",
+  "facility": "Gwangyang Smart Safety Center",
+  "eventWindow": "last_15_minutes",
+  "onSite": 128,
+  "helmetCompliance": 97,
+  "restrictedZoneEntries": 3,
+  "recentAlerts": [
+    {
+      "level": "critical",
+      "msg": "Restricted Gate C unauthorized entry",
+      "workerId": "WK-1281",
+      "workerName": "Kim Minjun",
+      "zone": "Gate C",
+      "detectedBy": "CAM-C-003"
+    },
+    {
+      "level": "warning",
+      "msg": "Helmet compliance risk near Battery Storage A",
+      "workerId": "WK-0942",
+      "workerName": "Lee Jiwon",
+      "zone": "Battery Storage A",
+      "detectedBy": "CAM-A-014"
+    }
+  ],
+  "workerId": "WK-1281",
+  "zone": "Gate C"
+}

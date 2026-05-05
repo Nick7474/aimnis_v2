@@ -9,7 +9,7 @@
  * + 페이지 삭제 기능
  */
 
-import React, { lazy, Suspense, useEffect, useState, useRef, useMemo, useCallback } from "react";
+import React, { lazy, Suspense, useEffect, useState, useRef, useMemo, useCallback, type CSSProperties } from "react";
 import { MemoryRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ConfigProvider, Spin, Tooltip, theme } from "antd";
@@ -23,7 +23,12 @@ import { useEditorStore } from "@/store/editorStore";
 import { useGuardPagesStore, AVAILABLE_PAGES } from "@/store/guardPagesStore";
 import AimGuardLogo from "@/guard-app/components/AimGuardLogo";
 import EditableSection from "./EditableSection";
+import { brandToAntToken, brandToCssVars, type BrandSettings } from "@/lib/brandPresets";
 import "@/guard-app/aim-guard.css";
+
+function sectionVars(brand: BrandSettings, override?: Partial<BrandSettings>) {
+  return brandToCssVars({ ...brand, ...(override ?? {}) }) as CSSProperties;
+}
 
 // ── 페이지 컴포넌트 ──────────────────────────────────────────
 const MonitorPage    = lazy(() => import("@/guard-app/pages/Monitor"));
@@ -33,16 +38,32 @@ const StatsPage      = lazy(() => import("@/guard-app/pages/Stats"));
 const EventRulesPage = lazy(() => import("@/guard-app/pages/admin/EventRules"));
 const SettingsPage   = lazy(() => import("@/guard-app/pages/admin/Settings"));
 
-// ── Ant Design 테마 ──────────────────────────────────────────
-const AIM_DARK_THEME = {
-  algorithm: theme.darkAlgorithm,
-  token: {
-    colorPrimary: "#2563EB", colorBgBase: "#070F24", colorBgContainer: "#0C1733",
-    colorBgElevated: "#0F1E3D", colorBorder: "#1E3A5F", colorText: "#e2e8f0",
-    colorTextSecondary: "#94a3b8", borderRadius: 6,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif",
-  },
-};
+function buildGuardTheme(brand: BrandSettings) {
+  const lightSurface = isLightBrandSurface(brand.backgroundColor);
+  return {
+    algorithm: lightSurface ? theme.defaultAlgorithm : theme.darkAlgorithm,
+    token: brandToAntToken(brand),
+  };
+}
+
+function isLightBrandSurface(hex: string) {
+  const clean = hex.replace("#", "").slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return false;
+  const [r, g, b] = [0, 2, 4].map((index) => Number.parseInt(clean.slice(index, index + 2), 16) / 255);
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.72;
+}
+
+function renderProductName(productName: string, primaryColor: string) {
+  const [first, ...rest] = productName.split(" ");
+  if (!first) return null;
+  return (
+    <>
+      <span style={{ color: primaryColor }}>{first}</span>
+      {rest.length > 0 ? ` ${rest.join(" ")}` : null}
+    </>
+  );
+}
 
 // ── 아이콘 맵 ────────────────────────────────────────────────
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -411,6 +432,8 @@ function InnerLayout() {
   const alarms    = useAlarmStore((s) => s.alarms);
   const unacked   = alarms.length;
   const systemTitle       = useEditorStore((s) => s.systemTitle);
+  const brand = useEditorStore((s) => s.brand);
+  const sectionStyles = useEditorStore((s) => s.sectionStyles);
   const hiddenMonitorPanels = useEditorStore((s) => s.hiddenMonitorPanels);
   const { addedPages, removePage } = useGuardPagesStore();
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -418,6 +441,10 @@ function InnerLayout() {
 
   const currentPath = location.pathname;
   const isMonitor   = currentPath === "/monitor" || currentPath === "/";
+  const guardVars = brandToCssVars(brand) as CSSProperties;
+  const headerVars = sectionVars(brand, sectionStyles.header);
+  const sidebarVars = sectionVars(brand, sectionStyles.sidebar);
+  const rightPanelSplit = "42%";
 
   // 사이드바: 기본 Map + 추가된 페이지
   const BASE = [{ key: "/monitor", iconKey: "MonitorOutlined", label: "Map 기반 모니터링" }];
@@ -433,38 +460,41 @@ function InnerLayout() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: "#070F24", overflow: "hidden" }}>
+    <div style={{ ...guardVars, display: "flex", flexDirection: "column", width: "100%", height: "100%", minHeight: 0, maxHeight: "100%", background: "var(--guard-color-bg)", overflow: "hidden", fontFamily: "var(--guard-font-family)" }}>
 
       {/* ── 헤더 ── */}
-      <EditableSection sectionId="header" type="header" label="헤더" panelType="brand" style={{ flexShrink: 0 }}>
-        <header className="app-header" style={{ display: "flex", alignItems: "center", height: 44, padding: "0 20px", background: "#0A1428", borderBottom: "1px solid #1E3A5F", gap: 12, userSelect: "none" }}>
+      <EditableSection sectionId="header" type="header" label="헤더" panelType="brand" style={{ flexShrink: 0, ...headerVars }}>
+        <header className="app-header" style={{ display: "flex", alignItems: "center", height: 44, padding: "0 20px", background: "var(--guard-color-surface-strong)", borderBottom: "1px solid var(--guard-color-border)", gap: 12, userSelect: "none" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <AimGuardLogo size={28} />
+            <AimGuardLogo size={Math.min(brand.logoSize, 36)} src={brand.logoUrl} alt={`${brand.tenantName} logo`} />
             <div style={{ lineHeight: 1.2 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0", letterSpacing: "0.04em" }}>
-                <span style={{ color: "#2563EB" }}>AIM</span>&nbsp;GUARD
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--guard-color-text-strong)", letterSpacing: "0.04em" }}>
+                {renderProductName(brand.productName, sectionStyles.header?.accentColor ?? brand.primaryColor)}
+              </div>
+              <div style={{ marginTop: 2, fontSize: 8, color: "var(--guard-color-text-soft)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {brand.tenantName}
               </div>
             </div>
           </div>
-          <span style={{ fontSize: 11, color: "#475569", marginLeft: 8, borderLeft: "1px solid #1E3A5F", paddingLeft: 12 }}>{systemTitle}</span>
+          <span style={{ fontSize: 11, color: "var(--guard-color-text-soft)", marginLeft: 8, borderLeft: "1px solid var(--guard-color-border)", paddingLeft: 12 }}>{systemTitle}</span>
           <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 6, background: unacked > 0 ? "rgba(220,38,38,0.12)" : "transparent", border: unacked > 0 ? "1px solid rgba(220,38,38,0.3)" : "1px solid transparent" }}>
-            <BellOutlined style={{ color: unacked > 0 ? "#FCA5A5" : "#94a3b8", fontSize: 14 }} />
-            {unacked > 0 && <span style={{ fontSize: 11, color: "#FCA5A5", fontWeight: 600 }}>{unacked}건</span>}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: "var(--guard-radius)", background: unacked > 0 ? "color-mix(in srgb, var(--guard-color-danger) 14%, transparent)" : "transparent", border: unacked > 0 ? "1px solid color-mix(in srgb, var(--guard-color-danger) 38%, transparent)" : "1px solid transparent" }}>
+            <BellOutlined style={{ color: unacked > 0 ? "var(--guard-color-danger)" : "var(--guard-color-text-soft)", fontSize: 14 }} />
+            {unacked > 0 && <span style={{ fontSize: 11, color: "var(--guard-color-danger)", fontWeight: 600 }}>{unacked}건</span>}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#94a3b8", fontSize: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--guard-color-text-soft)", fontSize: 12 }}>
             <UserOutlined /><span>데모 관리자</span>
           </div>
         </header>
       </EditableSection>
 
       {/* ── 바디 ── */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden" }}>
 
         {/* ── 사이드바 ── */}
-        <EditableSection sectionId="sidebar" type="sidebar" label="사이드바" panelType="navigation" style={{ flexShrink: 0 }}>
-          <aside style={{ width: 200, background: "#0C1733", borderRight: "1px solid #1E3A5F", display: "flex", flexDirection: "column", overflow: "hidden", height: "100%" }}>
-            <div style={{ height: 36, display: "flex", alignItems: "center", padding: "0 16px", fontSize: 11, color: "#475569", borderBottom: "1px solid #1E3A5F", letterSpacing: "0.04em", flexShrink: 0 }}>
+        <EditableSection sectionId="sidebar" type="sidebar" label="사이드바" panelType="navigation" style={{ flexShrink: 0, ...sidebarVars }}>
+          <aside style={{ width: 200, background: "var(--guard-color-surface)", borderRight: "1px solid var(--guard-color-border)", display: "flex", flexDirection: "column", overflow: "hidden", height: "100%" }}>
+            <div style={{ height: 36, display: "flex", alignItems: "center", padding: "0 16px", fontSize: 11, color: "var(--guard-color-muted)", borderBottom: "1px solid var(--guard-color-border)", letterSpacing: "0.04em", flexShrink: 0 }}>
               모니터링 시스템
             </div>
 
@@ -479,7 +509,7 @@ function InnerLayout() {
                     onClick={() => navigate(item.key)}
                     onMouseEnter={() => setHoveredKey(item.key)}
                     onMouseLeave={() => setHoveredKey(null)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", borderRadius: 6, margin: "1px 8px", background: active ? "rgba(37,99,235,0.18)" : "transparent", color: active ? "#60A5FA" : "#94a3b8", fontSize: 12, fontWeight: active ? 600 : 400, cursor: "pointer", boxShadow: active ? "inset 0 0 0 1px rgba(37,99,235,0.4)" : "none", transition: "background .12s", position: "relative" }}>
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", borderRadius: "var(--guard-radius)", margin: "1px 8px", background: active ? "color-mix(in srgb, var(--guard-color-primary) 18%, transparent)" : "transparent", color: active ? "var(--guard-color-accent)" : "var(--guard-color-text)", fontSize: 12, fontWeight: active ? 600 : 400, cursor: "pointer", boxShadow: active ? "inset 0 0 0 1px color-mix(in srgb, var(--guard-color-primary) 42%, transparent)" : "none", transition: "background .12s", position: "relative" }}>
                     <span style={{ fontSize: 14, flexShrink: 0 }}>{ICON_MAP[item.iconKey] ?? null}</span>
                     <span style={{ flex: 1 }}>{item.label}</span>
                     {/* 삭제 버튼 (기본 맵 페이지 제외) */}
@@ -494,7 +524,7 @@ function InnerLayout() {
               })}
 
               {/* 관리자 메뉴 */}
-              {adminPages.length > 0 && <div style={{ height: 1, background: "#1E3A5F", margin: "6px 16px" }} />}
+              {adminPages.length > 0 && <div style={{ height: 1, background: "var(--guard-color-border)", margin: "6px 16px" }} />}
               {adminPages.map(item => {
                 const active = currentPath === item.key;
                 const hovered = hoveredKey === item.key;
@@ -503,7 +533,7 @@ function InnerLayout() {
                     onClick={() => navigate(item.key)}
                     onMouseEnter={() => setHoveredKey(item.key)}
                     onMouseLeave={() => setHoveredKey(null)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", borderRadius: 6, margin: "1px 8px", background: active ? "rgba(37,99,235,0.18)" : "transparent", color: active ? "#60A5FA" : "#94a3b8", fontSize: 12, fontWeight: active ? 600 : 400, cursor: "pointer", transition: "background .12s", position: "relative" }}>
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", borderRadius: "var(--guard-radius)", margin: "1px 8px", background: active ? "color-mix(in srgb, var(--guard-color-primary) 18%, transparent)" : "transparent", color: active ? "var(--guard-color-accent)" : "var(--guard-color-text)", fontSize: 12, fontWeight: active ? 600 : 400, cursor: "pointer", transition: "background .12s", position: "relative" }}>
                     <span style={{ fontSize: 14, flexShrink: 0 }}>{ICON_MAP[item.iconKey] ?? null}</span>
                     <span style={{ flex: 1 }}>{item.label}</span>
                     {hovered && (
@@ -518,45 +548,45 @@ function InnerLayout() {
             </nav>
 
             {/* 페이지 추가 버튼 */}
-            <div style={{ padding: "8px 10px", borderTop: "1px solid #1E3A5F", flexShrink: 0 }}>
+            <div style={{ padding: "8px 10px", borderTop: "1px solid var(--guard-color-border)", flexShrink: 0 }}>
               <button onClick={() => setBuilderOpen(true)}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: 7, cursor: "pointer", border: "1px dashed rgba(37,99,235,0.35)", background: "rgba(37,99,235,0.06)", color: "#3b82f6", fontSize: 11, fontWeight: 500, transition: "all .15s" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(37,99,235,0.14)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(37,99,235,0.6)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(37,99,235,0.06)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(37,99,235,0.35)"; }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: "var(--guard-radius)", cursor: "pointer", border: "1px dashed color-mix(in srgb, var(--guard-color-primary) 42%, transparent)", background: "color-mix(in srgb, var(--guard-color-primary) 8%, transparent)", color: "var(--guard-color-accent)", fontSize: 11, fontWeight: 500, transition: "all .15s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--guard-color-primary) 16%, transparent)"; (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--guard-color-primary) 68%, transparent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--guard-color-primary) 8%, transparent)"; (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--guard-color-primary) 42%, transparent)"; }}
               >
                 <PlusOutlined style={{ fontSize: 12 }} />
                 페이지 추가
               </button>
             </div>
 
-            <div style={{ height: 32, display: "flex", alignItems: "center", padding: "0 16px", fontSize: 10, color: "#334155", borderTop: "1px solid #1E3A5F", letterSpacing: 1 }}>
-              AIM GUARD v1.0.0
+            <div style={{ height: 32, display: "flex", alignItems: "center", padding: "0 16px", fontSize: 10, color: "var(--guard-color-muted)", borderTop: "1px solid var(--guard-color-border)", letterSpacing: 1 }}>
+              {brand.productName} v1.0.0
             </div>
           </aside>
         </EditableSection>
 
         {/* ── 컨텐츠 영역 ── */}
-        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: "relative", overflow: "hidden" }}>
           <Suspense fallback={<PageLoading />}>
             <Routes>
               <Route path="/" element={<Navigate to="/monitor" replace />} />
 
               {/* Map 기반 모니터링 — 기존 EditableSection 완전 유지 */}
               <Route path="/monitor" element={
-                <div style={{ width: "100%", height: "100%", position: "relative" }}>
+                <div style={{ width: "100%", height: "100%", minHeight: 0, position: "relative", overflow: "hidden" }}>
                   <MonitorPage />
-                  <EditableSection sectionId="map" type="map" label="맵 영역" panelType="gis" variant="overlay" style={{ top: 0, left: 0, right: 300, bottom: 0 }} />
-                  <EditableSection sectionId="alarm-panel" type="alarm-panel" label="알람 패널" panelType="alarm" variant="overlay" style={{ top: 0, right: 0, width: 300, bottom: "40%" }} />
-                  <EditableSection sectionId="floor-status" type="floor-status" label="플로어 상태" panelType="widget" variant="overlay" style={{ bottom: 0, right: 0, width: 300, height: "40%" }} />
+                  <EditableSection sectionId="map" type="map" label="맵 영역" panelType="gis" variant="overlay" badgePosition="top-left" style={{ top: 0, left: 0, right: 300, bottom: 0 }} />
+                  <EditableSection sectionId="alarm-panel" type="alarm-panel" label="알람 패널" panelType="alarm" variant="overlay" style={{ top: 0, right: 0, width: 300, height: rightPanelSplit }} />
+                  <EditableSection sectionId="floor-status" type="floor-status" label="플로어 상태" panelType="widget" variant="overlay" style={{ top: rightPanelSplit, right: 0, width: 300, bottom: 0 }} />
                   <AnimatePresence>
                     {hiddenMonitorPanels.includes("alarm-panel") && (
-                      <motion.div key="cv1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", top: 0, right: 0, width: 300, bottom: "40%", background: "#070F24", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid #1E3A5F" }}>
-                        <span style={{ fontSize: 10, color: "#1E3A5F" }}>알람 패널 숨김</span>
+                      <motion.div key="cv1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", top: 0, right: 0, width: 300, height: rightPanelSplit, background: "var(--guard-color-bg)", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid var(--guard-color-border)" }}>
+                        <span style={{ fontSize: 10, color: "var(--guard-color-border)" }}>알람 패널 숨김</span>
                       </motion.div>
                     )}
                     {hiddenMonitorPanels.includes("floor-status") && (
-                      <motion.div key="cv2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", bottom: 0, right: 0, width: 300, height: "40%", background: "#070F24", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid #1E3A5F", borderTop: "1px solid #1E3A5F" }}>
-                        <span style={{ fontSize: 10, color: "#1E3A5F" }}>장비·CCTV 숨김</span>
+                      <motion.div key="cv2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", top: rightPanelSplit, right: 0, width: 300, bottom: 0, background: "var(--guard-color-bg)", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid var(--guard-color-border)", borderTop: "1px solid var(--guard-color-border)" }}>
+                        <span style={{ fontSize: 10, color: "var(--guard-color-border)" }}>장비·CCTV 숨김</span>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -589,16 +619,16 @@ function InnerLayout() {
       </div>
 
       {/* ── 상태바 ── */}
-      <footer style={{ height: 24, flexShrink: 0, display: "flex", alignItems: "center", gap: 16, padding: "0 16px", background: "#040B1C", borderTop: "1px solid #1E3A5F", fontSize: 10, color: "#475569" }}>
-        {[{ label: "Senstar-1F: 연결", color: "#16A34A" }, { label: "ADAM-1F: 연결", color: "#16A34A" }, { label: "출입-A: 끊김", color: "#DC2626" }].map(s => (
+      <footer style={{ height: 24, flexShrink: 0, display: "flex", alignItems: "center", gap: 16, padding: "0 16px", background: "var(--guard-color-surface-strong)", borderTop: "1px solid var(--guard-color-border)", fontSize: 10, color: "var(--guard-color-muted)" }}>
+        {[{ label: "Senstar-1F: 연결", color: brand.successColor }, { label: "ADAM-1F: 연결", color: brand.successColor }, { label: "출입-A: 끊김", color: brand.dangerColor }].map(s => (
           <span key={s.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: s.color, boxShadow: `0 0 4px ${s.color}`, display: "inline-block" }} />
             {s.label}
           </span>
         ))}
         <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
-          <WifiOutlined style={{ color: "#60A5FA" }} />
-          WS: <span style={{ color: "#16A34A" }}>● 연결됨</span>
+          <WifiOutlined style={{ color: "var(--guard-color-accent)" }} />
+          WS: <span style={{ color: "var(--guard-color-success)" }}>● 연결됨</span>
         </span>
       </footer>
     </div>
@@ -607,8 +637,11 @@ function InnerLayout() {
 
 // ── 메인 Export ──────────────────────────────────────────────
 export default function MonitorWrapper() {
+  const brand = useEditorStore((s) => s.brand);
+  const guardTheme = useMemo(() => buildGuardTheme(brand), [brand]);
+
   return (
-    <ConfigProvider theme={AIM_DARK_THEME}>
+    <ConfigProvider theme={guardTheme}>
       <MemoryRouter initialEntries={["/monitor"]}>
         <AutoLogin />
         <InnerLayout />

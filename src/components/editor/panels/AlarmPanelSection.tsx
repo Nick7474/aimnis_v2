@@ -7,16 +7,16 @@ import { useAlarmStore } from "@/guard-app/stores";
 import { MOCK_EVENTS } from "@/guard-app/mock/data";
 
 const SEV_COLOR: Record<string, string> = {
-  CRITICAL: "#ff4d4f",
-  HIGH: "#fa8c16",
-  MEDIUM: "#fadb14",
-  LOW: "#52c41a",
+  CRITICAL: "var(--guard-color-danger)",
+  HIGH: "var(--guard-color-warning)",
+  MEDIUM: "var(--guard-color-accent)",
+  LOW: "var(--guard-color-success)",
 };
 const SEV_BG: Record<string, string> = {
-  CRITICAL: "rgba(255,77,79,0.12)",
-  HIGH: "rgba(250,140,22,0.12)",
-  MEDIUM: "rgba(250,219,20,0.12)",
-  LOW: "rgba(82,196,26,0.12)",
+  CRITICAL: "color-mix(in srgb, var(--guard-color-danger) 12%, transparent)",
+  HIGH: "color-mix(in srgb, var(--guard-color-warning) 12%, transparent)",
+  MEDIUM: "color-mix(in srgb, var(--guard-color-accent) 12%, transparent)",
+  LOW: "color-mix(in srgb, var(--guard-color-success) 12%, transparent)",
 };
 
 export default function AlarmPanelSection() {
@@ -42,29 +42,29 @@ export default function AlarmPanelSection() {
   ].slice(0, 8);
 
   return (
-    <div style={{ borderBottom: "1px solid #1E3A5F" }}>
+    <div style={{ borderBottom: "1px solid var(--guard-color-border)" }}>
       {/* 헤더 */}
       <div
         className="flex items-center gap-2 px-3 cursor-pointer select-none"
-        style={{ height: 36, background: "#0A1428", borderBottom: collapsed ? "none" : "1px solid #1E3A5F" }}
+        style={{ height: 36, background: "var(--guard-color-surface-strong)", borderBottom: collapsed ? "none" : "1px solid var(--guard-color-border)" }}
         onClick={() => setCollapsed((v) => !v)}
       >
         <ChevronDown
           className="h-3 w-3 flex-shrink-0 transition-transform duration-150"
-          style={{ color: "#60A5FA", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}
+          style={{ color: "var(--guard-color-accent)", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}
         />
-        <span className="flex-1 text-xs font-medium" style={{ color: "#e2e8f0" }}>
+        <span className="flex-1 text-xs font-medium" style={{ color: "var(--guard-color-text-strong)" }}>
           알람 패널
         </span>
         {alarms.length > 0 && (
           <span
             className="rounded px-1.5 text-[8px] font-bold"
-            style={{ background: "rgba(255,77,79,0.18)", color: "#ff7875" }}
+            style={{ background: "color-mix(in srgb, var(--guard-color-danger) 18%, transparent)", color: "var(--guard-color-danger)" }}
           >
             {alarms.length}건
           </span>
         )}
-        <span className="text-[8px]" style={{ color: "#334155" }}>전체</span>
+        <span className="text-[8px]" style={{ color: "var(--guard-color-text-faint)" }}>전체</span>
       </div>
 
       <AnimatePresence initial={false}>
@@ -74,12 +74,12 @@ export default function AlarmPanelSection() {
             animate={{ height: "auto" }}
             exit={{ height: 0 }}
             transition={{ type: "spring", stiffness: 420, damping: 36 }}
-            style={{ overflow: "hidden", background: "#070F24" }}
+            style={{ overflow: "hidden", background: "var(--guard-color-bg)" }}
           >
             {/* 이벤트 피드 */}
             <div className="px-2 py-1.5 space-y-0.5">
               {feed.length === 0 && (
-                <p className="py-3 text-center text-[10px]" style={{ color: "#334155" }}>
+                <p className="py-3 text-center text-[10px]" style={{ color: "var(--guard-color-text-faint)" }}>
                   이벤트 없음
                 </p>
               )}
@@ -89,20 +89,20 @@ export default function AlarmPanelSection() {
                   className="flex items-center gap-2 px-2 py-1.5 rounded"
                   style={{
                     background: item.live ? SEV_BG[item.sev] : "transparent",
-                    borderLeft: `2px solid ${SEV_COLOR[item.sev] ?? "#475569"}`,
+                    borderLeft: `2px solid ${SEV_COLOR[item.sev] ?? "var(--guard-color-muted)"}`,
                   }}
                 >
-                  <span className="text-[9px] font-mono flex-shrink-0" style={{ color: "#475569" }}>
+                  <span className="text-[9px] font-mono flex-shrink-0" style={{ color: "var(--guard-color-text-faint)" }}>
                     {item.time}
                   </span>
-                  <span className="flex-1 truncate text-[10px]" style={{ color: "#94a3b8" }}>
+                  <span className="flex-1 truncate text-[10px]" style={{ color: "var(--guard-color-text-soft)" }}>
                     {item.zone}
                   </span>
                   <span
                     className="rounded text-[8px] px-1.5 py-0.5 font-bold flex-shrink-0"
                     style={{
                       background: SEV_BG[item.sev],
-                      color: SEV_COLOR[item.sev] ?? "#475569",
+                      color: SEV_COLOR[item.sev] ?? "var(--guard-color-muted)",
                     }}
                   >
                     {item.sev}
@@ -115,9 +115,9 @@ export default function AlarmPanelSection() {
             {alarms.length > 0 && (
               <div
                 className="px-2 pb-2 pt-1 space-y-1"
-                style={{ borderTop: "1px solid #1E3A5F" }}
+                style={{ borderTop: "1px solid var(--guard-color-border)" }}
               >
-                <p className="text-[8px] uppercase tracking-wider px-1" style={{ color: "#334155" }}>
+                <p className="text-[8px] uppercase tracking-wider px-1" style={{ color: "var(--guard-color-text-faint)" }}>
                   미처리 알람
                 </p>
                 {alarms.slice(0, 3).map((a) => (
@@ -126,7 +126,7 @@ export default function AlarmPanelSection() {
                     className="flex items-center gap-2 px-2 py-1.5"
                     style={{
                       background: SEV_BG[a.severity],
-                      border: `1px solid ${SEV_COLOR[a.severity]}30`,
+                      border: `1px solid color-mix(in srgb, ${SEV_COLOR[a.severity]} 30%, transparent)`,
                       borderRadius: 4,
                     }}
                   >
@@ -136,7 +136,7 @@ export default function AlarmPanelSection() {
                       className="h-1.5 w-1.5 rounded-full flex-shrink-0"
                       style={{ background: SEV_COLOR[a.severity] }}
                     />
-                    <span className="flex-1 truncate text-[10px]" style={{ color: "#e2e8f0" }}>
+                    <span className="flex-1 truncate text-[10px]" style={{ color: "var(--guard-color-text-strong)" }}>
                       {a.zoneName}
                     </span>
                   </div>

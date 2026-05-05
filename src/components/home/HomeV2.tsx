@@ -3,8 +3,22 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useHomeStore } from "@/store/homeStore";
-import { useLLMStore } from "@/store/llmStore";
-import ProviderPicker from "@/components/shared/ProviderPicker";
+
+// 전문가 추천 세팅 트리거 키워드
+const EXPERT_TRIGGERS = [
+  "전문가 추천", "추천 세팅", "추천 설정", "추천으로",
+  "자동으로", "알아서 해줘", "다 선택", "한번에",
+  "빠르게 설정", "기본값", "디폴트", "최적으로",
+  "전문가처럼", "그냥 해줘", "바로 해줘", "알아서",
+  "자동 설정", "자동 적용", "빠르게",
+];
+
+const EXPERT_RESPONSE: Record<string, string> = {
+  energy:       "⚡ 에너지 시설 전문가 추천 세팅을 적용했어요!\n500대+ CCTV, 24/365 운영, 하이브리드 스토리지로\n자동 구성했습니다. 우측에서 세부 조정 가능해요.",
+  manufacturing:"🏭 스마트 제조 추천 세팅을 적용했어요!\nHanwha Wisenet VMS, 2교대 운영, 화재·침입\n중점 관제로 구성했습니다.",
+  smartcity:    "🏙 스마트시티 표준 추천 세팅을 적용했어요!\nMilestone XProtect, 경찰/소방 자동 신고 연동,\n24/365 관제로 구성했습니다.",
+  default:      "✅ 전문가 추천 세팅을 적용했어요!\n먼저 시나리오를 선택하면 더 정확한 설정을 드릴 수 있어요.",
+};
 import AiChatInput from "@/components/shared/AiChatInput";
 import ScenarioChips from "./ScenarioChips";
 import SpecBoard from "./SpecBoard";
@@ -16,13 +30,29 @@ import ChatArea from "./ChatArea";
 // ─── 채팅 입력창 (AiChatInput 사용) ─────────────────────────
 function ChatInput() {
   const { addMessage, updateLastMessage, isThinking, setIsThinking } = useHomeStore();
-  const { provider } = useLLMStore();
   const [value, setValue] = useState("");
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
+
+  const { applyMagicDefault, selectedScenario } = useHomeStore();
 
   const submit = useCallback(async () => {
     const text = value.trim();
     if ((!text && attachedImages.length === 0) || isThinking) return;
+
+    // ── 전문가 추천 감지 (클라이언트 사이드, API 불필요) ──
+    const lower = text.toLowerCase();
+    const isExpertTrigger = EXPERT_TRIGGERS.some(kw => lower.includes(kw.toLowerCase()));
+    if (isExpertTrigger) {
+      const currentScenario = useHomeStore.getState().selectedScenario;
+      setValue("");
+      addMessage({ id: `u-${Date.now()}`, role: "user", content: text });
+      applyMagicDefault();
+      const response = EXPERT_RESPONSE[currentScenario ?? "default"] ?? EXPERT_RESPONSE.default;
+      setTimeout(() => {
+        addMessage({ id: `a-${Date.now()}`, role: "assistant", content: response });
+      }, 300);
+      return;
+    }
 
     const userContent = attachedImages.length > 0
       ? [{ type: "text", text }, ...attachedImages.map(img => ({ type: "image_url", url: img }))]
@@ -41,7 +71,6 @@ function ChatInput() {
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: typeof userContent === "string" ? userContent : text }],
           solution: selectedScenario ?? "guard",
-          provider,
         }),
       });
 
@@ -71,7 +100,7 @@ function ChatInput() {
     } finally {
       setIsThinking(false);
     }
-  }, [value, attachedImages, isThinking, addMessage, setIsThinking, updateLastMessage, provider]);
+  }, [value, attachedImages, isThinking, addMessage, setIsThinking, updateLastMessage]);
 
   return (
     <AiChatInput
@@ -144,11 +173,17 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
         </div>
       </div>
 
-      {/* AI 어시스턴트 */}
+      {/* 에임이 헤더 */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5" style={{ flexShrink: 0 }}>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">AI 어시스턴트</p>
-          <ProviderPicker compact />
+        <div className="flex items-center gap-2.5 border-b border-white/5 px-3 py-2" style={{ flexShrink: 0 }}>
+          <div className="relative flex-shrink-0">
+            <img src="/img/ch6.png" alt="에임이" className="h-8 w-8 rounded-full ring-2 ring-violet-500/30 object-cover" />
+            <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[var(--s1)]" style={{ animation: "pulse 2s infinite" }} />
+          </div>
+          <div>
+            <p className="text-[12px] font-semibold text-white/80 leading-tight">에임이 · AIMI</p>
+            <p className="text-[10px] text-emerald-400/70 leading-tight">온라인</p>
+          </div>
         </div>
 
         <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: "8px 10px 10px" }}>

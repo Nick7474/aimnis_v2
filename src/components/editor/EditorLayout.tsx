@@ -341,8 +341,16 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
             style={{ width: "100%", flexShrink: 0 }}
             className="flex min-h-0 flex-col overflow-hidden bg-[#0a0a14]"
           >
-            <div className="border-b border-white/5 px-4 py-2.5">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">AI 어시스턴트</p>
+            {/* 에임이 아바타 헤더 */}
+            <div className="flex items-center gap-2.5 border-b border-white/5 px-3 py-2">
+              <div className="relative flex-shrink-0">
+                <img src="/img/ch6.png" alt="에임이" className="h-8 w-8 rounded-full ring-2 ring-violet-500/30 object-cover" />
+                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#0a0a14]" style={{ animation: "pulse 2s infinite" }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold text-white/80 leading-tight">에임이 · AIMI</p>
+                <p className="text-[10px] text-emerald-400/70 leading-tight">온라인</p>
+              </div>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">
               <ChatPanel solutionId={solution.id} />

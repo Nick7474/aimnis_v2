@@ -1,0 +1,103 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Samsung SDI Battery Fire Risk API",
+    "version": "1.0.0",
+    "description": "AIM GUARD demo API specification for battery fire risk, CCTV, and worker safety mapping."
+  },
+  "paths": {
+    "/api/v1/safety/battery-fire-risk": {
+      "get": {
+        "summary": "Get real-time battery fire risk summary",
+        "responses": {
+          "200": {
+            "description": "Real-time battery fire risk response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "siteId": { "type": "string" },
+                    "riskScore": { "type": "number" },
+                    "riskLevel": { "type": "string" },
+                    "temperatureCelsius": { "type": "number" },
+                    "gasPpm": { "type": "number" },
+                    "thermalCameraId": { "type": "string" },
+                    "recommendedAction": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/cctv-events": {
+      "get": {
+        "summary": "Get CCTV event stream snapshot",
+        "responses": {
+          "200": {
+            "description": "CCTV event snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "activeCameras": { "type": "number" },
+                    "alertCameras": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "cameraId": { "type": "string" },
+                          "zone": { "type": "string" },
+                          "eventType": { "type": "string" },
+                          "confidence": { "type": "number" }
+                        }
+                      }
+                    },
+                    "lastEventAt": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/worker-compliance": {
+      "get": {
+        "summary": "Get worker safety compliance metrics",
+        "responses": {
+          "200": {
+            "description": "Worker safety compliance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "onSite": { "type": "number" },
+                    "helmetCompliance": { "type": "number" },
+                    "restrictedZoneEntries": { "type": "number" },
+                    "recentAlerts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "level": { "type": "string" },
+                          "msg": { "type": "string" },
+                          "workerId": { "type": "string" },
+                          "zone": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
