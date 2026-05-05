@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Loader2, Lock } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
+import { HarnessLoader } from "@/components/shared/AIMILoader";
 
 // EditorLayout과 동일한 키
 const LS_KEY = "aimnis_harness_draft";
@@ -51,6 +52,8 @@ export default function CreateHarnessBtn() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
+      {/* AIMI 하네스 생성 오버레이 — createPortal로 CSS transform 영향 차단 */}
+      <HarnessLoader show={loading} />
       <motion.button
         type="button"
         onClick={handleCreate}

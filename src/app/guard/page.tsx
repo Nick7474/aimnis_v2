@@ -11,7 +11,6 @@ import { GuardLoader } from "@/components/shared/AIMILoader";
 
 const GuardApp = dynamic(() => import("@/components/guard/GuardApp"), {
   ssr: false,
-  loading: () => <GuardLoader />,
 });
 
 function ProjectBadge() {
@@ -91,8 +90,18 @@ function ProjectBadge() {
 }
 
 export default function GuardPage() {
+  // 최초 진입 시 최소 1.8초 AIMI 로더 표시 (캐시 여부와 무관)
+  const [showLoader, setShowLoader] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setShowLoader(false), 1800);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#020817]">
+      {/* AIMI Guard 로더 — createPortal 오버레이 */}
+      <GuardLoader show={showLoader} />
+
       {/* AIMNIS 공통 상단 네비게이션 + 프로젝트 셀렉터 */}
       <div className="flex items-center" style={{ height: 48 }}>
         <Navbar />
