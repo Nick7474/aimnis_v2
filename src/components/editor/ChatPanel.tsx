@@ -134,6 +134,25 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
   const messageScrollRef = useRef<HTMLDivElement>(null);
   const processedJsonIds = useRef<Set<string>>(new Set());
 
+  // 첫 방문 시에만 상세 인사 + 기능 안내 삽입
+  useEffect(() => {
+    const KEY = "aimi_editor_welcomed";
+    const isFirstVisit = !localStorage.getItem(KEY);
+    if (isFirstVisit) {
+      localStorage.setItem(KEY, "1");
+      // 기존 "준비됐습니다" 메시지 뒤에 상세 안내 추가
+      setTimeout(() => {
+        addMessage({
+          id: `welcome-detail-${Date.now()}`,
+          role: "assistant",
+          content:
+            "안녕하세요! 저는 에임이입니다.\n자연어로 말씀하시면 바로 실행해 드립니다.\n\n이런 명령도 가능합니다\n• '에너지 KPI 카드 추가해줘'\n• '고객사를 포스코로 바꿔줘'\n• '실시간 라인 차트 보여줘'\n• '포스코 스타일로 변경해줘'",
+        });
+      }, 400);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const scroller = messageScrollRef.current;
     if (!scroller) return;

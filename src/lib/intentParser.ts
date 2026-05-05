@@ -27,25 +27,25 @@ const PRESET_RULES: Array<{ keywords: string[]; presetId: string; title?: string
     keywords: ["posco", "포스코", "납품 톤", "포스코 스타일"],
     presetId: "posco",
     title: "포스코 통합관제",
-    ack: "✅ 포스코 납품 톤으로 변경했어요! 고객사도 '포스코'로 설정됐습니다.",
+    ack: "포스코 납품 톤으로 변경했습니다. 고객사도 '포스코'로 설정됐습니다.",
   },
   {
     keywords: ["kepco", "한전", "화이트 톤", "kepco 스타일"],
     presetId: "kepco-white",
     title: "KEPCO 관제센터",
-    ack: "✅ KEPCO 화이트 톤으로 변경했어요!",
+    ack: "KEPCO 화이트 톤으로 변경했습니다.",
   },
   {
     keywords: ["그레이", "gray", "설비 관제 톤", "그레이 톤"],
     presetId: "gray-industrial",
     title: undefined,
-    ack: "✅ 그레이 설비 관제 톤으로 변경했어요!",
+    ack: "그레이 설비 관제 톤으로 변경했습니다.",
   },
   {
     keywords: ["다크", "dark", "어두운", "어두운 톤"],
     presetId: "deep-dark",
     title: undefined,
-    ack: "✅ 다크 톤으로 변경했어요!",
+    ack: "다크 톤으로 변경했습니다.",
   },
 ];
 
@@ -54,12 +54,12 @@ const VIEW_RULES: Array<{ keywords: string[]; view: "mapping" | "monitor"; ack: 
   {
     keywords: ["데이터 연결", "매핑", "센서 연결", "데이터 매핑"],
     view: "mapping",
-    ack: "🔗 데이터 연결 화면으로 이동했어요!",
+    ack: "데이터 연결 화면으로 이동했습니다.",
   },
   {
     keywords: ["모니터링", "모니터", "맵으로", "맵 보기", "돌아가"],
     view: "monitor",
-    ack: "🗺 모니터링 화면으로 이동했어요!",
+    ack: "모니터링 화면으로 이동했습니다.",
   },
 ];
 
@@ -88,7 +88,7 @@ export function parseIntent(text: string): ParsedIntent {
     return {
       type: "tenant_name",
       params: { name },
-      ackMessage: `✅ 고객사를 '${name}'(으)로 설정했어요!`,
+      ackMessage: `고객사를 '${name}'(으)로 설정했습니다.`,
     };
   }
 
@@ -99,7 +99,7 @@ export function parseIntent(text: string): ParsedIntent {
     return {
       type: "system_title",
       params: { title },
-      ackMessage: `✅ 시스템 이름을 '${title}'(으)로 변경했어요!`,
+      ackMessage: `시스템 이름을 '${title}'(으)로 변경했습니다.`,
     };
   }
 
@@ -119,7 +119,7 @@ export function parseIntent(text: string): ParsedIntent {
     return {
       type: "clear_widgets",
       params: {},
-      ackMessage: "🗑 위젯을 모두 지웠어요!",
+      ackMessage: "위젯을 모두 지웠습니다.",
     };
   }
 

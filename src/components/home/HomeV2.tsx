@@ -14,10 +14,10 @@ const EXPERT_TRIGGERS = [
 ];
 
 const EXPERT_RESPONSE: Record<string, string> = {
-  energy:       "⚡ 에너지 시설 전문가 추천 세팅을 적용했어요!\n500대+ CCTV, 24/365 운영, 하이브리드 스토리지로\n자동 구성했습니다. 우측에서 세부 조정 가능해요.",
-  manufacturing:"🏭 스마트 제조 추천 세팅을 적용했어요!\nHanwha Wisenet VMS, 2교대 운영, 화재·침입\n중점 관제로 구성했습니다.",
-  smartcity:    "🏙 스마트시티 표준 추천 세팅을 적용했어요!\nMilestone XProtect, 경찰/소방 자동 신고 연동,\n24/365 관제로 구성했습니다.",
-  default:      "✅ 전문가 추천 세팅을 적용했어요!\n먼저 시나리오를 선택하면 더 정확한 설정을 드릴 수 있어요.",
+  energy:       "에너지 시설 전문가 추천 세팅을 적용했습니다.\n500대+ CCTV, 24/365 운영, 하이브리드 스토리지 기준으로\n자동 구성했습니다. 우측에서 세부 조정 가능합니다.",
+  manufacturing:"스마트 제조 추천 세팅을 적용했습니다.\nHanwha Wisenet VMS, 2교대 운영, 화재·침입\n중점 관제로 구성했습니다.",
+  smartcity:    "스마트시티 표준 추천 세팅을 적용했습니다.\nMilestone XProtect, 경찰/소방 자동 신고 연동,\n24/365 관제로 구성했습니다.",
+  default:      "전문가 추천 세팅을 적용했습니다.\n시나리오를 먼저 선택하면 더 정확한 설정을 제공할 수 있습니다.",
 };
 import AiChatInput from "@/components/shared/AiChatInput";
 import ScenarioChips from "./ScenarioChips";
@@ -176,13 +176,10 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
       {/* 에임이 헤더 */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div className="flex items-center gap-2.5 border-b border-white/5 px-3 py-2" style={{ flexShrink: 0 }}>
-          <div className="relative flex-shrink-0">
-            <img src="/img/ch6.png" alt="에임이" className="h-8 w-8 rounded-full ring-2 ring-violet-500/30 object-cover" />
-            <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[var(--s1)]" style={{ animation: "pulse 2s infinite" }} />
-          </div>
+          <img src="/img/ch6.png" alt="에임이" className="h-8 w-8 flex-shrink-0 rounded-full ring-1 ring-violet-500/25 object-cover" />
           <div>
             <p className="text-[12px] font-semibold text-white/80 leading-tight">에임이 · AIMI</p>
-            <p className="text-[10px] text-emerald-400/70 leading-tight">온라인</p>
+            <p className="text-[10px] text-white/30 leading-tight">설계 어시스턴트</p>
           </div>
         </div>
 

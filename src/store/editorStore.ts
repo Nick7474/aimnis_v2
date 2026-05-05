@@ -609,7 +609,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       id: "welcome",
       role: "assistant",
       content:
-        "안녕하세요! 저는 에임이예요 ✨\n자연어로 말씀하시면 바로 실행해 드릴게요.\n\n💡 이런 것도 가능해요\n• '에너지 KPI 카드 추가해줘'\n• '고객사를 포스코로 바꿔줘'\n• '실시간 라인 차트 보여줘'\n• '포스코 스타일로 전체 변경해줘'",
+        "에디터가 준비됐습니다. 무엇을 도와드릴까요?",
     },
   ],
   isStreaming: false,
