@@ -35,11 +35,9 @@ export default function ChatArea() {
           className="flex items-start gap-2.5"
         >
           <div className="relative flex-shrink-0 mt-0.5">
-            <motion.img
+            <img
               src="/img/ch6.png"
               alt="에임이"
-              animate={{ y: [0, -4, 0] }}
-              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
               className="h-7 w-7 rounded-full object-cover ring-1 ring-violet-500/30"
             />
             <span className="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-emerald-400" />

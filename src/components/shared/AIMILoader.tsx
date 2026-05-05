@@ -4,13 +4,23 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ── 캐릭터 메타 & 글로우 색상 (피그마 스펙 기반) ───────────────
+// ── 캐릭터 메타 & 이중 글로우 색상 (피그마 원본 기준) ─────────
 const CHAR_META = {
-  ch1: { src: "/img/ch1.png", alt: "AIMI 작업 중",   glow: "rgba(59,130,246,0.55)"  }, // 파랑
-  ch2: { src: "/img/ch2.png", alt: "AIMI 환영",      glow: "rgba(30,41,59,0.7)"     }, // 다크
-  ch3: { src: "/img/ch3.png", alt: "AIMI 자신감",    glow: "rgba(124,58,237,0.55)"  }, // 보라
-  ch4: { src: "/img/ch4.png", alt: "AIMI 완료",      glow: "rgba(139,92,246,0.55)"  }, // 보라
-  ch5: { src: "/img/ch5.png", alt: "AIMI AI처리",    glow: "rgba(220,38,38,0.5)"    }, // 빨강
+  ch1: { src: "/img/ch1.png", alt: "AIMI 작업 중",
+    glowL: "rgba(200,80,20,0.65)",   // 좌: 오렌지/레드
+    glowR: "rgba(60,40,200,0.55)" }, // 우: 블루/퍼플
+  ch2: { src: "/img/ch2.png", alt: "AIMI 환영",
+    glowL: "rgba(20,40,80,0.5)",
+    glowR: "rgba(30,60,120,0.45)" },
+  ch3: { src: "/img/ch3.png", alt: "AIMI 자신감",
+    glowL: "rgba(100,40,180,0.55)",
+    glowR: "rgba(60,20,140,0.5)" },
+  ch4: { src: "/img/ch4.png", alt: "AIMI 완료",
+    glowL: "rgba(120,50,200,0.6)",
+    glowR: "rgba(80,30,160,0.5)" },
+  ch5: { src: "/img/ch5.png", alt: "AIMI AI처리",
+    glowL: "rgba(200,40,30,0.6)",
+    glowR: "rgba(40,20,120,0.5)" },
 } as const;
 
 type CharKey = keyof typeof CHAR_META;
@@ -41,7 +51,7 @@ function Subtitle({ items }: { items: string[] }) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -4 }}
         transition={{ duration: 0.3 }}
-        style={{ color: "#fff", fontSize: 12, whiteSpace: "nowrap" }}
+        style={{ color: "#fff", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" }}
       >
         {items[i]}
       </motion.span>
@@ -52,7 +62,7 @@ function Subtitle({ items }: { items: string[] }) {
 // ── 점 애니메이션 ─────────────────────────────────────────────
 function Dots() {
   return (
-    <span style={{ display: "inline-flex", gap: 3, marginLeft: 4, alignItems: "flex-end" }}>
+    <span style={{ display: "inline-flex", gap: 4, marginLeft: 2, alignItems: "flex-end" }}>
       {[0, 1, 2].map(i => (
         <motion.span
           key={i}
@@ -65,7 +75,7 @@ function Dots() {
   );
 }
 
-// ── 피그마 스펙 카드 콘텐츠 ──────────────────────────────────
+// ── 피그마 스펙 카드 ──────────────────────────────────────────
 function LoaderCard({
   character = "ch1",
   title = "Loading",
@@ -78,7 +88,6 @@ function LoaderCard({
   const meta = CHAR_META[character];
 
   return (
-    // 카드: 200×200px, bg rgba(30,33,36,0.2), blur-10, border 0.05
     <div style={{
       position: "relative",
       width: 200,
@@ -89,48 +98,73 @@ function LoaderCard({
       WebkitBackdropFilter: "blur(10px)",
       border: "1px solid rgba(255,255,255,0.05)",
       overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
     }}>
-      {/* 배경 글로우 */}
+      {/* ── 이중 글로우 (피그마 Vector2/3 재현) ── */}
+      {/* 좌측 warm 글로우 */}
       <motion.div
-        animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
-        transition={{ repeat: Infinity, duration: 2.8, ease: "easeInOut" }}
+        animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+        transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
         style={{
           position: "absolute",
-          top: 20,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 130,
-          height: 110,
+          top: "8%",
+          left: "-15%",
+          width: "75%",
+          height: "65%",
           borderRadius: "50%",
-          background: `radial-gradient(circle, ${meta.glow} 0%, transparent 70%)`,
-          filter: "blur(14px)",
+          background: `radial-gradient(ellipse, ${meta.glowL} 0%, transparent 70%)`,
+          filter: "blur(18px)",
+          pointerEvents: "none",
+        }}
+      />
+      {/* 우측 cool 글로우 */}
+      <motion.div
+        animate={{ scale: [1, 1.2, 1], opacity: [0.6, 0.9, 0.6] }}
+        transition={{ repeat: Infinity, duration: 3.4, ease: "easeInOut", delay: 0.5 }}
+        style={{
+          position: "absolute",
+          bottom: "18%",
+          right: "-15%",
+          width: "70%",
+          height: "60%",
+          borderRadius: "50%",
+          background: `radial-gradient(ellipse, ${meta.glowR} 0%, transparent 70%)`,
+          filter: "blur(18px)",
           pointerEvents: "none",
         }}
       />
 
-      {/* 캐릭터 — top:39px, float 애니메이션 */}
-      <motion.div
-        animate={{ y: [0, -10, 0], rotate: [-1, 1, -1] }}
-        transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
-        style={{
-          position: "absolute",
-          top: 39,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 85,
-          height: 85,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <img
-          src={meta.src}
-          alt={meta.alt}
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
-        />
-      </motion.div>
+      {/* ── 캐릭터 (중앙 정렬 — flexbox, float 래퍼 분리) ── */}
+      {/*
+        position: absolute + translateX(-50%) 와 motion animate 충돌 방지
+        → 외부 wrapper로 절대위치, 내부 motion으로 float
+      */}
+      <div style={{
+        position: "absolute",
+        top: 28,
+        left: 0,
+        right: 0,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        height: 90,
+      }}>
+        <motion.div
+          animate={{ y: [0, -10, 0], rotate: [-1, 1, -1] }}
+          transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          <img
+            src={meta.src}
+            alt={meta.alt}
+            style={{ width: 88, height: 88, objectFit: "contain" }}
+          />
+        </motion.div>
+      </div>
 
+      {/* ── 텍스트 영역 ── */}
       {/* "Loading..." — top:134px */}
       <div style={{
         position: "absolute",
@@ -141,18 +175,18 @@ function LoaderCard({
         alignItems: "center",
         justifyContent: "center",
       }}>
-        <span style={{ color: "#b1b8be", fontSize: 12, fontFamily: "'Pretendard', sans-serif" }}>
+        <span style={{ color: "#b1b8be", fontSize: 13, fontFamily: "var(--font-pretendard, sans-serif)" }}>
           {title}
         </span>
         <Dots />
       </div>
 
-      {/* 서브타이틀 — top:164px */}
+      {/* 서브타이틀 — top:162px */}
       <div style={{
         position: "absolute",
-        top: 164,
-        left: 0,
-        right: 0,
+        top: 162,
+        left: 8,
+        right: 8,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -177,7 +211,6 @@ export default function AIMILoader({
 
   const resolved = subtitles?.length ? subtitles : subtitle ? [subtitle] : [];
 
-  // fullscreen: 컨테이너 채움
   if (variant === "fullscreen") {
     return (
       <div style={{
@@ -190,7 +223,6 @@ export default function AIMILoader({
     );
   }
 
-  // overlay: createPortal → CSS transform 영향 완전 차단
   if (!mounted) return null;
 
   return createPortal(
@@ -222,7 +254,6 @@ export default function AIMILoader({
 
 // ── 프리셋 ───────────────────────────────────────────────────
 
-/** 홈 Step2 하네스 생성 — ch1 태블릿 작업 */
 export function HarnessLoader({ show }: { show: boolean }) {
   return (
     <AIMILoader
@@ -240,7 +271,6 @@ export function HarnessLoader({ show }: { show: boolean }) {
   );
 }
 
-/** AIM GUARD 초기 진입 — ch2 손 흔들기 */
 export function GuardLoader({ show }: { show: boolean }) {
   return (
     <AIMILoader

@@ -288,6 +288,16 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               WebkitBackdropFilter: "blur(5px)",
             }}
           >
+            {/* 에임이 첫 메시지 — 항상 보임 (히스토리 없을 때) */}
+            {chatHistory.length === 0 && aiState !== "streaming" && (
+              <div className="flex justify-start gap-2.5 border-b border-white/5 px-4 py-3">
+                <img src="/img/ch6.png" alt="에임이" className="h-7 w-7 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/25 mt-0.5" />
+                <div className="max-w-[88%] text-sm text-white/70 leading-relaxed whitespace-pre-line">
+                  {"안녕하세요! 저는 에임이예요 🦊\n어떤 현장이든 맞춤 관제 시스템을 만들어 드릴게요.\n시나리오를 선택하거나 요구사항을 입력해 주세요."}
+                </div>
+              </div>
+            )}
+
             {/* 대화 히스토리 — 내용 있을 때만 표시, 스크롤 가능 */}
             <AnimatePresence>
               {(chatHistory.length > 0 || aiState === "streaming") && (
@@ -298,18 +308,9 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                 >
                   <div
                     ref={historyScrollRef}
-                    style={{ maxHeight: 320, overflowY: "auto", padding: "16px 16px 12px", display: "flex", flexDirection: "column", gap: 10 }}
+                    style={{ maxHeight: 280, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10 }}
                     className="custom-scrollbar"
                   >
-                    {/* 에임이 첫 메시지 — 히스토리 없을 때 */}
-                    {chatHistory.length === 0 && aiState !== "streaming" && (
-                      <div className="flex justify-start gap-2.5 mb-2">
-                        <img src="/img/ch6.png" alt="에임이" className="h-7 w-7 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/25 mt-0.5" />
-                        <div className="max-w-[88%] rounded-xl rounded-tl-sm border border-white/[0.07] bg-white/[0.03] px-3 py-2.5 text-sm text-white/80 leading-relaxed whitespace-pre-line">
-                          {"안녕하세요! 저는 에임이예요 🦊\n보안·에너지·스마트시티, 어떤 현장이든\n맞춤 관제 시스템을 함께 만들어 드릴게요.\n\n어떤 현장을 구축하고 싶으신가요?"}
-                        </div>
-                      </div>
-                    )}
                   {chatHistory.map((msg, i) => (
                       <div key={i} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                         {msg.role === "ai" && (
