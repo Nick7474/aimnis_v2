@@ -2,14 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronRight, Terminal, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Terminal, Sparkles, Palette, Check } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
-import { useLLMStore } from "@/store/llmStore";
-import ProviderPicker from "@/components/shared/ProviderPicker";
 import AiChatInput from "@/components/shared/AiChatInput";
 import { cn } from "@/lib/utils";
 import { computeNextPosition, getWidgetSize } from "./SmartGridEngine";
 import type { WidgetData } from "@/store/editorStore";
+import { detectBrandSuggestion, encodeBrandSuggestion, parseBrandSuggestion } from "@/lib/brandAgent";
+import type { BrandAgentSuggestion } from "@/lib/brandAgent";
 
 const LOGS = [
   "✓ solution loader initialized",
@@ -20,15 +20,26 @@ const LOGS = [
   "→ waiting for user input...",
 ];
 
-const QUICK_HINTS = ["KPI 카드 추가", "라인 차트 추가", "알람 패널", "게이지 추가"];
+const QUICK_HINTS = [
+  { label: "POSCO 납품 톤", prompt: "포스코 납품 톤으로 바꿔줘" },
+  { label: "KEPCO 화이트 톤", prompt: "KEPCO 화이트 톤으로 바꿔줘" },
+  { label: "그레이 설비 관제 톤", prompt: "그레이 설비 관제 톤으로 바꿔줘" },
+  { label: "알람 패널", prompt: "알람 패널 추가" },
+  { label: "KPI 카드 추가", prompt: "생산 효율 KPI 카드 추가" },
+  { label: "라인 차트 추가", prompt: "실시간 라인 차트 추가" },
+  { label: "게이지 추가", prompt: "위험도 게이지 추가" },
+];
 
 interface ChatPanelProps {
   solutionId: string;
 }
 
 function extractDisplayText(content: string): string {
-  const idx = content.indexOf("__WIDGET_JSON__");
-  return idx === -1 ? content : content.slice(0, idx).trim();
+  const widgetIdx = content.indexOf("__WIDGET_JSON__");
+  const brandIdx = content.indexOf("__BRAND_SUGGESTION__");
+  const markers = [widgetIdx, brandIdx].filter((idx) => idx !== -1);
+  if (markers.length === 0) return content;
+  return content.slice(0, Math.min(...markers)).trim();
 }
 
 function WidgetBadge({ type, title }: { type: string; title: string }) {
@@ -47,6 +58,56 @@ function WidgetBadge({ type, title }: { type: string; title: string }) {
   );
 }
 
+function BrandSuggestionCard({
+  suggestion,
+  applied,
+  onApply,
+}: {
+  suggestion: BrandAgentSuggestion;
+  applied: boolean;
+  onApply: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-2 rounded-xl border border-cyan-400/20 bg-cyan-500/[0.08] p-2.5"
+    >
+      <div className="flex items-start gap-2">
+        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-400/10">
+          <Palette className="h-3.5 w-3.5 text-cyan-200" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-semibold text-cyan-100">{suggestion.label}</p>
+          <p className="mt-0.5 text-[10px] leading-relaxed text-white/40">{suggestion.summary}</p>
+          <div className="mt-2 space-y-1">
+            {suggestion.changes.map((change) => (
+              <div key={change} className="flex items-center gap-1.5 text-[10px] text-white/35">
+                <span className="h-1 w-1 rounded-full bg-cyan-300/70" />
+                {change}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onApply}
+        disabled={applied}
+        className={cn(
+          "mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border text-[11px] font-semibold transition-colors",
+          applied
+            ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+            : "border-cyan-400/25 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25"
+        )}
+      >
+        {applied ? <Check className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+        {applied ? "프리셋 적용됨" : "프리셋 적용"}
+      </button>
+    </motion.div>
+  );
+}
+
 export default function ChatPanel({ solutionId }: ChatPanelProps) {
   const {
     messages,
@@ -58,20 +119,24 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
     overlayWidgets,
     addOverlayWidget,
     canvasSize,
+    selectBrandPreset,
+    setRightPanel,
   } = useEditorStore();
 
-  const { provider } = useLLMStore();
   const [input, setInput] = useState("");
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [logsOpen, setLogsOpen] = useState(false);
   const [widgetBadges, setWidgetBadges] = useState<
     Record<string, { type: string; title: string }>
   >({});
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [appliedBrandSuggestionIds, setAppliedBrandSuggestionIds] = useState<Set<string>>(new Set());
+  const messageScrollRef = useRef<HTMLDivElement>(null);
   const processedJsonIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const scroller = messageScrollRef.current;
+    if (!scroller) return;
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   // SmartGridEngine으로 위치 계산 후 오버레이 위젯 추가
@@ -109,22 +174,32 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
     const userMsg = { id: Date.now().toString(), role: "user" as const, content: text };
     addMessage(userMsg);
 
+    const brandSuggestion = detectBrandSuggestion(text);
+    if (brandSuggestion) {
+      const aiId = (Date.now() + 1).toString();
+      const response = [
+        `${brandSuggestion.tenantName} 납품형 브랜드 프리셋을 찾았습니다.`,
+        "아래 항목을 확인한 뒤 적용하면 중앙 프리뷰와 우측 설정이 함께 전환됩니다.",
+        encodeBrandSuggestion(brandSuggestion),
+      ].join("\n");
+      addMessage({ id: aiId, role: "assistant", content: response });
+      setLastCommand({ userText: text, aiResponse: response, timestamp: Date.now() });
+      setRightPanel("settings");
+      return;
+    }
+
     const aiId = (Date.now() + 1).toString();
     addMessage({ id: aiId, role: "assistant", content: "", streaming: true });
     setStreaming(true);
 
     try {
-      const apiMessages = [...messages, userMsg]
-        .filter((m) => !(m as { streaming?: boolean }).streaming)
-        .map((m) => ({
-          role: m.role,
-          content: extractDisplayText(m.content),
-        }));
+      // 현재 입력한 메시지 1개만 API에 전송 (과거 대화 기록 전송 금지)
+      const apiMessages = [{ role: "user", content: text }];
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, solution: solutionId, provider }),
+        body: JSON.stringify({ messages: apiMessages, solution: solutionId }),
       });
 
       const reader = res.body?.getReader();
@@ -142,22 +217,47 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
 
       setLastCommand({ userText: text, aiResponse: full, timestamp: Date.now() });
 
-      // __WIDGET_JSON__ 파싱 → 오버레이 위젯 추가
-      const markerIdx = full.indexOf("__WIDGET_JSON__");
-      if (markerIdx !== -1 && !processedJsonIds.current.has(aiId)) {
-        processedJsonIds.current.add(aiId);
-        try {
-          const jsonStr = full.slice(markerIdx + "__WIDGET_JSON__".length).trim();
-          const parsed = JSON.parse(jsonStr);
-          if (parsed.action === "add_widget" && parsed.widget) {
-            addWidgetOverlay(parsed.widget);
+      // ─── 위젯 JSON 파싱: 무조건 1개만 추출 ───
+      if (!processedJsonIds.current.has(aiId)) {
+        let widgetJson: any = null;
+
+        // 방법1: __WIDGET_JSON__ 마커 이후 파싱
+        const markerIdx = full.indexOf("__WIDGET_JSON__");
+        if (markerIdx !== -1) {
+          const afterMarker = full.slice(markerIdx + "__WIDGET_JSON__".length).trim();
+          try {
+            const m = afterMarker.match(/\{[\s\S]*\}/);
+            if (m) widgetJson = JSON.parse(m[0]);
+          } catch { /* 파싱 실패 무시 */ }
+        }
+
+        // 방법2: 마커 없이 action 키워드로 탐색
+        if (!widgetJson) {
+          try {
+            const m = full.match(/\{\s*"action"\s*:\s*"add_widget[s]?"[\s\S]*?\}[\s\S]*?\}/);
+            if (m) widgetJson = JSON.parse(m[0]);
+          } catch { /* 파싱 실패 무시 */ }
+        }
+
+        // 위젯 추출 (무조건 1개만)
+        if (widgetJson) {
+          processedJsonIds.current.add(aiId);
+          let singleWidget: any = null;
+
+          if (widgetJson.action === "add_widget" && widgetJson.widget) {
+            singleWidget = widgetJson.widget;
+          } else if (widgetJson.action === "add_widgets" && Array.isArray(widgetJson.widgets) && widgetJson.widgets.length > 0) {
+            singleWidget = widgetJson.widgets[0]; // 배열이 와도 첫 번째 1개만
+          }
+
+          if (singleWidget) {
+            singleWidget.widgetId = `w-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+            addWidgetOverlay(singleWidget);
             setWidgetBadges((prev) => ({
               ...prev,
-              [aiId]: { type: parsed.widget.type, title: parsed.widget.title },
+              [aiId]: { type: singleWidget.type, title: singleWidget.title },
             }));
           }
-        } catch {
-          // JSON 파싱 실패 무시
         }
       }
     } catch {
@@ -177,11 +277,13 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
   return (
     <div className="flex h-full flex-col">
       {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+      <div ref={messageScrollRef} className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
         <AnimatePresence initial={false}>
           {messages.map((msg) => {
             const displayText = extractDisplayText(msg.content);
             const badge = widgetBadges[msg.id];
+            const brandSuggestion = parseBrandSuggestion(msg.content);
+            const applied = appliedBrandSuggestionIds.has(msg.id);
             return (
               <motion.div
                 key={msg.id}
@@ -198,7 +300,9 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
                       : "bg-white/5 text-white/80"
                   )}
                 >
-                  {displayText || (
+                  {displayText ? (
+                    displayText
+                  ) : !msg.content ? (
                     <span className="flex items-center gap-1.5 text-white/30">
                       <motion.span
                         animate={{ opacity: [0.3, 1, 0.3] }}
@@ -208,14 +312,30 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
                       </motion.span>
                       생각 중…
                     </span>
+                  ) : (
+                    <span className="text-purple-300/80 italic text-[10px]">위젯 생성 완료</span>
                   )}
                   {badge && <WidgetBadge type={badge.type} title={badge.title} />}
+                  {brandSuggestion && (
+                    <BrandSuggestionCard
+                      suggestion={brandSuggestion}
+                      applied={applied}
+                      onApply={() => {
+                        selectBrandPreset(brandSuggestion.presetId);
+                        setRightPanel("settings");
+                        setAppliedBrandSuggestionIds((prev) => {
+                          const next = new Set(prev);
+                          next.add(msg.id);
+                          return next;
+                        });
+                      }}
+                    />
+                  )}
                 </div>
               </motion.div>
             );
           })}
         </AnimatePresence>
-        <div ref={bottomRef} />
       </div>
 
       {/* 실행 로그 */}
@@ -250,18 +370,15 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         </AnimatePresence>
       </div>
 
-      {/* AI 엔진 선택 + 빠른 예시 버튼 */}
-      <div className="flex items-center justify-between border-t border-white/5 px-3 pt-2 pb-1">
-        <ProviderPicker compact dropUp />
-      </div>
-      <div className="flex flex-wrap gap-1.5 px-3 pb-1">
+      {/* 빠른 예시 버튼 */}
+      <div className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1">
         {QUICK_HINTS.map((hint) => (
           <button
-            key={hint}
-            onClick={() => setInput(hint)}
-            className="rounded-full border border-white/8 bg-white/4 px-2.5 py-1 text-[10px] text-white/35 transition-all hover:border-purple-500/30 hover:bg-purple-500/10 hover:text-purple-300"
+            key={hint.label}
+            onClick={() => setInput(hint.prompt)}
+            className="rounded-full border border-white/[0.07] bg-white/[0.04] px-2.5 py-1 text-[10px] text-white/25 transition-all hover:border-white/15 hover:bg-white/[0.07] hover:text-white/50"
           >
-            {hint}
+            {hint.label}
           </button>
         ))}
       </div>
