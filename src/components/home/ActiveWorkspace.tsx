@@ -8,6 +8,7 @@ import { useHomeStore } from "@/store/homeStore";
 import { scenarios } from "@/data/scenarios";
 import { cn } from "@/lib/utils";
 import BlueprintCards from "./BlueprintCards";
+import { HarnessLoader } from "@/components/shared/AIMILoader";
 
 // localStorage 키
 const LS_KEY = "aimnis_harness_draft";
@@ -208,6 +209,9 @@ export default function ActiveWorkspace() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden pt-14">
+      {/* AIMI 하네스 생성 로딩 오버레이 */}
+      <HarnessLoader show={harnessLoading} />
+
       <div className="flex flex-1 overflow-hidden">
         {/* ─── 좌측: 채팅 (58%) ─────────────────────────────── */}
         <motion.div
@@ -326,9 +330,9 @@ export default function ActiveWorkspace() {
                     style={{ background: "linear-gradient(135deg, #5a3ee1, #735FE9, #5a3ee1)" }}
                   >
                     {harnessLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        하네스를 생성하고 있습니다...
+                      <span className="flex items-center justify-center gap-2 opacity-60">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        생성 중...
                       </span>
                     ) : (
                       <span className="flex items-center justify-center gap-2">

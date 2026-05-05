@@ -7,14 +7,11 @@ import { useProjectStore } from "@/store/projectStore";
 import { useEditorStore } from "@/store/editorStore";
 import { ChevronDown, Shield } from "lucide-react";
 import { useState, Suspense, useEffect } from "react";
+import { GuardLoader } from "@/components/shared/AIMILoader";
 
 const GuardApp = dynamic(() => import("@/components/guard/GuardApp"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-[#070F24]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
-    </div>
-  ),
+  loading: () => <GuardLoader />,
 });
 
 function ProjectBadge() {
