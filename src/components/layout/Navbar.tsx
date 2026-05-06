@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, LayoutDashboard, Database, Settings, LogOut, User } from "lucide-react";
+import { Shield, LayoutDashboard, Database, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHomeStore } from "@/store/homeStore";
 import { useState, useRef } from "react";
+import SettingsDrawer from "./SettingsDrawer";
 
 const NAV_ITEMS = [
   { href: "/home",     label: "홈",        icon: LayoutDashboard },
@@ -22,6 +23,7 @@ export default function Navbar() {
   const reset = useHomeStore((s) => s.reset);
 
   const [accountOpen, setAccountOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -45,6 +47,8 @@ export default function Navbar() {
   };
 
   return (
+    <>
+    <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     <nav
       style={{
         position: "fixed",
@@ -141,12 +145,16 @@ export default function Navbar() {
         {/* 우측 */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, paddingRight: 16 }}>
           <button
+            onClick={() => setSettingsOpen(true)}
+            title="플랫폼 설정"
             style={{
               width: 32, height: 32, borderRadius: 8,
-              border: "1px solid var(--border)", background: "transparent",
+              border: "1px solid var(--border)", background: settingsOpen ? "oklch(60% 0.20 285 / .1)" : "transparent",
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-              color: "var(--t3)", transition: "all .15s",
+              color: settingsOpen ? "var(--primary)" : "var(--t3)", transition: "all .15s",
             }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "oklch(60% 0.20 285 / .3)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--t2)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLButtonElement).style.color = settingsOpen ? "var(--primary)" : "var(--t3)"; }}
           >
             <Settings style={{ width: 14, height: 14 }} />
           </button>
@@ -258,5 +266,6 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
+    </>
   );
 }
