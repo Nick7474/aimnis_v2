@@ -183,11 +183,14 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
           </div>
         </div>
 
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: "8px 10px 10px" }}>
-          <div style={{ flex: 1, overflow: "hidden", minHeight: 0, marginBottom: 8 }}>
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: "8px 10px 10px", minHeight: 0 }}>
+          {/* flex 컨테이너로 ChatArea에 높이 전달 → overflow-y-auto 작동 */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, marginBottom: 8, overflow: "hidden" }}>
             <ChatArea />
           </div>
-          <ChatInput />
+          <div style={{ flexShrink: 0 }}>
+            <ChatInput />
+          </div>
         </div>
       </div>
     </div>

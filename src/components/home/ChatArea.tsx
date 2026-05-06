@@ -54,7 +54,7 @@ export default function ChatArea() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar">
+    <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar" style={{ minHeight: 0 }}>
       <AnimatePresence initial={false}>
         {messages.map((msg) => (
           <motion.div
