@@ -102,13 +102,24 @@ export default function FlowGuardModal({ scenario, onClose, hasHarness = false }
             onClick={onClose}
           />
 
-          {/* 모달 */}
+          {/* 중앙 정렬 래퍼 — Framer Motion transform 충돌 방지 */}
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1001,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+            }}
+          >
           <motion.div
-            initial={{ opacity: 0, scale: 0.88, y: 16 }}
+            initial={{ opacity: 0, scale: 0.88, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.88, y: 16 }}
+            exit={{ opacity: 0, scale: 0.88, y: 20 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="fixed left-1/2 top-1/2 z-[1001] w-full max-w-sm -translate-x-1/2 -translate-y-1/2"
+            style={{ pointerEvents: "auto", width: "100%", maxWidth: 400, padding: "0 16px" }}
           >
             <div
               className="relative flex flex-col items-center gap-5 rounded-2xl p-6"
@@ -202,6 +213,7 @@ export default function FlowGuardModal({ scenario, onClose, hasHarness = false }
               </div>
             </div>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
