@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Shield, LayoutDashboard, Database, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHomeStore } from "@/store/homeStore";
+import { useProjectStore } from "@/store/projectStore";
 import { useState, useRef } from "react";
 import SettingsDrawer from "./SettingsDrawer";
+import FlowGuardModal, { type FlowGuardScenario } from "./FlowGuardModal";
 
 const NAV_ITEMS = [
   { href: "/home",     label: "홈",        icon: LayoutDashboard },
@@ -24,7 +26,37 @@ export default function Navbar() {
 
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [guardModal, setGuardModal] = useState<FlowGuardScenario | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { isComplete } = useHomeStore();
+  const { projects } = useProjectStore();
+
+  const hasHarness = typeof window !== "undefined"
+    ? !!(sessionStorage.getItem("aimnis_harness_draft") || localStorage.getItem("aimnis_harness_draft"))
+    : false;
+  const hasPublish = projects.length > 0;
+
+  /** GNB 클릭 인터셉터 — 접근 권한 체크 후 팝업 or 이동 */
+  const handleNavClick = (e: React.MouseEvent, href: string) => {
+    if (href === "/home") return; // 홈은 항상 허용
+
+    if (href === "/editor") {
+      if (!isComplete) { e.preventDefault(); setGuardModal("editor-no-interview"); return; }
+      if (!hasHarness && !hasPublish) { e.preventDefault(); setGuardModal("editor-no-harness"); return; }
+      return;
+    }
+
+    if (href === "/projects") {
+      if (!hasPublish) { e.preventDefault(); setGuardModal("projects-no-publish"); return; }
+      return;
+    }
+
+    if (href === "/guard") {
+      if (!hasPublish) { e.preventDefault(); setGuardModal("guard-no-publish"); return; }
+      return;
+    }
+  };
 
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -49,6 +81,11 @@ export default function Navbar() {
   return (
     <>
     <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    <FlowGuardModal
+      scenario={guardModal}
+      onClose={() => setGuardModal(null)}
+      hasHarness={hasHarness}
+    />
     <nav
       style={{
         position: "fixed",
@@ -107,6 +144,7 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={(e) => handleNavClick(e, item.href)}
                 className={cn(!isActive && "hover:opacity-70")}
                 style={{
                   position: "relative",

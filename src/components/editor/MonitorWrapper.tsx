@@ -573,7 +573,7 @@ function InnerLayout() {
 
               {/* Map 기반 모니터링 — 기존 EditableSection 완전 유지 */}
               <Route path="/monitor" element={
-                <div style={{ width: "100%", height: "100%", minHeight: 0, position: "relative", overflow: "hidden" }}>
+                <div style={{ width: "100%", height: "100%", minHeight: 0, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
                   <MonitorPage />
                   <EditableSection sectionId="map" type="map" label="맵 영역" panelType="gis" variant="overlay" badgePosition="top-left" style={{ top: 0, left: 0, right: 300, bottom: 0 }} />
                   <EditableSection sectionId="alarm-panel" type="alarm-panel" label="알람 패널" panelType="alarm" variant="overlay" style={{ top: 0, right: 0, width: 300, height: rightPanelSplit }} />

@@ -17,6 +17,8 @@ import ChatPanel from "./ChatPanel";
 import FloatingToolbar from "./FloatingToolbar";
 import DynamicPanel from "./panels/DynamicPanel";
 import RightSidebarDropZone from "./RightSidebarDropZone";
+import FlowGuardModal, { type FlowGuardScenario } from "@/components/layout/FlowGuardModal";
+import { useHomeStore } from "@/store/homeStore";
 
 const MonitorWrapper = dynamic(() => import("./MonitorWrapper"), { ssr: false });
 const OverlayCanvas = dynamic(() => import("./OverlayCanvas"), { ssr: false });
@@ -56,6 +58,29 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
   const chatDragging = useRef(false);
   const chatDragStartX = useRef(0);
   const chatDragStartW = useRef(280);
+
+  // 페이지 레벨 접근 보호 (URL 직접 입력 방어)
+  const { isComplete } = useHomeStore();
+  const [pageGuardModal, setPageGuardModal] = useState<FlowGuardScenario | null>(null);
+  const routerForGuard = useRouter();
+  useEffect(() => {
+    const hasHarness = !!(
+      sessionStorage.getItem("aimnis_harness_draft") ||
+      localStorage.getItem("aimnis_harness_draft")
+    );
+    const hasPublish = useProjectStore.getState().projects.length > 0;
+    if (!isComplete && !hasPublish) {
+      setPageGuardModal("editor-no-interview");
+      const t = setTimeout(() => routerForGuard.replace("/home"), 3500);
+      return () => clearTimeout(t);
+    }
+    if (!hasHarness && !hasPublish) {
+      setPageGuardModal("editor-no-harness");
+      const t = setTimeout(() => routerForGuard.replace("/home"), 3500);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -194,6 +219,11 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveDragWidget(null)}
     >
+    {/* 페이지 레벨 접근 보호 모달 */}
+    <FlowGuardModal
+      scenario={pageGuardModal}
+      onClose={() => { setPageGuardModal(null); routerForGuard.replace("/home"); }}
+    />
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#080810]">
       {/* 전역 플로팅 툴바 — portal로 body에 마운트 */}
       <FloatingToolbar />
