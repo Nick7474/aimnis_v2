@@ -37,25 +37,12 @@ export default function Navbar() {
     : false;
   const hasPublish = projects.length > 0;
 
-  /** GNB 클릭 인터셉터 — 접근 권한 체크 후 팝업 or 이동 */
+  /** GNB 클릭 인터셉터 — 에디터만 체크, 프로젝트·가드는 자유 접근 */
   const handleNavClick = (e: React.MouseEvent, href: string) => {
-    if (href === "/home") return; // 홈은 항상 허용
+    if (href !== "/editor") return; // 에디터만 인터셉트
 
-    if (href === "/editor") {
-      if (!isComplete) { e.preventDefault(); setGuardModal("editor-no-interview"); return; }
-      if (!hasHarness && !hasPublish) { e.preventDefault(); setGuardModal("editor-no-harness"); return; }
-      return;
-    }
-
-    if (href === "/projects") {
-      if (!hasPublish) { e.preventDefault(); setGuardModal("projects-no-publish"); return; }
-      return;
-    }
-
-    if (href === "/guard") {
-      if (!hasPublish) { e.preventDefault(); setGuardModal("guard-no-publish"); return; }
-      return;
-    }
+    if (!isComplete) { e.preventDefault(); setGuardModal("editor-no-interview"); return; }
+    if (!hasHarness && !hasPublish) { e.preventDefault(); setGuardModal("editor-no-harness"); return; }
   };
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -84,7 +71,6 @@ export default function Navbar() {
     <FlowGuardModal
       scenario={guardModal}
       onClose={() => setGuardModal(null)}
-      hasHarness={hasHarness}
     />
     <nav
       style={{

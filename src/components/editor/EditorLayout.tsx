@@ -224,6 +224,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       scenario={pageGuardModal}
       onClose={() => { setPageGuardModal(null); routerForGuard.replace("/home"); }}
     />
+
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#080810]">
       {/* 전역 플로팅 툴바 — portal로 body에 마운트 */}
       <FloatingToolbar />
