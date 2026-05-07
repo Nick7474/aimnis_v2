@@ -11,7 +11,9 @@ import type { LucideProps } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
 import { useLLMStore } from "@/store/llmStore";
 import { useProjectStore } from "@/store/projectStore";
+import { captureUsageFromResponse } from "@/store/usageStore";
 import { scenarios } from "@/data/scenarios";
+import type { ScenarioId } from "@/data/scenarios";
 import ParticleWaves from "./ParticleWaves";
 
 interface HomeHeroProps {
@@ -20,6 +22,19 @@ interface HomeHeroProps {
 }
 
 const SCENARIO_ICONS = { Zap, Camera, Building2 } as Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>>;
+
+/** AI 응답에서 __SCENARIO__{"id":"..."} 마커 파싱 */
+function parseScenario(text: string): ScenarioId | null {
+  const m = text.match(/__SCENARIO__\{"id":"([^"]+)"\}/);
+  if (!m) return null;
+  const id = m[1] as ScenarioId;
+  return ["energy", "manufacturing", "smartcity"].includes(id) ? id : null;
+}
+
+/** AI 응답에서 __SCENARIO__ 마커 제거한 표시용 텍스트 */
+function cleanResponse(text: string): string {
+  return text.replace(/__SCENARIO__\{[^}]+\}/g, "").trim();
+}
 
 export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps) {
   const router = useRouter();
@@ -79,6 +94,9 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         body: JSON.stringify({ prompt: text, solution: solId }),
       });
 
+      // usage 캡처 (헤더는 body 스트림 전에 도착)
+      captureUsageFromResponse(res);
+
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let full = "";
@@ -92,7 +110,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         }
       }
     } catch {
-      const errMsg = "하네스 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+      const errMsg = "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
       setAiResponse(errMsg);
       setChatHistory(prev => [...prev, { role: "ai" as const, text: errMsg }]);
     } finally {
@@ -100,11 +118,11 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     }
   };
 
-  // streaming 완료 시 히스토리에 저장
+  // streaming 완료 시 히스토리 저장 (__SCENARIO__ 마커는 제거해서 저장)
   const prevAiState = useRef(aiState);
   useEffect(() => {
     if (prevAiState.current === "streaming" && aiState === "done" && aiResponse) {
-      setChatHistory(prev => [...prev, { role: "ai" as const, text: aiResponse }]);
+      setChatHistory(prev => [...prev, { role: "ai" as const, text: cleanResponse(aiResponse) }]);
     }
     prevAiState.current = aiState;
   }, [aiState, aiResponse]);
@@ -311,20 +329,43 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                     style={{ maxHeight: 280, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10 }}
                     className="custom-scrollbar"
                   >
-                  {chatHistory.map((msg, i) => (
-                      <div key={i} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                        {msg.role === "ai" && (
-                          <img src="/img/ch6.png" alt="에임이" className="h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20 mt-0.5" />
-                        )}
-                        <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
-                          msg.role === "user"
-                            ? "bg-purple-500/20 text-purple-100"
-                            : "bg-white/5 text-white/80"
-                        }`}>
-                          {msg.text}
+                  {chatHistory.map((msg, i) => {
+                    const isLastAi = msg.role === "ai" && i === chatHistory.length - 1 && aiState !== "streaming";
+                    const recommendId = isLastAi ? parseScenario(aiResponse || "") : null;
+                    const sc = recommendId ? scenarios.find(s => s.id === recommendId) : null;
+                    return (
+                      <div key={i}>
+                        <div className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                          {msg.role === "ai" && (
+                            <img src="/img/ch6.png" alt="에임이" className="h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20 mt-0.5" />
+                          )}
+                          <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+                            msg.role === "user"
+                              ? "bg-purple-500/20 text-purple-100"
+                              : "bg-white/5 text-white/80"
+                          }`}>
+                            {msg.text}
+                          </div>
                         </div>
+                        {sc && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3, duration: 0.35 }}
+                            className="mt-2 ml-8"
+                          >
+                            <button
+                              onClick={() => { setSelectedScenario(sc.id); setIsWorking(true); }}
+                              className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
+                              style={{ background: `${sc.color}22`, border: `1px solid ${sc.color}55`, color: sc.color }}
+                            >
+                              {sc.label}로 시작하기 →
+                            </button>
+                          </motion.div>
+                        )}
                       </div>
-                    ))}
+                    );
+                  })}
                     {aiState === "streaming" && (
                       <div className="flex justify-start">
                         <div className="max-w-[88%] rounded-xl bg-white/5 px-3 py-2 text-sm text-white/80 whitespace-pre-wrap leading-relaxed">

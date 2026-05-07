@@ -6,6 +6,7 @@ import { X, Cpu, Trash2, RefreshCw, LogOut, CheckCircle2, AlertCircle, ChevronRi
 import { useLLMStore, PROVIDER_META, type LLMProvider } from "@/store/llmStore";
 import { useProjectStore } from "@/store/projectStore";
 import { useHomeStore } from "@/store/homeStore";
+import { useUsageStore } from "@/store/usageStore";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -97,8 +98,14 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
   const { provider, setProvider } = useLLMStore();
   const { projects, remove } = useProjectStore();
   const { reset: resetHome } = useHomeStore();
+  const { todayUsage, totalInputTokens, totalOutputTokens, totalCostUsd, last7Days, clearAll: clearUsage } = useUsageStore();
   const router = useRouter();
   const [resetDone, setResetDone] = useState<string | null>(null);
+
+  const today = todayUsage();
+  const sevenDays = last7Days();
+  const maxTokens = Math.max(...sevenDays.map(d => d.inputTokens + d.outputTokens), 1);
+  const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
   const showFeedback = (msg: string) => {
     setResetDone(msg);
@@ -196,6 +203,73 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                     <span className="text-[11px] text-white/40">API 상태</span>
                     <ApiStatusBadge />
                   </div>
+                </div>
+              </section>
+
+              {/* ── API 사용량 대시보드 ── */}
+              <section>
+                <SectionHeader label="API 사용량" />
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 space-y-3">
+                  {/* 오늘 / 누적 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-2">
+                      <p className="text-[10px] text-white/30 mb-1">오늘</p>
+                      <p className="text-[13px] font-bold text-white/80">
+                        {today ? ((today.inputTokens + today.outputTokens) / 1000).toFixed(1) + "K" : "0"}
+                      </p>
+                      <p className="text-[10px] text-white/25 mt-0.5">
+                        ≈ ${today ? today.costUsd.toFixed(4) : "0.0000"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-2">
+                      <p className="text-[10px] text-white/30 mb-1">누적</p>
+                      <p className="text-[13px] font-bold text-white/80">
+                        {((totalInputTokens() + totalOutputTokens()) / 1000).toFixed(1)}K
+                      </p>
+                      <p className="text-[10px] text-white/25 mt-0.5">
+                        ≈ ${totalCostUsd().toFixed(3)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 7일 바 차트 */}
+                  <div>
+                    <p className="text-[10px] text-white/25 mb-1.5">최근 7일</p>
+                    <div className="flex items-end gap-1 h-10">
+                      {sevenDays.map((d) => {
+                        const tokens = d.inputTokens + d.outputTokens;
+                        const pct = maxTokens > 0 ? (tokens / maxTokens) * 100 : 0;
+                        const dayLabel = DAYS_KO[new Date(d.date + "T00:00:00").getDay()];
+                        const isToday = d.date === new Date().toISOString().split("T")[0];
+                        return (
+                          <div key={d.date} className="flex flex-col items-center gap-0.5 flex-1">
+                            <div
+                              className="w-full rounded-sm transition-all"
+                              style={{
+                                height: `${Math.max(pct, 2)}%`,
+                                background: isToday
+                                  ? "rgba(139,92,246,0.8)"
+                                  : "rgba(255,255,255,0.12)",
+                                minHeight: 2,
+                              }}
+                            />
+                            <span className="text-[8px] text-white/20">{dayLabel}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Anthropic Console 링크 */}
+                  <a
+                    href="https://console.anthropic.com/settings/usage"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between text-[11px] text-violet-400/70 hover:text-violet-300 transition-colors pt-1 border-t border-white/[0.05]"
+                  >
+                    <span>Anthropic Console에서 전체 현황 보기</span>
+                    <span>↗</span>
+                  </a>
                 </div>
               </section>
 

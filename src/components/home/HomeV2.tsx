@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { captureUsageFromResponse } from "@/store/usageStore";
 import { motion } from "framer-motion";
 import { useHomeStore } from "@/store/homeStore";
 
@@ -73,6 +74,8 @@ function ChatInput() {
           solution: selectedScenario ?? "guard",
         }),
       });
+
+      captureUsageFromResponse(res); // usage 캡처
 
       if (!res.ok || !res.body) throw new Error();
       addMessage({ id: `a-${Date.now()}`, role: "assistant", content: "" });

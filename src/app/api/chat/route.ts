@@ -33,7 +33,7 @@ async function handleClaude(
   messages: { role: string; content: string }[],
   solution: string,
   model: string = HAIKU_MODEL
-): Promise<ReadableStream<Uint8Array>> {
+): Promise<{ stream: ReadableStream<Uint8Array>; inputTokens: number; outputTokens: number }> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || undefined });
 
@@ -45,13 +45,17 @@ async function handleClaude(
   });
 
   const fullText = resp.content[0]?.type === "text" ? resp.content[0].text : "";
+  const inputTokens = resp.usage?.input_tokens ?? 0;
+  const outputTokens = resp.usage?.output_tokens ?? 0;
 
-  return new ReadableStream({
+  const stream = new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode(fullText));
       controller.close();
     },
   });
+
+  return { stream, inputTokens, outputTokens };
 }
 
 export async function POST(req: NextRequest) {
@@ -76,8 +80,16 @@ export async function POST(req: NextRequest) {
   const singleMessage = [{ role: "user", content: lastUserContent }];
 
   try {
-    const stream = await handleClaude(singleMessage, sol, HAIKU_MODEL);
-    return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Transfer-Encoding": "chunked" } });
+    const { stream, inputTokens, outputTokens } = await handleClaude(singleMessage, sol, HAIKU_MODEL);
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "X-Usage-Input": String(inputTokens),
+        "X-Usage-Output": String(outputTokens),
+        "X-Usage-Model": HAIKU_MODEL,
+      },
+    });
   } catch (e: any) {
     console.error("[Claude chat error]", e);
     return new Response(`API 연결 오류가 발생했습니다: ${e.message || "알 수 없는 오류"}`, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
