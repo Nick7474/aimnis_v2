@@ -206,7 +206,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-3xl"
+        className="w-full max-w-5xl"
       >
         {/* 채팅 히스토리는 입력 폼 안에 통합됨 (아래 form 참고) */}
 
