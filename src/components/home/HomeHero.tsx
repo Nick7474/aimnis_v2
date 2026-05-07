@@ -306,16 +306,6 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               WebkitBackdropFilter: "blur(5px)",
             }}
           >
-            {/* 에임이 첫 메시지 — 항상 보임 (히스토리 없을 때) */}
-            {chatHistory.length === 0 && aiState !== "streaming" && (
-              <div className="flex justify-start gap-2.5 border-b border-white/5 px-4 py-3">
-                <img src="/img/ch6.png" alt="에임이" className="h-7 w-7 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/25 mt-0.5" />
-                <div className="max-w-[88%] text-sm text-white/70 leading-relaxed whitespace-pre-line">
-                  {"안녕하세요! 저는 에임이입니다.\n어떤 현장이든 맞춤 관제 시스템을 만들어 드립니다.\n시나리오를 선택하거나 요구사항을 입력해 주세요."}
-                </div>
-              </div>
-            )}
-
             {/* 대화 히스토리 — 내용 있을 때만 표시, 스크롤 가능 */}
             <AnimatePresence>
               {(chatHistory.length > 0 || aiState === "streaming") && (
