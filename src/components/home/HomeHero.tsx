@@ -206,7 +206,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-2xl"
+        className="w-full max-w-3xl"
       >
         {/* 채팅 히스토리는 입력 폼 안에 통합됨 (아래 form 참고) */}
 
@@ -549,6 +549,42 @@ const SOLUTION_TO_SCENARIO: Record<string, string> = {
   eco:   "smartcity",
 };
 
+// ── 추가 솔루션 (로드맵 — 로고·이름은 나중에 수정) ──────────────
+const ROADMAP_SOLUTIONS = [
+  {
+    id: "physical",
+    name: "AIM PHYSICAL AI",
+    category: "Physical AI",
+    description: "로봇·자율설비 제어 및 물리 AI 통합 관제 플랫폼",
+    features: ["자율 설비 제어", "물리 센서 연동", "실시간 피드백"],
+    color: "#f59e0b",
+  },
+  {
+    id: "city",
+    name: "AIM CITY",
+    category: "Smart City",
+    description: "도심·지자체 통합 안전 관제 및 스마트시티 플랫폼",
+    features: ["도시 CCTV 통합", "긴급 신고 연동", "구역별 위험 분석"],
+    color: "#10b981",
+  },
+  {
+    id: "env",
+    name: "AIM ENV",
+    category: "Environment",
+    description: "대기·수질·환경 데이터 통합 모니터링 플랫폼",
+    features: ["TMS 연동", "환경 기준 알람", "규제 리포트 자동화"],
+    color: "#06b6d4",
+  },
+  {
+    id: "ops",
+    name: "AIM OPS",
+    category: "Operations",
+    description: "제조·물류 공정 운영 최적화 AI 관제 플랫폼",
+    features: ["공정 이상 감지", "설비 예지보전", "생산성 대시보드"],
+    color: "#8b5cf6",
+  },
+] as const;
+
 function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
   const router = useRouter();
   const { setIsWorking, setSelectedScenario } = useHomeStore();
@@ -558,10 +594,12 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="mt-16 w-full max-w-2xl pb-16"
+      className="mt-16 w-full max-w-5xl pb-16"
     >
-      <p className="mb-4 text-xs text-white/30 text-center">구독 중인 솔루션</p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <p className="mb-4 text-xs text-white/30 text-center">솔루션 플랫폼</p>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+
+        {/* 기존 솔루션 (available) */}
         {solutions.map((sol, i) => {
           const isAvailable = sol.status === "available";
           const logoSrc = SOLUTION_LOGOS[sol.id];
@@ -613,7 +651,6 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
                   if (!isAvailable) return;
                   const scenarioId = SOLUTION_TO_SCENARIO[sol.id];
                   if (scenarioId) {
-                    // Step2로 이동 (스펙 설정 → 하네스 생성 → 에디터)
                     setSelectedScenario(scenarioId as "energy" | "manufacturing" | "smartcity");
                     setIsWorking(true);
                   } else {
@@ -633,6 +670,58 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
             </motion.div>
           );
         })}
+
+        {/* 로드맵 솔루션 (coming soon) */}
+        {ROADMAP_SOLUTIONS.map((sol, i) => (
+          <motion.div
+            key={sol.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 + i * 0.07 }}
+            className="p-4 flex flex-col gap-3"
+            style={{
+              borderRadius: 16,
+              border: "1px solid rgba(255,255,255,0.06)",
+              background: "rgba(255,255,255,0.02)",
+              backdropFilter: "blur(5px)",
+              WebkitBackdropFilter: "blur(5px)",
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                {/* 플레이스홀더 아이콘 — 로고 나중에 교체 */}
+                <div
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
+                  style={{ background: sol.color + "20", border: `1px solid ${sol.color}30` }}
+                >
+                  <span className="text-[10px] font-bold" style={{ color: sol.color }}>
+                    {sol.name.replace("AIM ", "").slice(0, 2)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white/50">{sol.name}</p>
+                  <p className="text-[10px] text-white/25 capitalize">{sol.category}</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/25">
+                출시 예정
+              </span>
+            </div>
+            <p className="text-xs text-white/25 leading-relaxed">{sol.description}</p>
+            <div className="flex flex-wrap gap-1">
+              {sol.features.map((f) => (
+                <span key={f} className="rounded-md bg-white/[0.03] px-1.5 py-0.5 text-[10px] text-white/20">{f}</span>
+              ))}
+            </div>
+            <button
+              disabled
+              className="mt-auto w-full cursor-not-allowed rounded-lg bg-white/[0.03] py-2 text-xs font-medium text-white/15"
+            >
+              출시 예정
+            </button>
+          </motion.div>
+        ))}
+
       </div>
     </motion.div>
   );
