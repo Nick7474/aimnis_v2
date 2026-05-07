@@ -603,8 +603,12 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               className="p-4 flex flex-col gap-3"
               style={{
                 borderRadius: 16,
-                border: "1px solid #2F2243",
-                background: "rgba(135, 135, 178, 0.05)",
+                border: isAvailable
+                  ? "1px solid rgba(139,92,246,0.35)"
+                  : "1px solid rgba(255,255,255,0.07)",
+                background: isAvailable
+                  ? "rgba(139,92,246,0.06)"
+                  : "rgba(255,255,255,0.02)",
                 backdropFilter: "blur(5px)",
                 WebkitBackdropFilter: "blur(5px)",
               }}
@@ -671,7 +675,7 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
             className="p-4 flex flex-col gap-3"
             style={{
               borderRadius: 16,
-              border: "1px solid rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.07)",
               background: "rgba(255,255,255,0.02)",
               backdropFilter: "blur(5px)",
               WebkitBackdropFilter: "blur(5px)",
