@@ -21,11 +21,12 @@ const ParticleWaves = () => {
   const mouseRef = useRef({ x: 0, y: 0 });
   const windowHalfRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
-  const createParticleMaterial = (color) => {
+  const createParticleMaterial = (color: string) => {
     const canvas = document.createElement('canvas');
     canvas.width = 32;
     canvas.height = 32;
     const context = canvas.getContext('2d');
+    if (!context) return new THREE.SpriteMaterial({ transparent: true });
 
     context.clearRect(0, 0, 32, 32);
     context.fillStyle = color;
