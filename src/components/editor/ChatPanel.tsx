@@ -318,6 +318,56 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
     }
   };
 
+  const handleSendText = async (text: string) => {
+    if (!text.trim() || isStreaming) return;
+    setInput("");
+    const userMsg = { id: Date.now().toString(), role: "user" as const, content: text };
+    addMessage(userMsg);
+
+    const intent = parseIntent(text);
+    if (intent.type !== "unknown") {
+      const store = useEditorStore.getState();
+      switch (intent.type) {
+        case "brand_preset":
+          store.selectBrandPreset(intent.params.presetId);
+          if (intent.params.title) store.setSystemTitle(intent.params.title);
+          break;
+        case "tenant_name":
+          store.updateBrand({ tenantName: intent.params.name });
+          break;
+        case "system_title":
+          store.setSystemTitle(intent.params.title);
+          break;
+        case "view_mapping":
+          store.setCenterView("mapping");
+          store.setRightPanel("mapping");
+          break;
+        case "view_monitor":
+          store.setCenterView("monitor");
+          break;
+        case "clear_widgets":
+          store.overlayWidgets.forEach(w => store.removeOverlayWidget(w.id));
+          break;
+      }
+      addMessage({ id: (Date.now() + 1).toString(), role: "assistant", content: intent.ackMessage });
+      return;
+    }
+
+    const brandSuggestion = detectBrandSuggestion(text);
+    if (brandSuggestion) {
+      const aiId = (Date.now() + 1).toString();
+      const response = [
+        `${brandSuggestion.tenantName} 납품형 브랜드 프리셋을 찾았습니다.`,
+        "아래 항목을 확인한 뒤 적용하면 중앙 프리뷰와 우측 설정이 함께 전환됩니다.",
+        encodeBrandSuggestion(brandSuggestion),
+      ].join("\n");
+      addMessage({ id: aiId, role: "assistant", content: response });
+      setLastCommand({ userText: text, aiResponse: response, timestamp: Date.now() });
+      setRightPanel("settings");
+      return;
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -430,7 +480,7 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         {QUICK_HINTS.map((hint) => (
           <button
             key={hint.label}
-            onClick={() => setInput(hint.prompt)}
+            onClick={() => handleSendText(hint.prompt)}
             className="rounded-full border border-white/[0.07] bg-white/[0.04] px-2.5 py-1 text-[10px] text-white/25 transition-all hover:border-white/15 hover:bg-white/[0.07] hover:text-white/50"
           >
             {hint.label}

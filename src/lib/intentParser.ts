@@ -25,25 +25,25 @@ export interface ParsedIntent {
 const PRESET_RULES: Array<{ keywords: string[]; presetId: string; title?: string; ack: string }> = [
   {
     keywords: ["posco", "포스코", "납품 톤", "포스코 스타일"],
-    presetId: "posco",
+    presetId: "posco-smart-safety",
     title: "포스코 통합관제",
     ack: "포스코 납품 톤으로 변경했습니다. 고객사도 '포스코'로 설정됐습니다.",
   },
   {
     keywords: ["kepco", "한전", "화이트 톤", "kepco 스타일"],
-    presetId: "kepco-white",
+    presetId: "kepco-energy-control",
     title: "KEPCO 관제센터",
     ack: "KEPCO 화이트 톤으로 변경했습니다.",
   },
   {
     keywords: ["그레이", "gray", "설비 관제 톤", "그레이 톤"],
-    presetId: "gray-industrial",
+    presetId: "twinx-industrial-gray",
     title: undefined,
     ack: "그레이 설비 관제 톤으로 변경했습니다.",
   },
   {
     keywords: ["다크", "dark", "어두운", "어두운 톤"],
-    presetId: "deep-dark",
+    presetId: "aim-guard-default",
     title: undefined,
     ack: "다크 톤으로 변경했습니다.",
   },
