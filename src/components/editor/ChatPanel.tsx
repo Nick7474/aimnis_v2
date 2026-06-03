@@ -366,6 +366,81 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
       setRightPanel("settings");
       return;
     }
+
+    // ── intent/brand 매칭 실패 → API 호출 (위젯 생성 등) ──────────
+    const aiId = (Date.now() + 1).toString();
+    addMessage({ id: aiId, role: "assistant", content: "", streaming: true });
+    setStreaming(true);
+
+    try {
+      const apiMessages = [{ role: "user", content: text }];
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages, solution: solutionId }),
+      });
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let full = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += decoder.decode(value, { stream: true });
+          updateLastMessage(full);
+        }
+      }
+
+      setLastCommand({ userText: text, aiResponse: full, timestamp: Date.now() });
+
+      // ─── 위젯 JSON 파싱: 무조건 1개만 추출 ───
+      if (!processedJsonIds.current.has(aiId)) {
+        let widgetJson: any = null;
+
+        const markerIdx = full.indexOf("__WIDGET_JSON__");
+        if (markerIdx !== -1) {
+          const afterMarker = full.slice(markerIdx + "__WIDGET_JSON__".length).trim();
+          try {
+            const m = afterMarker.match(/\{[\s\S]*\}/);
+            if (m) widgetJson = JSON.parse(m[0]);
+          } catch { /* 파싱 실패 무시 */ }
+        }
+
+        if (!widgetJson) {
+          try {
+            const m = full.match(/\{\s*"action"\s*:\s*"add_widget[s]?"[\s\S]*?\}[\s\S]*?\}/);
+            if (m) widgetJson = JSON.parse(m[0]);
+          } catch { /* 파싱 실패 무시 */ }
+        }
+
+        if (widgetJson) {
+          processedJsonIds.current.add(aiId);
+          let singleWidget: any = null;
+
+          if (widgetJson.action === "add_widget" && widgetJson.widget) {
+            singleWidget = widgetJson.widget;
+          } else if (widgetJson.action === "add_widgets" && Array.isArray(widgetJson.widgets) && widgetJson.widgets.length > 0) {
+            singleWidget = widgetJson.widgets[0];
+          }
+
+          if (singleWidget) {
+            singleWidget.widgetId = `w-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+            addWidgetOverlay(singleWidget);
+            setWidgetBadges((prev) => ({
+              ...prev,
+              [aiId]: { type: singleWidget.type, title: singleWidget.title },
+            }));
+          }
+        }
+      }
+    } catch {
+      updateLastMessage("⚠️ API 연결 오류. ANTHROPIC_API_KEY를 확인하세요.");
+    } finally {
+      setStreaming(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
