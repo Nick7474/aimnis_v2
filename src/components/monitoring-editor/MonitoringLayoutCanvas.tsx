@@ -425,10 +425,7 @@ export default function MonitoringLayoutCanvas({
         id: "summary-equipment-status",
         source: "ai-studio-default",
         title: equipment.title,
-        x: 0,
-        y: 0,
-        w: 3,
-        h: 3,
+        x: equipment.x, y: equipment.y, w: equipment.w, h: equipment.h,
         render: () => <SummaryCard title={equipment.title} icon={Activity} value="128" unit="/ 154 대" sub="6 대" accentColor={equipment.accentColor} brand={brandTokens} />,
       },
       {
@@ -627,7 +624,8 @@ export default function MonitoringLayoutCanvas({
               <p>해당 페이지의 편집 레이아웃 전환은 다음 단계에서 연결합니다.</p>
             </div>
           ) : (
-            <>
+            /* 래퍼: 컨텐츠 높이 == 위젯 그리드 높이 → 그리드 오버레이가 스크롤 전체를 커버 */
+            <div style={{ position: "relative", minHeight: "100%" }}>
               <div
                 className={`pointer-events-none absolute inset-0 z-0 transition-opacity ${
                   isDraggingWidget || interactionActive ? "opacity-100" : "opacity-0"
@@ -665,7 +663,7 @@ export default function MonitoringLayoutCanvas({
                   rowGap: GRID_GAP,
                   padding: `${GRID_PADDING_TOP}px ${GRID_PADDING_RIGHT}px ${GRID_PADDING_BOTTOM}px ${GRID_PADDING_LEFT}px`,
                   position: "relative",
-                  minHeight: `calc(100% - ${GRID_PADDING_TOP + GRID_PADDING_BOTTOM}px)`,
+                  minHeight: "100%",
                   zIndex: 10,
                 }}
               >
@@ -745,6 +743,8 @@ export default function MonitoringLayoutCanvas({
                             boxShadow: isSelected ? `0 0 0 4px rgba(0,200,255,.12), 0 0 24px rgba(0,200,255,.22)` : undefined,
                           }}
                           onPointerDownCapture={(event) => {
+                            /* 리사이즈 핸들 클릭은 캡처 단계에서 가로채지 않음 */
+                            if ((event.target as HTMLElement).closest("[data-resize-handle]")) return;
                             if (onStartDefaultWidgetInteraction) {
                               onStartDefaultWidgetInteraction(event, item.id, "move", { x: item.x, y: item.y, w: item.w, h: item.h });
                             }
@@ -764,16 +764,19 @@ export default function MonitoringLayoutCanvas({
                           {isSelected && onStartDefaultWidgetInteraction && (
                             <>
                               <span
+                                data-resize-handle="e"
                                 onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "e"); }}
                                 className="absolute right-0 top-7 h-[calc(100%-3.5rem)] w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15"
                                 aria-hidden="true"
                               />
                               <span
+                                data-resize-handle="s"
                                 onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "s"); }}
                                 className="absolute bottom-0 left-7 h-2 w-[calc(100%-3.5rem)] cursor-ns-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15"
                                 aria-hidden="true"
                               />
                               <span
+                                data-resize-handle="se"
                                 onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "se"); }}
                                 className="absolute bottom-0 right-0 h-6 w-6 cursor-nwse-resize"
                                 aria-hidden="true"
@@ -799,7 +802,7 @@ export default function MonitoringLayoutCanvas({
                   );
                 })}
               </div>
-            </>
+            </div>
           )}
         </main>
       </div>
