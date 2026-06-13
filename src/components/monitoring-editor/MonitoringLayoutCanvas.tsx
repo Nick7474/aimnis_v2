@@ -744,7 +744,7 @@ export default function MonitoringLayoutCanvas({
                             outlineOffset: "-2px",
                             boxShadow: isSelected ? `0 0 0 4px rgba(0,200,255,.12), 0 0 24px rgba(0,200,255,.22)` : undefined,
                           }}
-                          onPointerDown={(event) => {
+                          onPointerDownCapture={(event) => {
                             if (onStartDefaultWidgetInteraction) {
                               onStartDefaultWidgetInteraction(event, item.id, "move", { x: item.x, y: item.y, w: item.w, h: item.h });
                             }

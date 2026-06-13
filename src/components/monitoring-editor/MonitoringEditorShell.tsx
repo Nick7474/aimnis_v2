@@ -1254,6 +1254,25 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     setSelectedElement(null);
   };
 
+  const resetAllDefaultWidgets = () => {
+    setElementConfigs((current) => ({
+      ...current,
+      defaultWidgets: Object.fromEntries(
+        Object.entries(current.defaultWidgets).map(([id]) => [
+          id,
+          { ...DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id], x: undefined, y: undefined, w: undefined, h: undefined },
+        ])
+      ),
+    }));
+  };
+
+  const resetFullCanvas = () => {
+    setCanvasWidgets([]);
+    resetAllDefaultWidgets();
+    setSelectedWidgetId(null);
+    setSelectedElement(null);
+  };
+
   const hideSelectedToolbarTarget = () => {
     if (selectedWidget) {
       removeSelectedWidget();
@@ -1738,22 +1757,44 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         </button>
         <MonitoringResetButton label="기본 AIM Monitoring으로 복원" onClick={resetMonitoringBrand} />
 
-        <MonitoringInspectorSection icon={LayoutDashboard} title="기능 모듈">
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold text-white/65">활성 위젯</p>
-              <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                {activeWidgets.length}개
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {moduleChips.map((chip) => (
-                <span key={chip} className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] text-white/45">
-                  {chip}
-                </span>
-              ))}
-            </div>
+        <MonitoringInspectorSection icon={LayoutDashboard} title="기본 위젯 표시">
+          <div className="space-y-1">
+            {Object.entries(elementConfigs.defaultWidgets).map(([id, config]) => (
+              <MonitoringToggleControl
+                key={id}
+                label={config.title}
+                checked={config.visible !== false}
+                onChange={(visible) => updateDefaultWidgetConfig(id, { visible })}
+              />
+            ))}
           </div>
+        </MonitoringInspectorSection>
+
+        <MonitoringInspectorSection icon={RotateCcw} title="캔버스 초기화">
+          <button
+            type="button"
+            onClick={resetAllDefaultWidgets}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-xs font-medium text-white/50 transition-colors hover:border-white/15 hover:text-white/75"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            기본 위젯 위치·크기 복원
+          </button>
+          <button
+            type="button"
+            onClick={() => { setCanvasWidgets([]); setSelectedWidgetId(null); }}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-500/15"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            추가 위젯 전체 삭제
+          </button>
+          <button
+            type="button"
+            onClick={resetFullCanvas}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2.5 text-xs font-medium text-red-200 transition-colors hover:bg-red-500/15"
+          >
+            <X className="h-3.5 w-3.5" />
+            전체 초기화 (기본값으로)
+          </button>
         </MonitoringInspectorSection>
       </MonitoringInspectorFrame>
     );
@@ -2030,6 +2071,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               onClick={() =>
                 updateDefaultWidgetConfig(selectedElement.id, {
                   ...(DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[selectedElement.id] ?? selectedDefaultWidgetConfig),
+                  x: undefined,
+                  y: undefined,
+                  w: undefined,
+                  h: undefined,
                 })
               }
             />
