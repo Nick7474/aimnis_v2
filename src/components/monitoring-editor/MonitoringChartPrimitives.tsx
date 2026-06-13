@@ -86,8 +86,8 @@ export function AIMLineChart({
   const fs = W < 260 ? 8 : 9;
 
   return (
-    <div ref={box} style={{ width: "100%", height: "100%", minHeight: 0 }}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+    <div ref={box} style={{ position: "relative", width: "100%", height: "100%", minHeight: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}>
         <defs>
           <linearGradient id={`area${uid}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"   stopColor={color} stopOpacity="0.26" />
@@ -149,8 +149,8 @@ export function AIMBarChart({ data, colorFn, xLabels = [] }: BarChartProps) {
   const yTicks = 3;
   const fs = W < 260 ? 8 : 9;
   return (
-    <div ref={box} style={{ width: "100%", height: "100%", minHeight: 0 }}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+    <div ref={box} style={{ position: "relative", width: "100%", height: "100%", minHeight: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}>
         {Array.from({ length: yTicks + 1 }).map((_, i) => {
           const y = padT + ch - (i / yTicks) * ch;
           return (
@@ -199,13 +199,29 @@ export function AIMGauge({
   value, max = 100, color = C.blue, size = 104,
   label = "", sub = "", track = "rgba(255,255,255,.07)", thickness = 9,
 }: GaugeProps) {
+  const box = useRef<HTMLDivElement>(null);
+  const [displaySize, setDisplaySize] = useState(size);
+
+  useEffect(() => {
+    if (!box.current) return;
+    const ro = new ResizeObserver((es) => {
+      for (const e of es) {
+        const r = e.contentRect;
+        setDisplaySize(Math.max(32, Math.min(size, Math.round(Math.min(r.width, r.height)))));
+      }
+    });
+    ro.observe(box.current);
+    return () => ro.disconnect();
+  }, [size]);
+
   const r = (size - thickness) / 2 - 2;
   const cx = size / 2, cy = size / 2;
   const circ = 2 * Math.PI * r;
   const pct = Math.min(value / max, 1);
   const uid = useId().replace(/:/g, "");
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <div ref={box} style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <svg width={displaySize} height={displaySize} viewBox={`0 0 ${size} ${size}`}>
       <defs>
         <linearGradient id={`g${uid}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%"   stopColor={color} />
@@ -225,6 +241,7 @@ export function AIMGauge({
           textAnchor="middle" letterSpacing="0.1em">{sub}</text>
       )}
     </svg>
+    </div>
   );
 }
 

@@ -68,7 +68,7 @@ type CenterView = "monitor" | "mapping";
 type RightInspectorMode = "settings" | "mapping";
 type SettingsPanelScope = "brand" | "selection";
 type WidgetInteractionKind = "move" | "resize";
-type ResizeHandle = "e" | "s" | "se";
+type ResizeHandle = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
 type WidgetOptionValue = string | number | boolean;
 
 interface MonitoringBrandSlot extends BrandSettings {
@@ -702,6 +702,19 @@ function resolveWidgetIdFromPrompt(prompt: string, widgets: SolutionWidget[]) {
   return bestWidgetId;
 }
 
+const DEFAULT_WIDGET_POSITIONS: Record<string, { x: number; y: number; w: number; h: number }> = {
+  "summary-equipment-status": { x: 0, y: 0,  w: 3, h: 3  },
+  "summary-environment-risk": { x: 3, y: 0,  w: 3, h: 3  },
+  "summary-worker-safety":    { x: 6, y: 0,  w: 3, h: 3  },
+  "summary-alert-count":      { x: 9, y: 0,  w: 3, h: 3  },
+  "equipment-anomaly-chart":  { x: 0, y: 3,  w: 8, h: 10 },
+  "worker-safety-overview":   { x: 8, y: 3,  w: 4, h: 10 },
+  "environment-diagnosis":    { x: 0, y: 13, w: 3, h: 5  },
+  "realtime-alerts":          { x: 3, y: 13, w: 3, h: 5  },
+  "action-progress":          { x: 6, y: 13, w: 3, h: 5  },
+  "system-status":            { x: 9, y: 13, w: 3, h: 5  },
+};
+
 function canvasWidgetsIntersect(
   a: Pick<CanvasWidgetInstance, "x" | "y" | "w" | "h">,
   b: Pick<CanvasWidgetInstance, "x" | "y" | "w" | "h">
@@ -1112,8 +1125,25 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const addWidgetToCanvas = (widget: SolutionWidget, preferred?: { x: number; y: number }) => {
     const instanceId = `${widget.id}-${Date.now()}`;
 
+    /* 기본 위젯도 충돌 영역으로 포함 — 드롭 위치가 기본 위젯과 겹치지 않게 */
+    const defaultOccupied: CanvasWidgetInstance[] = Object.entries(elementConfigs.defaultWidgets)
+      .filter(([, cfg]) => cfg.visible !== false)
+      .map(([id, cfg]) => {
+        const pos = DEFAULT_WIDGET_POSITIONS[id] ?? { x: 0, y: 0, w: 1, h: 1 };
+        return {
+          instanceId: `default-${id}`,
+          widgetId: id,
+          title: cfg.title,
+          x: cfg.x ?? pos.x,
+          y: cfg.y ?? pos.y,
+          w: cfg.w ?? pos.w,
+          h: cfg.h ?? pos.h,
+          options: {},
+        };
+      });
+
     setCanvasWidgets((current) => {
-      const placement = findNextWidgetPlacement(widget, current, preferred);
+      const placement = findNextWidgetPlacement(widget, [...current, ...defaultOccupied], preferred);
       const instance: CanvasWidgetInstance = {
         instanceId,
         widgetId: widget.id,
@@ -1199,10 +1229,12 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     if (!defaultInteraction) return;
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;
+    const HANDLE_CURSORS: Record<ResizeHandle, string> = {
+      n: "ns-resize", ne: "nesw-resize", e: "ew-resize", se: "nwse-resize",
+      s: "ns-resize", sw: "nesw-resize", w: "ew-resize", nw: "nwse-resize",
+    };
     document.body.style.cursor = defaultInteraction.kind === "move" ? "grabbing"
-      : defaultInteraction.handle === "e" ? "ew-resize"
-      : defaultInteraction.handle === "s" ? "ns-resize"
-      : "nwse-resize";
+      : HANDLE_CURSORS[defaultInteraction.handle ?? "se"] ?? "nwse-resize";
     document.body.style.userSelect = "none";
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -1217,11 +1249,32 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         const nextY = clamp(defaultInteraction.startY + dyRows, 0, Math.max(0, metrics.maxRows - defaultInteraction.startH));
         updateDefaultWidgetConfig(defaultInteraction.elementId, { x: nextX, y: nextY });
       } else {
-        const canResizeW = defaultInteraction.handle === "e" || defaultInteraction.handle === "se";
-        const canResizeH = defaultInteraction.handle === "s" || defaultInteraction.handle === "se";
-        const nextW = canResizeW ? clamp(defaultInteraction.startW + dxCols, 2, GRID_COLS - defaultInteraction.startX) : defaultInteraction.startW;
-        const nextH = canResizeH ? clamp(defaultInteraction.startH + dyRows, 2, Math.max(2, metrics.maxRows - defaultInteraction.startY)) : defaultInteraction.startH;
-        updateDefaultWidgetConfig(defaultInteraction.elementId, { w: nextW, h: nextH });
+        const dh = defaultInteraction.handle;
+        const canResizeE    = dh === "e"  || dh === "se" || dh === "ne";
+        const canResizeS    = dh === "s"  || dh === "se" || dh === "sw";
+        const canResizeN    = dh === "n"  || dh === "nw" || dh === "ne";
+        const canResizeWest = dh === "w"  || dh === "nw" || dh === "sw";
+
+        let nextX = defaultInteraction.startX, nextW = defaultInteraction.startW;
+        let nextY = defaultInteraction.startY, nextH = defaultInteraction.startH;
+
+        if (canResizeE) {
+          nextW = clamp(defaultInteraction.startW + dxCols, 2, GRID_COLS - defaultInteraction.startX);
+        } else if (canResizeWest) {
+          const dxC = clamp(dxCols, -defaultInteraction.startX, defaultInteraction.startW - 2);
+          nextX = defaultInteraction.startX + dxC;
+          nextW = defaultInteraction.startW - dxC;
+        }
+
+        if (canResizeS) {
+          nextH = clamp(defaultInteraction.startH + dyRows, 2, Math.max(2, metrics.maxRows - defaultInteraction.startY));
+        } else if (canResizeN) {
+          const dyR = clamp(dyRows, -defaultInteraction.startY, defaultInteraction.startH - 2);
+          nextY = defaultInteraction.startY + dyR;
+          nextH = defaultInteraction.startH - dyR;
+        }
+
+        updateDefaultWidgetConfig(defaultInteraction.elementId, { x: nextX, y: nextY, w: nextW, h: nextH });
       }
     };
     const handlePointerUp = () => setDefaultInteraction(null);
@@ -1378,14 +1431,14 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;
+    const HANDLE_CURSORS: Record<ResizeHandle, string> = {
+      n: "ns-resize", ne: "nesw-resize", e: "ew-resize", se: "nwse-resize",
+      s: "ns-resize", sw: "nesw-resize", w: "ew-resize", nw: "nwse-resize",
+    };
     document.body.style.cursor =
       interaction.kind === "move"
         ? "grabbing"
-        : interaction.handle === "e"
-          ? "ew-resize"
-          : interaction.handle === "s"
-            ? "ns-resize"
-            : "nwse-resize";
+        : HANDLE_CURSORS[interaction.handle ?? "se"] ?? "nwse-resize";
     document.body.style.userSelect = "none";
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -1406,16 +1459,32 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             return { ...widget, x: nextX, y: nextY };
           }
 
-          const canResizeW = interaction.handle === "e" || interaction.handle === "se";
-          const canResizeH = interaction.handle === "s" || interaction.handle === "se";
-          const nextW = canResizeW
-            ? clamp(interaction.startW + dxCols, MIN_WIDGET_W, GRID_COLS - interaction.startX)
-            : interaction.startW;
-          const nextH = canResizeH
-            ? clamp(interaction.startH + dyRows, MIN_WIDGET_H, Math.max(MIN_WIDGET_H, metrics.maxRows - interaction.startY))
-            : interaction.startH;
+          const ih = interaction.handle;
+          const canResizeE = ih === "e"  || ih === "se" || ih === "ne";
+          const canResizeS = ih === "s"  || ih === "se" || ih === "sw";
+          const canResizeN = ih === "n"  || ih === "nw" || ih === "ne";
+          const canResizeW = ih === "w"  || ih === "nw" || ih === "sw";
 
-          return { ...widget, w: nextW, h: nextH };
+          let nextX = interaction.startX, nextW = interaction.startW;
+          let nextY = interaction.startY, nextH = interaction.startH;
+
+          if (canResizeE) {
+            nextW = clamp(interaction.startW + dxCols, MIN_WIDGET_W, GRID_COLS - interaction.startX);
+          } else if (canResizeW) {
+            const dxC = clamp(dxCols, -interaction.startX, interaction.startW - MIN_WIDGET_W);
+            nextX = interaction.startX + dxC;
+            nextW = interaction.startW - dxC;
+          }
+
+          if (canResizeS) {
+            nextH = clamp(interaction.startH + dyRows, MIN_WIDGET_H, Math.max(MIN_WIDGET_H, metrics.maxRows - interaction.startY));
+          } else if (canResizeN) {
+            const dyR = clamp(dyRows, -interaction.startY, interaction.startH - MIN_WIDGET_H);
+            nextY = interaction.startY + dyR;
+            nextH = interaction.startH - dyR;
+          }
+
+          return { ...widget, x: nextX, y: nextY, w: nextW, h: nextH };
         })
       );
     };

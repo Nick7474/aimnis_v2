@@ -88,7 +88,7 @@ function WidgetFrame({
         </div>
       </div>
       {/* body */}
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="custom-scrollbar" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "auto" }}>
         {children}
       </div>
     </div>
@@ -110,11 +110,11 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Zap className="h-4 w-4" />} accent="red" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
           <div style={{ flex: 1, display: "flex", gap: 18, minHeight: 0, alignItems: "stretch" }}>
-            <div style={{ flex: 1, minHeight: 90 }}>
+            <div style={{ flex: 1, minHeight: 0 }}>
               <AIMLineChart data={d} color={C.red} bare area smooth />
             </div>
-            <div style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
-              <AIMGauge value={73} max={100} color={C.red} size={118} thickness={11} label="73%" sub="ARC" />
+            <div style={{ flexShrink: 0, width: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <AIMGauge value={73} max={100} color={C.red} size={100} thickness={10} label="73%" sub="ARC" />
             </div>
           </div>
         </WidgetFrame>

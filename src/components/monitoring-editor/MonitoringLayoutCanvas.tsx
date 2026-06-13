@@ -86,14 +86,14 @@ interface MonitoringLayoutCanvasProps {
     event: ReactPointerEvent<HTMLElement>,
     instance: MonitoringCanvasWidgetInstance,
     kind: "move" | "resize",
-    handle?: "e" | "s" | "se"
+    handle?: "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw"
   ) => void;
   onStartDefaultWidgetInteraction?: (
     event: ReactPointerEvent<HTMLElement>,
     id: string,
     kind: "move" | "resize",
     currentPos: { x: number; y: number; w: number; h: number },
-    handle?: "e" | "s" | "se"
+    handle?: "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw"
   ) => void;
   onHideDefaultWidget?: (id: string) => void;
 }
@@ -712,22 +712,29 @@ export default function MonitoringLayoutCanvas({
                           )}
                           {isSelected && (
                             <>
-                              <span
-                                onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "e")}
-                                className="absolute right-0 top-7 h-[calc(100%-3.5rem)] w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15"
-                                aria-hidden="true"
-                              />
-                              <span
-                                onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "s")}
-                                className="absolute bottom-0 left-7 h-2 w-[calc(100%-3.5rem)] cursor-ns-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15"
-                                aria-hidden="true"
-                              />
-                              <span
-                                onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "se")}
-                                className="absolute bottom-0 right-0 h-6 w-6 cursor-nwse-resize"
-                                aria-hidden="true"
-                              >
+                              {/* North edge */}
+                              <span onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "n")} className="absolute top-0 left-6 right-6 h-2 cursor-ns-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15" aria-hidden="true" />
+                              {/* South edge */}
+                              <span onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "s")} className="absolute bottom-0 left-6 right-6 h-2 cursor-ns-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15" aria-hidden="true" />
+                              {/* East edge */}
+                              <span onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "e")} className="absolute right-0 top-6 bottom-6 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15" aria-hidden="true" />
+                              {/* West edge */}
+                              <span onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "w")} className="absolute left-0 top-6 bottom-6 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15" aria-hidden="true" />
+                              {/* NW corner */}
+                              <span onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "nw")} className="absolute top-0 left-0 h-6 w-6 cursor-nwse-resize" aria-hidden="true">
+                                <span className="absolute top-1 left-1 h-4 w-4 rounded-sm bg-[#00C8FF]/80 shadow-[0_0_10px_rgba(0,200,255,.6)]" />
+                              </span>
+                              {/* NE corner */}
+                              <span onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "ne")} className="absolute top-0 right-0 h-6 w-6 cursor-nesw-resize" aria-hidden="true">
+                                <span className="absolute top-1 right-1 h-4 w-4 rounded-sm bg-[#00C8FF]/80 shadow-[0_0_10px_rgba(0,200,255,.6)]" />
+                              </span>
+                              {/* SE corner */}
+                              <span onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "se")} className="absolute bottom-0 right-0 h-6 w-6 cursor-nwse-resize" aria-hidden="true">
                                 <span className="absolute bottom-1 right-1 h-4 w-4 rounded-sm bg-[#00C8FF]/80 shadow-[0_0_10px_rgba(0,200,255,.6)]" />
+                              </span>
+                              {/* SW corner */}
+                              <span onPointerDown={(event) => onStartWidgetInteraction(event, item.widgetInstance!, "resize", "sw")} className="absolute bottom-0 left-0 h-6 w-6 cursor-nesw-resize" aria-hidden="true">
+                                <span className="absolute bottom-1 left-1 h-4 w-4 rounded-sm bg-[#00C8FF]/80 shadow-[0_0_10px_rgba(0,200,255,.6)]" />
                               </span>
                             </>
                           )}
@@ -763,25 +770,29 @@ export default function MonitoringLayoutCanvas({
                           </DefaultItemFrame>
                           {isSelected && onStartDefaultWidgetInteraction && (
                             <>
-                              <span
-                                data-resize-handle="e"
-                                onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "e"); }}
-                                className="absolute right-0 top-7 h-[calc(100%-3.5rem)] w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15"
-                                aria-hidden="true"
-                              />
-                              <span
-                                data-resize-handle="s"
-                                onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "s"); }}
-                                className="absolute bottom-0 left-7 h-2 w-[calc(100%-3.5rem)] cursor-ns-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15"
-                                aria-hidden="true"
-                              />
-                              <span
-                                data-resize-handle="se"
-                                onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "se"); }}
-                                className="absolute bottom-0 right-0 h-6 w-6 cursor-nwse-resize"
-                                aria-hidden="true"
-                              >
+                              {/* North edge */}
+                              <span data-resize-handle="n" onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "n"); }} className="absolute top-0 left-6 right-6 h-2 cursor-ns-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15" aria-hidden="true" />
+                              {/* South edge */}
+                              <span data-resize-handle="s" onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "s"); }} className="absolute bottom-0 left-6 right-6 h-2 cursor-ns-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15" aria-hidden="true" />
+                              {/* East edge */}
+                              <span data-resize-handle="e" onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "e"); }} className="absolute right-0 top-6 bottom-6 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15" aria-hidden="true" />
+                              {/* West edge */}
+                              <span data-resize-handle="w" onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "w"); }} className="absolute left-0 top-6 bottom-6 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-[#00C8FF]/15" aria-hidden="true" />
+                              {/* NW corner */}
+                              <span data-resize-handle="nw" onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "nw"); }} className="absolute top-0 left-0 h-6 w-6 cursor-nwse-resize" aria-hidden="true">
+                                <span className="absolute top-1 left-1 h-4 w-4 rounded-sm bg-[#00C8FF]/80 shadow-[0_0_10px_rgba(0,200,255,.6)]" />
+                              </span>
+                              {/* NE corner */}
+                              <span data-resize-handle="ne" onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "ne"); }} className="absolute top-0 right-0 h-6 w-6 cursor-nesw-resize" aria-hidden="true">
+                                <span className="absolute top-1 right-1 h-4 w-4 rounded-sm bg-[#00C8FF]/80 shadow-[0_0_10px_rgba(0,200,255,.6)]" />
+                              </span>
+                              {/* SE corner */}
+                              <span data-resize-handle="se" onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "se"); }} className="absolute bottom-0 right-0 h-6 w-6 cursor-nwse-resize" aria-hidden="true">
                                 <span className="absolute bottom-1 right-1 h-4 w-4 rounded-sm bg-[#00C8FF]/80 shadow-[0_0_10px_rgba(0,200,255,.6)]" />
+                              </span>
+                              {/* SW corner */}
+                              <span data-resize-handle="sw" onPointerDown={(e) => { e.stopPropagation(); onStartDefaultWidgetInteraction(e, item.id, "resize", { x: item.x, y: item.y, w: item.w, h: item.h }, "sw"); }} className="absolute bottom-0 left-0 h-6 w-6 cursor-nesw-resize" aria-hidden="true">
+                                <span className="absolute bottom-1 left-1 h-4 w-4 rounded-sm bg-[#00C8FF]/80 shadow-[0_0_10px_rgba(0,200,255,.6)]" />
                               </span>
                               {onHideDefaultWidget && (
                                 <button
