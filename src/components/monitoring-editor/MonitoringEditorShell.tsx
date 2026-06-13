@@ -1443,7 +1443,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const handleConfigureSelected = () => {
     if (!selectedWidget && !selectedElement) return;
     setRightInspectorMode("settings");
-    setSettingsPanelScope("brand");
+    setSettingsPanelScope("selection");
     setShowRightPanel(true);
   };
 
