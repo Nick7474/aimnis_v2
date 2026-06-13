@@ -1104,7 +1104,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       colWidth,
       strideX: colWidth + GRID_GUTTER,
       strideY: GRID_ROW_HEIGHT + GRID_ROW_GAP,
-      maxRows: Math.max(1, Math.floor((rect.height - GRID_MARGIN_TOP - GRID_MARGIN_BOTTOM) / (GRID_ROW_HEIGHT + GRID_ROW_GAP))),
+      /* 캔버스는 스크롤 가능 → 뷰포트 높이가 아닌 스크롤 전체 높이 기준으로 계산 */
+      maxRows: Math.max(200, Math.ceil((canvas.scrollHeight - GRID_MARGIN_TOP - GRID_MARGIN_BOTTOM) / (GRID_ROW_HEIGHT + GRID_ROW_GAP))),
     };
   };
 
@@ -2422,7 +2423,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               selectedWidgetId={selectedWidgetId}
               selectedElementId={selectedElement?.id ?? null}
               isDraggingWidget={isDraggingWidget}
-              interactionActive={Boolean(interaction)}
+              interactionActive={Boolean(interaction) || Boolean(defaultInteraction)}
               onDragOver={(event) => {
                 if (event.dataTransfer.types.includes("application/x-aim-monitoring-widget")) {
                   event.preventDefault();
