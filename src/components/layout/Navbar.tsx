@@ -7,13 +7,13 @@ import { Shield, LayoutDashboard, Database, Settings, LogOut } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { useHomeStore } from "@/store/homeStore";
 import { useProjectStore } from "@/store/projectStore";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import SettingsDrawer from "./SettingsDrawer";
 import FlowGuardModal, { type FlowGuardScenario } from "./FlowGuardModal";
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: "/home",     label: "홈",        icon: LayoutDashboard },
-  { href: "/editor",   label: "에디터",    icon: Shield },
+  { href: "/editor",   label: "에디터",    icon: Shield, dynamic: true },
   { href: "/projects", label: "프로젝트",  icon: Database },
   { href: "/guard",    label: "AIM GUARD", icon: Shield },
 ];
@@ -29,6 +29,18 @@ export default function Navbar() {
   const [guardModal, setGuardModal] = useState<FlowGuardScenario | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* 마지막으로 열었던 에디터 솔루션 — monitoring이면 monitoring 에디터로 링크 */
+  const [activeEditorHref, setActiveEditorHref] = useState("/editor");
+  useEffect(() => {
+    const last = sessionStorage.getItem("aimnis_active_editor");
+    if (last === "monitoring") setActiveEditorHref("/editor?solution=monitoring");
+    else setActiveEditorHref("/editor");
+  }, []);
+
+  const NAV_ITEMS = BASE_NAV_ITEMS.map((item) =>
+    item.dynamic ? { ...item, href: activeEditorHref } : item
+  );
+
   const { isComplete } = useHomeStore();
   const { projects } = useProjectStore();
 
@@ -39,7 +51,8 @@ export default function Navbar() {
 
   /** GNB 클릭 인터셉터 — 에디터만 체크, 프로젝트·가드는 자유 접근 */
   const handleNavClick = (e: React.MouseEvent, href: string) => {
-    if (href !== "/editor") return; // 에디터만 인터셉트
+    if (!href.startsWith("/editor")) return; // 에디터만 인터셉트
+    if (href.includes("solution=monitoring")) return; // monitoring 에디터는 인터셉트 없이 통과
 
     if (!isComplete) { e.preventDefault(); setGuardModal("editor-no-interview"); return; }
     if (!hasHarness && !hasPublish) { e.preventDefault(); setGuardModal("editor-no-harness"); return; }

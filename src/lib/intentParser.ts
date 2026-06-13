@@ -24,28 +24,46 @@ export interface ParsedIntent {
 // ── 브랜드 프리셋 매핑 ────────────────────────────────────────
 const PRESET_RULES: Array<{ keywords: string[]; presetId: string; title?: string; ack: string }> = [
   {
-    keywords: ["posco", "포스코", "납품 톤", "포스코 스타일"],
+    keywords: ["posco", "포스코", "포스코 스타일", "포스코 납품"],
     presetId: "posco-smart-safety",
     title: "포스코 통합관제",
     ack: "포스코 납품 톤으로 변경했습니다. 고객사도 '포스코'로 설정됐습니다.",
   },
   {
-    keywords: ["kepco", "한전", "화이트 톤", "kepco 스타일"],
+    keywords: ["kepco", "한전", "화이트 톤", "kepco 스타일", "흰색 톤", "밝은 톤", "kepco톤", "kepco 톤"],
     presetId: "kepco-energy-control",
     title: "KEPCO 관제센터",
     ack: "KEPCO 화이트 톤으로 변경했습니다.",
   },
   {
-    keywords: ["그레이", "gray", "설비 관제 톤", "그레이 톤"],
+    keywords: ["그레이", "gray", "설비 관제 톤", "그레이 톤", "회색"],
     presetId: "twinx-industrial-gray",
     title: undefined,
     ack: "그레이 설비 관제 톤으로 변경했습니다.",
   },
   {
-    keywords: ["다크", "dark", "어두운", "어두운 톤"],
+    keywords: ["다크", "dark", "어두운", "어두운 톤", "기본", "기본 톤", "블루", "네이비"],
     presetId: "aim-guard-default",
     title: undefined,
-    ack: "다크 톤으로 변경했습니다.",
+    ack: "다크 블루 기본 톤으로 변경했습니다.",
+  },
+  {
+    keywords: ["삼성", "samsung", "캠퍼스", "반도체"],
+    presetId: "samsung-digital-campus",
+    title: undefined,
+    ack: "삼성 딥블루 톤으로 변경했습니다.",
+  },
+  {
+    keywords: ["현대", "hyundai", "모빌리티"],
+    presetId: "hyundai-mobility-guard",
+    title: undefined,
+    ack: "현대 모빌리티 네이비 톤으로 변경했습니다.",
+  },
+  {
+    keywords: ["공공", "중립", "공공기관"],
+    presetId: "public-neutral",
+    title: undefined,
+    ack: "공공기관 중립 톤으로 변경했습니다.",
   },
 ];
 
