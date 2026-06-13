@@ -11,7 +11,7 @@ import { HarnessLoader } from "@/components/shared/AIMILoader";
 const LS_KEY = "aimnis_harness_draft";
 
 export default function CreateHarnessBtn() {
-  const { isComplete, selectedScenario, blueprintMd, selectedSpecs } = useHomeStore();
+  const { isComplete, selectedSolution, selectedScenario, blueprintMd, selectedSpecs } = useHomeStore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [justActivated, setJustActivated] = useState(false);
@@ -31,10 +31,12 @@ export default function CreateHarnessBtn() {
   const handleCreate = async () => {
     if (!isComplete || loading || !selectedScenario) return;
     setLoading(true);
+    const solutionId = selectedSolution ?? "guard";
 
     // MD + 메타데이터 sessionStorage 저장 (EditorLayout 복원용)
     try {
       const payload = JSON.stringify({
+        solution: solutionId,
         md: blueprintMd,
         scenario: selectedScenario,
         specs: selectedSpecs,
@@ -47,7 +49,7 @@ export default function CreateHarnessBtn() {
     }
 
     await new Promise((r) => setTimeout(r, 1500));
-    router.push(`/editor?solution=guard&scenario=${selectedScenario}`);
+    router.push(`/editor?solution=${solutionId}&scenario=${selectedScenario}`);
   };
 
   return (

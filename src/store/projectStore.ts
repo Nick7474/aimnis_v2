@@ -6,7 +6,7 @@ import type { SectionStyleKey, SectionStyleOverrides } from "@/store/editorStore
 export interface PublishedProject {
   id: string;
   name: string;
-  solution: string;         // "guard" | "eco"
+  solution: string;         // "guard" | "monitoring" | "eco"
   status: "active" | "draft";
   client: string;
   description: string;
@@ -22,6 +22,7 @@ export interface PublishedProject {
   brandSnapshot?: Partial<BrandSettings & BrandPreset>;
   sectionStylesSnapshot?: Partial<Record<SectionStyleKey, SectionStyleOverrides>>;
   systemTitle?: string;
+  monitoringSnapshot?: unknown;
 }
 
 interface ProjectState {

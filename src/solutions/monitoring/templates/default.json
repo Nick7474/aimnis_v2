@@ -1,0 +1,61 @@
+{
+  "solution": "monitoring",
+  "templateId": "default",
+  "name": "AIoT 복합 계측 모니터링 기본 레이아웃",
+  "description": "설비 진단, 환경 진단, 작업자 안전, AI 예지보전, SOP를 포함한 AIM Monitoring 기본 구성",
+  "nodes": [
+    {
+      "id": "node-multi-sensor-health",
+      "type": "monitoringWidget",
+      "position": { "x": 80, "y": 60 },
+      "data": {
+        "widgetId": "multi-sensor-health",
+        "label": "복합 센서 헬스 매트릭스",
+        "dataConnector": "sensor-fleet",
+        "dataKey": "sensorHealth",
+        "grid": { "x": 0, "y": 0, "w": 6, "h": 4 }
+      }
+    },
+    {
+      "id": "node-vibration-fft-spectrum",
+      "type": "monitoringWidget",
+      "position": { "x": 80, "y": 280 },
+      "data": {
+        "widgetId": "vibration-fft-spectrum",
+        "label": "진동 FFT 스펙트럼",
+        "dataConnector": "vibration",
+        "dataKey": "fftSpectrum",
+        "grid": { "x": 0, "y": 4, "w": 6, "h": 5 }
+      }
+    },
+    {
+      "id": "node-thermal-delta-map",
+      "type": "monitoringWidget",
+      "position": { "x": 520, "y": 280 },
+      "data": {
+        "widgetId": "thermal-delta-map",
+        "label": "과열 ΔT 히트맵",
+        "dataConnector": "thermal",
+        "dataKey": "thermalDelta",
+        "grid": { "x": 6, "y": 4, "w": 6, "h": 5 }
+      }
+    },
+    {
+      "id": "node-sop-auto-execution",
+      "type": "monitoringWidget",
+      "position": { "x": 520, "y": 60 },
+      "data": {
+        "widgetId": "sop-auto-execution",
+        "label": "SOP 자동 실행",
+        "dataConnector": "sop-events",
+        "dataKey": "sopProgress",
+        "grid": { "x": 6, "y": 0, "w": 6, "h": 4 }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-monitoring-1", "source": "node-multi-sensor-health", "target": "node-vibration-fft-spectrum", "type": "smoothstep" },
+    { "id": "e-monitoring-2", "source": "node-multi-sensor-health", "target": "node-thermal-delta-map", "type": "smoothstep" },
+    { "id": "e-monitoring-3", "source": "node-thermal-delta-map", "target": "node-sop-auto-execution", "type": "smoothstep" }
+  ]
+}

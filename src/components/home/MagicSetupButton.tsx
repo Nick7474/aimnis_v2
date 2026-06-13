@@ -4,7 +4,7 @@ import { useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
-import { specGroups, scenarioMap } from "@/data/scenarios";
+import { getScenarioConfig } from "@/data/scenarios";
 
 const STAGGER_MS = 60;
 const CHIP_HOLD_MS = 280;
@@ -14,7 +14,7 @@ interface MagicSetupButtonProps {
 }
 
 export default function MagicSetupButton({ onAnimatingChange }: MagicSetupButtonProps) {
-  const { selectedScenario, isMagicAnimating, setMagicAnimating, applyMagicDefault } =
+  const { selectedSolution, selectedScenario, isMagicAnimating, setMagicAnimating, applyMagicDefault } =
     useHomeStore();
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -31,8 +31,9 @@ export default function MagicSetupButton({ onAnimatingChange }: MagicSetupButton
     setMagicAnimating(true);
     onAnimatingChange({});
 
-    const { defaultSpecs } = scenarioMap[selectedScenario];
-    const allQuestions = specGroups.flatMap((g) => g.questions);
+    const config = getScenarioConfig(selectedSolution);
+    const { defaultSpecs } = config.scenarioMap[selectedScenario];
+    const allQuestions = config.specGroups.flatMap((g) => g.questions);
 
     // 칩 순차 애니메이션
     allQuestions.forEach((q, i) => {
@@ -58,7 +59,7 @@ export default function MagicSetupButton({ onAnimatingChange }: MagicSetupButton
     }, allQuestions.length * STAGGER_MS + CHIP_HOLD_MS);
 
     timers.current.push(doneTimer);
-  }, [selectedScenario, isMagicAnimating, setMagicAnimating, applyMagicDefault, onAnimatingChange, clearTimers]);
+  }, [selectedSolution, selectedScenario, isMagicAnimating, setMagicAnimating, applyMagicDefault, onAnimatingChange, clearTimers]);
 
   const disabled = !selectedScenario || isMagicAnimating;
 

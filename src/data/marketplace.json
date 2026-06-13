@@ -9,10 +9,16 @@
       "order": 1
     },
     {
+      "id": "monitoring",
+      "manifestPath": "solutions/monitoring/manifest.json",
+      "status": "available",
+      "order": 2
+    },
+    {
       "id": "eco",
       "manifestPath": "solutions/eco/manifest.json",
       "status": "coming-soon",
-      "order": 2
+      "order": 3
     }
   ],
   "addSolutionGuide": {

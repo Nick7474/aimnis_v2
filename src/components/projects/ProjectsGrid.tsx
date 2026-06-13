@@ -36,7 +36,14 @@ interface ProjectsGridProps {
 
 const SOLUTION_COLORS: Record<string, string> = {
   guard: "#14b8a6",
+  monitoring: "#3b82f6",
   eco: "#22c55e",
+};
+
+const SOLUTION_LABELS: Record<string, string> = {
+  guard: "AIM GUARD",
+  monitoring: "AIM Monitoring",
+  eco: "AIM ECO",
 };
 
 export default function ProjectsGrid({ initialProjects }: ProjectsGridProps) {
@@ -199,7 +206,7 @@ function ProjectCard({ project, index, copiedId, onEdit, onDelete, onCopyUrl, on
             <div className="flex items-center gap-2 mb-1">
               <Shield className="h-3.5 w-3.5 flex-shrink-0" style={{ color }} />
               <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color }}>
-                AIM {project.solution.toUpperCase()}
+                {SOLUTION_LABELS[project.solution] ?? `AIM ${project.solution.toUpperCase()}`}
               </span>
             </div>
             <h3 className="text-sm font-semibold text-white leading-snug truncate" title={project.name}>
@@ -247,7 +254,7 @@ function ProjectCard({ project, index, copiedId, onEdit, onDelete, onCopyUrl, on
             onClick={onOpen}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-teal-600/80 to-cyan-600/80 py-1.5 text-xs text-white hover:from-teal-500 hover:to-cyan-500 transition-all"
           >
-            <Play className="h-3 w-3" /> AIM GUARD 실행
+            <Play className="h-3 w-3" /> {SOLUTION_LABELS[project.solution] ?? "AIM 실행"}
           </button>
           <button
             onClick={onCopyUrl}

@@ -1,0 +1,166 @@
+{
+  "version": "1.0.0",
+  "solutionId": "monitoring",
+  "widgets": [
+    {
+      "id": "ultrasonic-arc-risk",
+      "name": "초음파 아크 위험도",
+      "type": "monitoring-ultrasonic-arc-risk",
+      "description": "초음파 대역에서 아크, 코로나, 미세 방전 위험을 조기 감지",
+      "defaultSize": { "w": 4, "h": 4 },
+      "dataSource": "ultrasonic"
+    },
+    {
+      "id": "vibration-fft-spectrum",
+      "name": "진동 FFT 스펙트럼",
+      "type": "monitoring-vibration-fft-spectrum",
+      "description": "1X/2X/3X 피크 기반 회전기기 결함 분석",
+      "defaultSize": { "w": 6, "h": 5 },
+      "dataSource": "vibration"
+    },
+    {
+      "id": "thermal-delta-map",
+      "name": "과열 ΔT 히트맵",
+      "type": "monitoring-thermal-delta-map",
+      "description": "접점 및 상간 온도 차이 기반 과열 위험 표시",
+      "defaultSize": { "w": 6, "h": 4 },
+      "dataSource": "thermal"
+    },
+    {
+      "id": "gas-decomposition-panel",
+      "name": "열화 가스 분해 패널",
+      "type": "monitoring-gas-decomposition-panel",
+      "description": "CO, CH4, H2, C2H2 등 가스 조합으로 열화 원인 추정",
+      "defaultSize": { "w": 4, "h": 5 },
+      "dataSource": "gas"
+    },
+    {
+      "id": "multi-sensor-health",
+      "name": "복합 센서 헬스 매트릭스",
+      "type": "monitoring-multi-sensor-health",
+      "description": "초음파, 진동, 열, 가스, 작업자 센서의 통합 상태",
+      "defaultSize": { "w": 6, "h": 4 },
+      "dataSource": "sensor-fleet"
+    },
+    {
+      "id": "fault-progression-stage",
+      "name": "고장 진행 단계",
+      "type": "monitoring-fault-progression-stage",
+      "description": "잠복기부터 파손기까지 고장 진행 단계와 권장 조치 표시",
+      "defaultSize": { "w": 4, "h": 4 },
+      "dataSource": "ai-diagnosis"
+    },
+    {
+      "id": "autoencoder-anomaly",
+      "name": "Autoencoder 이상 점수",
+      "type": "monitoring-autoencoder-anomaly",
+      "description": "재구성 오차 기반 이상탐지 점수와 임계값 표시",
+      "defaultSize": { "w": 4, "h": 4 },
+      "dataSource": "ai-diagnosis"
+    },
+    {
+      "id": "rul-lstm-forecast",
+      "name": "LSTM 잔여수명 예측",
+      "type": "monitoring-rul-lstm-forecast",
+      "description": "시계열 열화 패턴 기반 잔여수명과 점검 시점 예측",
+      "defaultSize": { "w": 6, "h": 5 },
+      "dataSource": "ai-diagnosis"
+    },
+    {
+      "id": "cnn-lstm-spectrogram",
+      "name": "CNN-LSTM 스펙트로그램 진단",
+      "type": "monitoring-cnn-lstm-spectrogram",
+      "description": "진동 스펙트로그램 이미지와 시계열 특징 결합 진단",
+      "defaultSize": { "w": 6, "h": 5 },
+      "dataSource": "ai-diagnosis"
+    },
+    {
+      "id": "fscore-model-tuning",
+      "name": "F1/F2 모델 운용 모드",
+      "type": "monitoring-fscore-model-tuning",
+      "description": "정확도 균형 또는 안전 우선 재현율 중심 운영 전략 표시",
+      "defaultSize": { "w": 4, "h": 4 },
+      "dataSource": "ai-diagnosis"
+    },
+    {
+      "id": "worker-spo2-status",
+      "name": "작업자 SpO2 안전",
+      "type": "monitoring-worker-spo2-status",
+      "description": "산소포화도와 맥파 기반 작업자 안전 상태 표시",
+      "defaultSize": { "w": 4, "h": 4 },
+      "dataSource": "worker-bio"
+    },
+    {
+      "id": "worker-fall-detection",
+      "name": "쓰러짐 감지 플로우",
+      "type": "monitoring-worker-fall-detection",
+      "description": "충격, 부동 상태, 카운트다운, 긴급 신고 단계 표시",
+      "defaultSize": { "w": 4, "h": 5 },
+      "dataSource": "imu"
+    },
+    {
+      "id": "worker-context-fusion",
+      "name": "작업자 컨텍스트 융합",
+      "type": "monitoring-worker-context-fusion",
+      "description": "생체, 움직임, 위치, 환경 데이터를 결합한 위험 판단",
+      "defaultSize": { "w": 6, "h": 4 },
+      "dataSource": "worker-bio"
+    },
+    {
+      "id": "hazard-zone-map",
+      "name": "유해 환경 구역 맵",
+      "type": "monitoring-hazard-zone-map",
+      "description": "가스, 온도, 작업자 위치를 조합한 위험 구역 표시",
+      "defaultSize": { "w": 6, "h": 5 },
+      "dataSource": "gas"
+    },
+    {
+      "id": "gateway-communication",
+      "name": "통신 게이트웨이 상태",
+      "type": "monitoring-gateway-communication",
+      "description": "BLE, LTE, Wi-Fi, LoRa, RS-485 연결 상태와 지연율 표시",
+      "defaultSize": { "w": 4, "h": 4 },
+      "dataSource": "communication"
+    },
+    {
+      "id": "device-power-battery",
+      "name": "계측기 전원/배터리",
+      "type": "monitoring-device-power-battery",
+      "description": "휴대형/고정형 계측기 배터리와 예상 동작시간 표시",
+      "defaultSize": { "w": 4, "h": 4 },
+      "dataSource": "sensor-fleet"
+    },
+    {
+      "id": "sop-auto-execution",
+      "name": "SOP 자동 실행",
+      "type": "monitoring-sop-auto-execution",
+      "description": "이상 이벤트 발생 후 표준조치 절차 진행률 표시",
+      "defaultSize": { "w": 6, "h": 5 },
+      "dataSource": "sop-events"
+    },
+    {
+      "id": "predictive-report",
+      "name": "예지보전 리포트 요약",
+      "type": "monitoring-predictive-report",
+      "description": "진단 결과, 원인, 권장 조치, 다음 점검일 요약",
+      "defaultSize": { "w": 6, "h": 4 },
+      "dataSource": "ai-diagnosis"
+    },
+    {
+      "id": "field-validation-progress",
+      "name": "현장 실증 진행률",
+      "type": "monitoring-field-validation-progress",
+      "description": "현장 실증, 사용자 의견 수렴, 제품 보완 현황 표시",
+      "defaultSize": { "w": 4, "h": 4 },
+      "dataSource": "field-validation"
+    },
+    {
+      "id": "fleet-device-inventory",
+      "name": "복합 계측기 배치 현황",
+      "type": "monitoring-fleet-device-inventory",
+      "description": "휴대형/고정형 계측기 설치, 상태, 센서 구성 현황",
+      "defaultSize": { "w": 6, "h": 4 },
+      "dataSource": "sensor-fleet"
+    }
+  ]
+}

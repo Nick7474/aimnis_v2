@@ -2,12 +2,12 @@
 
 import { useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Zap, Factory, Building2, type LucideIcon } from "lucide-react";
+import { Zap, Factory, Building2, Activity, Brain, RadioTower, ShieldCheck, type LucideIcon } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
-import { scenarios } from "@/data/scenarios";
+import { getScenarioConfig } from "@/data/scenarios";
 import type { ScenarioId } from "@/data/scenarios";
 
-const ICONS: Record<string, LucideIcon> = { Zap, Factory, Building2 };
+const ICONS: Record<string, LucideIcon> = { Zap, Factory, Building2, Activity, Brain, RadioTower, ShieldCheck };
 
 interface ScenarioChipsProps {
   /** Magic Default 즉시 실행 후 콜백 (One-Click 경로) */
@@ -15,7 +15,8 @@ interface ScenarioChipsProps {
 }
 
 export default function ScenarioChips({ onMagicTrigger }: ScenarioChipsProps) {
-  const { selectedScenario, setSelectedScenario, applyMagicDefault } = useHomeStore();
+  const { selectedSolution, selectedScenario, setSelectedScenario, applyMagicDefault } = useHomeStore();
+  const { scenarios } = getScenarioConfig(selectedSolution);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 더블클릭 or 500ms 길게 누름 → Magic Default 즉시 실행

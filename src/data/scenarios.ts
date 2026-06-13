@@ -2,6 +2,7 @@ export type ScenarioId = "energy" | "manufacturing" | "smartcity";
 
 export type SpecQuestionId =
   | "facility_type"
+  | "device_mode"
   | "area_size"
   | "op_hours"
   | "zone_count"
@@ -9,6 +10,18 @@ export type SpecQuestionId =
   | "vms_solution"
   | "resolution"
   | "network"
+  | "priority_sensors"
+  | "fault_signals"
+  | "data_interval"
+  | "ai_goal"
+  | "model_policy"
+  | "analysis_method"
+  | "worker_safety"
+  | "alert_channels"
+  | "safety_cutoff"
+  | "communication"
+  | "storage_location"
+  | "system_integration"
   | "threat_types"
   | "vuln_zones"
   | "incident_freq"
@@ -344,3 +357,267 @@ export const REQUIRED_QUESTIONS: SpecQuestionId[] = specGroups
 export const specQuestionMap = Object.fromEntries(
   specGroups.flatMap(g => g.questions).map(q => [q.id, q])
 ) as Record<SpecQuestionId, SpecQuestion>;
+
+// ── AIM Monitoring 전용 시나리오/질문 세트 ─────────────────────────
+// 기존 AIM GUARD export는 그대로 유지하고, Monitoring일 때만 아래 config를 사용한다.
+export const monitoringScenarios: Scenario[] = [
+  {
+    id: "energy",
+    label: "에너지 시설 통합 관제",
+    subLabel: "발전·ESS·전기 설비",
+    icon: "Zap",
+    color: "#3b82f6",
+    defaultSpecs: {
+      facility_type: "발전/ESS 전기 설비",
+      op_hours: "24시간 상시",
+      device_mode: "휴대/고정 겸용",
+      priority_sensors: ["초음파", "열/온도", "가스", "3축 진동"],
+      fault_signals: ["아크/코로나", "과열", "열화 가스", "이상 진동"],
+      data_interval: "이벤트 기반 + 분 단위",
+      ai_goal: "이상 조기 감지",
+      model_policy: "F2-score 안전 우선",
+      analysis_method: ["Autoencoder 이상탐지", "LSTM 예측", "규칙 기반 + AI 혼합"],
+      worker_safety: ["유해가스 노출", "위험구역 진입"],
+      alert_channels: ["관제 화면 팝업", "모바일 푸시", "SOP 자동 실행"],
+      safety_cutoff: "유해가스 기준 초과",
+      communication: ["LTE", "Wi-Fi", "LoRa"],
+      storage_location: "하이브리드",
+      system_integration: ["SCADA", "설비관리시스템", "리포트 시스템"],
+    },
+  },
+  {
+    id: "manufacturing",
+    label: "스마트 제조 이상 감지",
+    subLabel: "회전기기·생산설비",
+    icon: "Factory",
+    color: "#06b6d4",
+    defaultSpecs: {
+      facility_type: "스마트 제조 회전기기",
+      op_hours: "교대 운영",
+      device_mode: "고정 설치형 + 휴대 점검형",
+      priority_sensors: ["3축 진동", "초음파", "열/온도", "가스"],
+      fault_signals: ["1X/2X/3X FFT 피크", "비정렬", "마찰", "베어링 이상"],
+      data_interval: "초 단위",
+      ai_goal: "고장 원인 분류",
+      model_policy: "F1/F2 혼합",
+      analysis_method: ["FFT 주파수 분석", "CNN-LSTM 스펙트로그램", "Autoencoder 이상탐지"],
+      worker_safety: ["위험구역 진입", "쓰러짐 감지"],
+      alert_channels: ["관제 화면 팝업", "설비관리 연동", "예지보전 리포트"],
+      safety_cutoff: "관리자 승인 필요",
+      communication: ["RS-485", "Wi-Fi", "BLE5.0"],
+      storage_location: "관제 서버",
+      system_integration: ["MES", "설비관리시스템", "리포트 시스템"],
+    },
+  },
+  {
+    id: "smartcity",
+    label: "스마트시티 안전 관제",
+    subLabel: "공공·지하·환경 시설",
+    icon: "Building2",
+    color: "#10b981",
+    defaultSpecs: {
+      facility_type: "공공/지하/환경 시설",
+      op_hours: "24시간 상시",
+      device_mode: "게이트웨이 통합형",
+      priority_sensors: ["가스", "SpO2", "IMU/Gyro", "열/온도"],
+      fault_signals: ["미세 가스", "작업자 쓰러짐", "위험구역 진입", "과열"],
+      data_interval: "이벤트 기반",
+      ai_goal: "미검출 최소화",
+      model_policy: "F2-score 안전 우선",
+      analysis_method: ["규칙 기반 + AI 혼합", "LSTM 예측", "Autoencoder 이상탐지"],
+      worker_safety: ["SpO2 저하", "쓰러짐 감지", "유해가스 노출"],
+      alert_channels: ["관제 화면 팝업", "모바일 푸시", "현장 사운드/LED", "SOP 자동 실행"],
+      safety_cutoff: "SpO2 90 이하",
+      communication: ["LTE", "BLE5.0", "Wi-Fi"],
+      storage_location: "클라우드",
+      system_integration: ["알림/메신저", "리포트 시스템", "설비관리시스템"],
+    },
+  },
+];
+
+export const monitoringSpecGroups: SpecGroup[] = [
+  {
+    id: "asset_scope",
+    label: "현장/설비 범위",
+    icon: "Factory",
+    color: "oklch(65% 0.16 200)",
+    questions: [
+      {
+        id: "facility_type",
+        label: "우선 진단할 설비 유형은 무엇인가요?",
+        required: true,
+        options: ["전기 설비", "회전기기", "펌프/팬/모터", "ESS/배터리", "지하/환경 시설", "복합 설비"],
+      },
+      {
+        id: "op_hours",
+        label: "운영 방식은 어떻게 되나요?",
+        required: true,
+        options: ["24시간 상시", "주간 점검", "교대 운영", "이벤트 발생 시 점검", "실증/파일럿 운영"],
+      },
+      {
+        id: "device_mode",
+        label: "계측 방식은 무엇이 적합한가요?",
+        required: true,
+        options: ["휴대 점검형", "고정 설치형", "휴대/고정 겸용", "게이트웨이 통합형"],
+      },
+    ],
+  },
+  {
+    id: "sensor_stack",
+    label: "계측 센서",
+    icon: "Activity",
+    color: "oklch(65% 0.16 145)",
+    questions: [
+      {
+        id: "priority_sensors",
+        label: "우선 적용할 센서는 무엇인가요? (복수 선택)",
+        required: true,
+        multiple: true,
+        options: ["초음파", "3축 진동", "열/온도", "가스", "SpO2", "IMU/Gyro", "전체 복합 센서"],
+      },
+      {
+        id: "fault_signals",
+        label: "가장 중요한 고장 초기 징후는 무엇인가요? (복수 선택)",
+        required: true,
+        multiple: true,
+        options: ["초음파 소음", "이상 진동", "미세 가스", "과열", "작업자 쓰러짐", "복합 징후"],
+      },
+      {
+        id: "data_interval",
+        label: "데이터 수집 주기는 어느 수준이 필요한가요?",
+        required: true,
+        options: ["초 단위", "분 단위", "점검 시 수동 수집", "이벤트 기반", "센서별 다르게"],
+      },
+    ],
+  },
+  {
+    id: "ai_diagnosis",
+    label: "AI 진단 모델",
+    icon: "Brain",
+    color: "oklch(60% 0.20 285)",
+    questions: [
+      {
+        id: "ai_goal",
+        label: "AI 진단의 우선 목표는 무엇인가요?",
+        required: true,
+        options: ["이상 조기 감지", "고장 원인 분류", "잔여수명 예측", "경보 오탐 감소", "미검출 최소화"],
+      },
+      {
+        id: "model_policy",
+        label: "운영 기준은 무엇에 가까운가요?",
+        required: true,
+        options: ["F1-score 균형 운영", "F2-score 안전 우선", "설비별 혼합 운영"],
+      },
+      {
+        id: "analysis_method",
+        label: "사용할 분석 방식은 무엇인가요? (복수 선택)",
+        required: true,
+        multiple: true,
+        options: ["FFT 주파수 분석", "Autoencoder 이상탐지", "LSTM 예측", "CNN-LSTM 스펙트로그램", "규칙 기반 + AI 혼합"],
+      },
+    ],
+  },
+  {
+    id: "worker_safety",
+    label: "작업자 안전",
+    icon: "ShieldCheck",
+    color: "oklch(58% 0.22 25)",
+    questions: [
+      {
+        id: "worker_safety",
+        label: "작업자 안전에서 우선 감지할 항목은 무엇인가요? (복수 선택)",
+        required: true,
+        multiple: true,
+        options: ["SpO2 저하", "쓰러짐 감지", "위험구역 진입", "유해가스 노출", "복합 위험"],
+      },
+      {
+        id: "alert_channels",
+        label: "긴급 상황 알림은 어떻게 운영할까요? (복수 선택)",
+        required: true,
+        multiple: true,
+        options: ["관제 화면 팝업", "모바일 푸시", "SMS", "현장 사운드/LED", "SOP 자동 실행"],
+      },
+      {
+        id: "safety_cutoff",
+        label: "작업 배제 기준은 어떻게 둘까요?",
+        required: true,
+        options: ["SpO2 90 이하", "움직임 없음 1분", "유해가스 기준 초과", "관리자 승인 필요"],
+      },
+    ],
+  },
+  {
+    id: "data_integration",
+    label: "데이터/통신",
+    icon: "RadioTower",
+    color: "oklch(70% 0.14 230)",
+    questions: [
+      {
+        id: "communication",
+        label: "통신 방식은 무엇을 우선 지원해야 하나요? (복수 선택)",
+        required: true,
+        multiple: true,
+        options: ["BLE5.0", "LTE", "Wi-Fi", "LoRa", "RS-485", "혼합"],
+      },
+      {
+        id: "storage_location",
+        label: "데이터 저장 위치는 어디가 적합한가요?",
+        required: true,
+        options: ["로컬 장비", "모바일 앱", "관제 서버", "클라우드", "하이브리드"],
+      },
+      {
+        id: "system_integration",
+        label: "연동할 시스템은 무엇인가요? (복수 선택)",
+        required: true,
+        multiple: true,
+        options: ["설비관리시스템", "MES", "SCADA", "알림/메신저", "리포트 시스템", "아직 미정"],
+      },
+    ],
+  },
+];
+
+export interface ScenarioConfig {
+  solutionId: "guard" | "monitoring";
+  blueprintTitle: string;
+  scenarios: Scenario[];
+  specGroups: SpecGroup[];
+  scenarioMap: Record<ScenarioId, Scenario>;
+  requiredQuestions: SpecQuestionId[];
+  specQuestionMap: Record<string, SpecQuestion>;
+}
+
+export const guardScenarioConfig: ScenarioConfig = {
+  solutionId: "guard",
+  blueprintTitle: "AIM GUARD 아키텍처 설계서",
+  scenarios,
+  specGroups,
+  scenarioMap,
+  requiredQuestions: REQUIRED_QUESTIONS,
+  specQuestionMap,
+};
+
+export const monitoringScenarioMap = Object.fromEntries(
+  monitoringScenarios.map((s) => [s.id, s])
+) as Record<ScenarioId, Scenario>;
+
+export const MONITORING_REQUIRED_QUESTIONS: SpecQuestionId[] = monitoringSpecGroups
+  .flatMap(g => g.questions)
+  .filter(q => q.required)
+  .map(q => q.id);
+
+export const monitoringSpecQuestionMap = Object.fromEntries(
+  monitoringSpecGroups.flatMap(g => g.questions).map(q => [q.id, q])
+) as Record<string, SpecQuestion>;
+
+export const monitoringScenarioConfig: ScenarioConfig = {
+  solutionId: "monitoring",
+  blueprintTitle: "AIM Monitoring Harness 설계서",
+  scenarios: monitoringScenarios,
+  specGroups: monitoringSpecGroups,
+  scenarioMap: monitoringScenarioMap,
+  requiredQuestions: MONITORING_REQUIRED_QUESTIONS,
+  specQuestionMap: monitoringSpecQuestionMap,
+};
+
+export function getScenarioConfig(solutionId?: string | null): ScenarioConfig {
+  return solutionId === "monitoring" ? monitoringScenarioConfig : guardScenarioConfig;
+}

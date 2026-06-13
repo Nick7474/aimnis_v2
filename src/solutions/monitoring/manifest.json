@@ -1,0 +1,36 @@
+{
+  "id": "monitoring",
+  "name": "AIM Monitoring",
+  "version": "1.0.0",
+  "description": "AIoT 복합 계측 기반 산업 설비·환경·작업자 안전 모니터링 솔루션",
+  "category": "monitoring",
+  "icon": "Activity",
+  "color": "#2563eb",
+  "route": "/monitoring",
+  "status": "available",
+  "pricing": {
+    "monthly": 3900000,
+    "currency": "KRW"
+  },
+  "features": [
+    "복합 계측 센서 통합 모니터링",
+    "초음파·진동·열·가스 기반 설비 진단",
+    "SpO2·IMU 기반 작업자 안전 진단",
+    "AI 이상탐지 및 예지보전",
+    "SOP 자동 실행 및 리포트"
+  ],
+  "defaultTemplate": "templates/default.json",
+  "widgetRegistry": "widgets/index.json",
+  "harnessSchema": "harness-schema.json",
+  "dataConnectors": [
+    "ultrasonic",
+    "vibration",
+    "thermal",
+    "gas",
+    "worker-bio",
+    "imu",
+    "communication",
+    "ai-diagnosis",
+    "sop-events"
+  ]
+}

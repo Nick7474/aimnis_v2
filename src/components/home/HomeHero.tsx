@@ -43,7 +43,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
   const [input, setInput] = useState("");
   const [activeSolution, setActiveSolution] = useState<string | null>(null);
 
-  const { setIsWorking, setSelectedScenario } = useHomeStore();
+  const { selectedSolution, setSelectedSolution, setIsWorking, setSelectedScenario } = useHomeStore();
   const { projects: savedProjects } = useProjectStore();
   const [showProjectSuggestions, setShowProjectSuggestions] = useState(false);
 
@@ -55,6 +55,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     : savedProjects.slice(0, 4);
 
   const handleScenarioChip = (sc: typeof scenarios[number]) => {
+    setSelectedSolution(activeSolution ?? selectedSolution ?? "guard");
     setSelectedScenario(sc.id);
     setIsWorking(true);
   };
@@ -79,7 +80,8 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     const text = input.trim();
     if (!text || aiState === "streaming") return;
 
-    const solId = activeSolution ?? "guard";
+    const solId = activeSolution ?? selectedSolution ?? "guard";
+    setSelectedSolution(solId);
     setPendingSolution(solId);
     setAiState("streaming");
     setAiResponse("");
@@ -157,7 +159,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     setCompletedSteps([]);
     setCurrentStep(0);
 
-    const solutionId = activeSolution ?? "guard";
+    const solutionId = activeSolution ?? selectedSolution ?? "guard";
     const steps = analysisStepsMap[solutionId] ?? [];
 
     for (let i = 0; i < steps.length; i++) {
@@ -176,7 +178,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const solutionId = activeSolution ?? "guard";
+  const solutionId = activeSolution ?? selectedSolution ?? "guard";
   const steps = analysisStepsMap[solutionId] ?? [];
 
   return (
@@ -345,7 +347,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                             className="mt-2 ml-8"
                           >
                             <button
-                              onClick={() => { setSelectedScenario(sc.id); setIsWorking(true); }}
+                              onClick={() => { setSelectedSolution(activeSolution ?? selectedSolution ?? "guard"); setSelectedScenario(sc.id); setIsWorking(true); }}
                               className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
                               style={{ background: `${sc.color}22`, border: `1px solid ${sc.color}55`, color: sc.color }}
                             >
@@ -433,7 +435,11 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                 <SolutionChips
                   solutions={solutions}
                   active={activeSolution}
-                  onSelect={(id) => setActiveSolution(id === activeSolution ? null : id)}
+                  onSelect={(id) => {
+                    const next = id === activeSolution ? null : id;
+                    setActiveSolution(next);
+                    setSelectedSolution(next);
+                  }}
                 />
               </div>
 
@@ -536,6 +542,7 @@ const SOLUTION_LOGOS: Record<string, string> = {
 // 솔루션 ID → 시나리오 ID 매핑 (guard=manufacturing, eco=smartcity)
 const SOLUTION_TO_SCENARIO: Record<string, string> = {
   guard: "manufacturing",
+  monitoring: "manufacturing",
   eco:   "smartcity",
 };
 
@@ -565,19 +572,11 @@ const ROADMAP_SOLUTIONS = [
     features: ["TMS 연동", "환경 기준 알람", "규제 리포트 자동화"],
     color: "#06b6d4",
   },
-  {
-    id: "ops",
-    name: "AIM OPS",
-    category: "Operations",
-    description: "제조·물류 공정 운영 최적화 AI 관제 플랫폼",
-    features: ["공정 이상 감지", "설비 예지보전", "생산성 대시보드"],
-    color: "#8b5cf6",
-  },
 ] as const;
 
 function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
   const router = useRouter();
-  const { setIsWorking, setSelectedScenario } = useHomeStore();
+  const { setSelectedSolution, setIsWorking, setSelectedScenario } = useHomeStore();
 
   return (
     <motion.div
@@ -643,6 +642,7 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               <button
                 onClick={() => {
                   if (!isAvailable) return;
+                  setSelectedSolution(sol.id);
                   const scenarioId = SOLUTION_TO_SCENARIO[sol.id];
                   if (scenarioId) {
                     setSelectedScenario(scenarioId as "energy" | "manufacturing" | "smartcity");

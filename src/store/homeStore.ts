@@ -2,10 +2,7 @@ import { create } from "zustand";
 import {
   type ScenarioId,
   type SpecQuestionId,
-  scenarioMap,
-  REQUIRED_QUESTIONS,
-  specGroups,
-  specQuestionMap
+  getScenarioConfig,
 } from "@/data/scenarios";
 
 // ─── 채팅 메시지 (좌측 보조 패널용) ────────────────────────────
@@ -20,19 +17,44 @@ export interface Message {
 export type SelectedSpecs = Record<string, string | string[] | null>;
 
 const EMPTY_SPECS: SelectedSpecs = {};
-if (typeof REQUIRED_QUESTIONS !== 'undefined') {
-  REQUIRED_QUESTIONS.forEach(id => {
-    EMPTY_SPECS[id] = null;
+const DEFAULT_CONFIG = getScenarioConfig("guard");
+DEFAULT_CONFIG.requiredQuestions.forEach(id => {
+  EMPTY_SPECS[id] = null;
+});
+
+function createEmptySpecs(solutionId?: string | null): SelectedSpecs {
+  const specs: SelectedSpecs = {};
+  getScenarioConfig(solutionId).requiredQuestions.forEach(id => {
+    specs[id] = null;
   });
+  return specs;
 }
 
 // ─── MD 생성 헬퍼 ────────────────────────────────────────────
 
-function generateWidgets(specs: SelectedSpecs): string {
+function generateWidgets(specs: SelectedSpecs, solutionId?: string | null): string {
+  if (solutionId === "monitoring") {
+    return [
+      "- 초음파 아크 위험도: 아크/코로나 초기 징후 모니터링",
+      "- 진동 FFT 스펙트럼: 1X/2X/3X 피크와 베어링 이상 감지",
+      "- 복합 센서 헬스 매트릭스: 초음파·진동·열·가스 통합 상태",
+      "- 작업자 SpO2/낙상 상태: 현장 작업자 안전 관제",
+      "- SOP 자동 실행: 위험 등급별 조치 흐름 자동화",
+    ].join("\n");
+  }
   return "- VMS 연동 위젯\n- 지능형 CCTV 모니터링 뷰\n- 3D 로케이션 맵\n- AI 알람 이벤트 티커";
 }
 
-function generateApiMapping(specs: SelectedSpecs): string {
+function generateApiMapping(specs: SelectedSpecs, solutionId?: string | null): string {
+  if (solutionId === "monitoring") {
+    return [
+      "- MQTT /sensors/ultrasonic: 초음파 아크 위험 이벤트",
+      "- MQTT /sensors/vibration: 3축 진동/FFT 데이터",
+      "- REST /api/monitoring/equipment-health: 설비 상태 및 RUL",
+      "- REST /api/worker-safety/status: SpO2, IMU, 낙상 상태",
+      "- WS /ws/monitoring/alerts: 실시간 경보 및 SOP 이벤트",
+    ].join("\n");
+  }
   return "- GET /api/vms/streams\n- WS /ws/surveillance/alerts\n- GET /api/dashboard/stats";
 }
 
@@ -46,11 +68,13 @@ function formatSpecValue(val: string | string[] | null): string {
 
 function buildBlueprintMd(
   scenarioId: ScenarioId | null,
-  specs: SelectedSpecs
+  specs: SelectedSpecs,
+  solutionId?: string | null
 ): string {
   if (!scenarioId) return "";
-  const s = scenarioMap[scenarioId];
-  const isComplete = REQUIRED_QUESTIONS.every(id => {
+  const config = getScenarioConfig(solutionId);
+  const s = config.scenarioMap[scenarioId];
+  const isComplete = config.requiredQuestions.every(id => {
     const val = specs[id];
     if (Array.isArray(val)) return val.length > 0;
     return !!val;
@@ -58,13 +82,14 @@ function buildBlueprintMd(
   
   const status = isComplete ? "설계 확정" : "설계 중...";
 
-  let md = `# ${s.label} 아키텍처 설계서\n\n`;
+  let md = `# ${solutionId === "monitoring" ? "AIM Monitoring" : s.label} ${solutionId === "monitoring" ? "Harness 설계서" : "아키텍처 설계서"}\n\n`;
   md += `## 프로젝트 정보\n`;
   md += `- 도메인: ${s.label} (${s.subLabel})\n`;
+  md += `- 솔루션: ${solutionId === "monitoring" ? "AIM Monitoring" : "AIM GUARD"}\n`;
   md += `- 생성일: ${new Date().toLocaleDateString("ko-KR")}\n`;
   md += `- 상태: ${status}\n\n`;
 
-  specGroups.forEach(group => {
+  config.specGroups.forEach(group => {
     md += `## ${group.label}\n`;
     group.questions.forEach(q => {
       const val = specs[q.id];
@@ -74,14 +99,17 @@ function buildBlueprintMd(
     md += "\n";
   });
 
-  md += `## Widgets\n${generateWidgets(specs)}\n\n`;
-  md += `## API Mapping\n${generateApiMapping(specs)}\n`;
+  md += `## 추천 위젯 구성\n${generateWidgets(specs, solutionId)}\n\n`;
+  md += `## API/Data Mapping\n${generateApiMapping(specs, solutionId)}\n`;
 
   return md;
 }
 
 // ─── Store 인터페이스 ─────────────────────────────────────────
 interface HomeState {
+  selectedSolution: string | null;
+  setSelectedSolution: (id: string | null) => void;
+
   selectedScenario: ScenarioId | null;
   setSelectedScenario: (id: ScenarioId | null) => void;
 
@@ -117,6 +145,7 @@ interface HomeState {
 
 // ─── 초기 상태 ───────────────────────────────────────────────
 const initialState = {
+  selectedSolution: null as string | null,
   selectedScenario: null as ScenarioId | null,
   selectedSpecs: { ...EMPTY_SPECS },
   isMagicAnimating: false,
@@ -133,20 +162,31 @@ const initialState = {
 export const useHomeStore = create<HomeState>((set, get) => ({
   ...initialState,
 
+  setSelectedSolution: (id) => set({
+    selectedSolution: id,
+    selectedScenario: null,
+    selectedSpecs: createEmptySpecs(id),
+    isComplete: false,
+    blueprintMd: "",
+    messages: [],
+  }),
+
   setSelectedScenario: (id) => {
-    const specs = { ...EMPTY_SPECS };
+    const { selectedSolution } = get();
+    const specs = createEmptySpecs(selectedSolution);
     set({
       selectedScenario: id,
       selectedSpecs: specs,
       isComplete: false,
-      blueprintMd: id ? buildBlueprintMd(id, specs) : "",
+      blueprintMd: id ? buildBlueprintMd(id, specs, selectedSolution) : "",
       messages: [],
     });
   },
 
   updateSpec: (questionId, value) => {
-    const { selectedScenario, selectedSpecs } = get();
-    const q = specQuestionMap[questionId];
+    const { selectedScenario, selectedSolution, selectedSpecs } = get();
+    const config = getScenarioConfig(selectedSolution);
+    const q = config.specQuestionMap[questionId];
     if (!q) return;
 
     let nextVal: string | string[] | null = value;
@@ -169,7 +209,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
       [questionId]: nextVal,
     };
 
-    const isComplete = REQUIRED_QUESTIONS.every(id => {
+    const isComplete = config.requiredQuestions.every(id => {
       const v = nextSpecs[id];
       if (Array.isArray(v)) return v.length > 0;
       return !!v;
@@ -178,25 +218,26 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     set({
       selectedSpecs: nextSpecs,
       isComplete,
-      blueprintMd: buildBlueprintMd(selectedScenario, nextSpecs),
+      blueprintMd: buildBlueprintMd(selectedScenario, nextSpecs, selectedSolution),
     });
   },
 
   clearSpecs: () => {
-    const { selectedScenario } = get();
-    const specs = { ...EMPTY_SPECS };
+    const { selectedScenario, selectedSolution } = get();
+    const specs = createEmptySpecs(selectedSolution);
     set({
       selectedSpecs: specs,
       isComplete: false,
-      blueprintMd: selectedScenario ? buildBlueprintMd(selectedScenario, specs) : "",
+      blueprintMd: selectedScenario ? buildBlueprintMd(selectedScenario, specs, selectedSolution) : "",
     });
   },
 
   applyMagicDefault: () => {
-    const { selectedScenario } = get();
+    const { selectedScenario, selectedSolution } = get();
     if (!selectedScenario) return;
-    const { defaultSpecs } = scenarioMap[selectedScenario];
-    const next: SelectedSpecs = { ...EMPTY_SPECS };
+    const config = getScenarioConfig(selectedSolution);
+    const { defaultSpecs } = config.scenarioMap[selectedScenario];
+    const next: SelectedSpecs = createEmptySpecs(selectedSolution);
     
     Object.keys(defaultSpecs).forEach(k => {
       if (defaultSpecs[k]) {
@@ -207,7 +248,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     set({
       selectedSpecs: next,
       isComplete: true,
-      blueprintMd: buildBlueprintMd(selectedScenario, next),
+      blueprintMd: buildBlueprintMd(selectedScenario, next, selectedSolution),
     });
   },
 
@@ -232,17 +273,18 @@ export const useHomeStore = create<HomeState>((set, get) => ({
 
   // ─── Harness AI 생성 ─────────────────────────────────────────
   generateHarness: async (provider = "gemini-flash-lite") => {
-    const { selectedScenario, selectedSpecs } = get();
+    const { selectedScenario, selectedSolution, selectedSpecs } = get();
     if (!selectedScenario) return;
 
     set({ isGenerating: true, blueprintMd: "" });
 
     try {
-      const scenarioLabel = scenarioMap[selectedScenario]?.label ?? selectedScenario;
+      const config = getScenarioConfig(selectedSolution);
+      const scenarioLabel = config.scenarioMap[selectedScenario]?.label ?? selectedScenario;
       const res = await fetch("/api/harness", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario: scenarioLabel, specs: selectedSpecs, provider }),
+        body: JSON.stringify({ scenario: scenarioLabel, solution: selectedSolution ?? "guard", specs: selectedSpecs, provider }),
       });
 
       if (!res.ok || !res.body) throw new Error("harness API error");
@@ -262,7 +304,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
       set({ isComplete: true });
     } catch {
       // fallback: 정적 blueprint
-      set({ blueprintMd: buildBlueprintMd(selectedScenario, get().selectedSpecs) });
+      set({ blueprintMd: buildBlueprintMd(selectedScenario, get().selectedSpecs, selectedSolution) });
     } finally {
       set({ isGenerating: false });
     }

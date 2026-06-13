@@ -64,6 +64,7 @@ export default function ActiveWorkspace() {
     turnCount,
     incrementTurn,
     isComplete,
+    selectedSolution,
     blueprintMd,
     appendBlueprint,
     setBlueprint,
@@ -186,9 +187,11 @@ export default function ActiveWorkspace() {
   const handleCreateHarness = async () => {
     if (!isComplete || harnessLoading) return;
     setHarnessLoading(true);
+    const solutionId = selectedSolution ?? "guard";
 
     // localStorage + sessionStorage 이중 저장 (탭 닫혀도 유지)
     const payload = JSON.stringify({
+      solution: solutionId,
       md: blueprintMd,
       scenario: selectedScenario,
       savedAt: Date.now(),
@@ -201,8 +204,7 @@ export default function ActiveWorkspace() {
     }
 
     await new Promise((r) => setTimeout(r, 900));
-    // solution=guard, scenario 파라미터 전달
-    router.push(`/editor?solution=guard&scenario=${selectedScenario ?? "energy"}`);
+    router.push(`/editor?solution=${solutionId}&scenario=${selectedScenario ?? "energy"}`);
   };
 
   const scenarioData = scenarios.find((s) => s.id === selectedScenario);

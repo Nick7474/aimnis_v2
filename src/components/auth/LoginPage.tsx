@@ -19,7 +19,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ position: "relative", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg)" }}>
+    <div style={{ position: "relative", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg, #080810)" }}>
       <MeshBg />
 
       {/* 상단 로고 — 바 없이 투명 */}
@@ -30,7 +30,7 @@ export default function LoginPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS" style={{ width: 24, height: 24, objectFit: "contain", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.5))" }} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)", letterSpacing: "0.01em" }}>AIMNIS</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--t1, #f8fafc)", letterSpacing: "0.01em" }}>AIMNIS</span>
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", padding: "2px 6px", borderRadius: 4, background: "oklch(60% 0.20 285 / .15)", color: "var(--primary)", border: "1px solid oklch(60% 0.20 285 / .25)", textTransform: "uppercase" as const }}>Enterprise</span>
         </div>
       </div>
@@ -40,7 +40,7 @@ export default function LoginPage() {
 
         {/* 좌측 브랜드 패널 46% */}
         <motion.div
-          initial={{ opacity: 0, x: -24 }}
+          initial={false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           style={{
@@ -89,7 +89,7 @@ export default function LoginPage() {
         {/* 우측 로그인 폼 54% */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
             style={{ width: "100%", maxWidth: 400 }}

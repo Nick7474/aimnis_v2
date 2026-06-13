@@ -13,15 +13,23 @@ const AIMI_GREETING: Record<string, string> = {
   smartcity:    "스마트시티 관제 전문가 모드입니다.\n지자체 표준 설정을 바로 적용할 수 있습니다.",
 };
 
+const MONITORING_AIMI_GREETING: Record<string, string> = {
+  default:      "AIM Monitoring 현장 구성을 도와드립니다.\n진단할 설비와 센서 구성을 선택해 주세요.",
+  energy:       "에너지 설비 예지보전 모드입니다.\n아크, 과열, 가스, 진동 위험 기준을 먼저 잡겠습니다.",
+  manufacturing:"스마트 제조 이상 감지 모드입니다.\nFFT, CNN-LSTM, Autoencoder 기반 진단 구성을 도와드립니다.",
+  smartcity:    "공공·환경 안전 관제 모드입니다.\n작업자 생체, 유해가스, 위험구역 알림 기준을 설정하겠습니다.",
+};
+
 export default function ChatArea() {
-  const { messages, isThinking, selectedScenario } = useHomeStore();
+  const { messages, isThinking, selectedSolution, selectedScenario } = useHomeStore();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
 
-  const greeting = AIMI_GREETING[selectedScenario ?? "default"] ?? AIMI_GREETING.default;
+  const greetings = selectedSolution === "monitoring" ? MONITORING_AIMI_GREETING : AIMI_GREETING;
+  const greeting = greetings[selectedScenario ?? "default"] ?? greetings.default;
 
   if (messages.length === 0 && !isThinking) {
     return (

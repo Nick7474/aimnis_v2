@@ -4,6 +4,7 @@ import {
   loadSolutionWidgets,
 } from "@/lib/solutionLoader";
 import EditorLayout from "@/components/editor/EditorLayout";
+import MonitoringEditorShell from "@/components/monitoring-editor/MonitoringEditorShell";
 
 interface EditorPageProps {
   searchParams: { solution?: string; scenario?: string };
@@ -25,6 +26,16 @@ export default function EditorPage({ searchParams }: EditorPageProps) {
       <div className="flex min-h-screen items-center justify-center bg-[#0a0a0f] text-white/50 text-sm">
         솔루션 데이터를 불러올 수 없습니다. (id: {solutionId})
       </div>
+    );
+  }
+
+  if (solution.id === "monitoring") {
+    return (
+      <MonitoringEditorShell
+        solution={solution}
+        template={template}
+        widgets={widgets}
+      />
     );
   }
 

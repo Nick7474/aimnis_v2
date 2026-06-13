@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useState, useCallback, useEffect } from "react";
-import { specGroups, scenarioMap, REQUIRED_QUESTIONS } from "@/data/scenarios";
+import { getScenarioConfig } from "@/data/scenarios";
 import { useHomeStore } from "@/store/homeStore";
 import SpecGroupView from "./SpecGroupView";
 import * as Icons from "lucide-react";
@@ -14,8 +14,11 @@ interface Props {
 }
 
 export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Props) {
+  const selectedSolution = useHomeStore((s) => s.selectedSolution);
   const selectedScenario = useHomeStore((s) => s.selectedScenario);
   const selectedSpecs = useHomeStore((s) => s.selectedSpecs);
+  const scenarioConfig = getScenarioConfig(selectedSolution);
+  const { specGroups, scenarioMap, requiredQuestions } = scenarioConfig;
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   // 카테고리별 열림 상태 — HTML 패턴: 첫 번째만 열림, 완료 시 다음 자동 열림
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -24,8 +27,8 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
     return init;
   });
 
-  const totalQ = REQUIRED_QUESTIONS.length;
-  const doneQ = REQUIRED_QUESTIONS.filter((id) => {
+  const totalQ = requiredQuestions.length;
+  const doneQ = requiredQuestions.filter((id) => {
     const v = selectedSpecs[id];
     return Array.isArray(v) ? v.length > 0 : !!v;
   }).length;
@@ -43,7 +46,7 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
       setOpenGroups(init);
       setActiveFilter(null);
     }
-  }, [selectedScenario]);
+  }, [selectedScenario, specGroups]);
 
   // 카테고리 완료 시 다음 카테고리 자동 열기 (HTML 패턴)
   const handleGroupCompleted = useCallback((groupId: string) => {
@@ -164,7 +167,9 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
               )}
             </div>
             <p style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.55, margin: 0 }}>
-              현장 환경에 맞는 솔루션을 구성합니다. 각 항목에 답변하시면 AI가 최적 설정을 자동 생성합니다.
+              {selectedSolution === "monitoring"
+                ? "계측 센서, AI 진단, 작업자 안전, 데이터 연동 기준을 선택하면 AIM Monitoring 하네스가 구성됩니다."
+                : "현장 환경에 맞는 솔루션을 구성합니다. 각 항목에 답변하시면 AI가 최적 설정을 자동 생성합니다."}
             </p>
           </div>
 

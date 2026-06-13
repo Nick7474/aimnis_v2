@@ -20,6 +20,13 @@ const EXPERT_RESPONSE: Record<string, string> = {
   smartcity:    "스마트시티 표준 추천 세팅을 적용했습니다.\nMilestone XProtect, 경찰/소방 자동 신고 연동,\n24/365 관제로 구성했습니다.",
   default:      "전문가 추천 세팅을 적용했습니다.\n시나리오를 먼저 선택하면 더 정확한 설정을 제공할 수 있습니다.",
 };
+
+const MONITORING_EXPERT_RESPONSE: Record<string, string> = {
+  energy:       "AIM Monitoring 에너지 설비 추천 세팅을 적용했습니다.\n초음파 아크, 열/온도, 가스, 진동 센서와 F2-score 안전 우선 AI 진단 기준으로 구성했습니다.",
+  manufacturing:"AIM Monitoring 스마트 제조 추천 세팅을 적용했습니다.\n3축 진동 FFT, CNN-LSTM 스펙트로그램, Autoencoder 이상탐지와 예지보전 리포트를 중심으로 구성했습니다.",
+  smartcity:    "AIM Monitoring 공공·환경 안전 추천 세팅을 적용했습니다.\n가스, SpO2, IMU/Gyro, 작업자 낙상 감지와 SOP 자동 실행 기준으로 구성했습니다.",
+  default:      "AIM Monitoring 전문가 추천 세팅을 적용했습니다.\n시나리오를 먼저 선택하면 설비·센서·AI 모델 기준을 더 정확하게 구성할 수 있습니다.",
+};
 import AiChatInput from "@/components/shared/AiChatInput";
 import ScenarioChips from "./ScenarioChips";
 import SpecBoard from "./SpecBoard";
@@ -44,11 +51,12 @@ function ChatInput() {
     const lower = text.toLowerCase();
     const isExpertTrigger = EXPERT_TRIGGERS.some(kw => lower.includes(kw.toLowerCase()));
     if (isExpertTrigger) {
-      const currentScenario = useHomeStore.getState().selectedScenario;
+      const { selectedScenario: currentScenario, selectedSolution } = useHomeStore.getState();
       setValue("");
       addMessage({ id: `u-${Date.now()}`, role: "user", content: text });
       applyMagicDefault();
-      const response = EXPERT_RESPONSE[currentScenario ?? "default"] ?? EXPERT_RESPONSE.default;
+      const responseMap = selectedSolution === "monitoring" ? MONITORING_EXPERT_RESPONSE : EXPERT_RESPONSE;
+      const response = responseMap[currentScenario ?? "default"] ?? responseMap.default;
       setTimeout(() => {
         addMessage({ id: `a-${Date.now()}`, role: "assistant", content: response });
       }, 300);
@@ -65,13 +73,13 @@ function ChatInput() {
     setIsThinking(true);
 
     try {
-      const { messages, selectedScenario } = useHomeStore.getState();
+      const { messages, selectedSolution } = useHomeStore.getState();
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: typeof userContent === "string" ? userContent : text }],
-          solution: selectedScenario ?? "guard",
+          solution: selectedSolution ?? "guard",
         }),
       });
 
