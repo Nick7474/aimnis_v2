@@ -960,9 +960,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       updateHeaderConfig("title", patch.serviceName);
     }
 
-    if (options?.syncLogo && typeof patch.logoUrl === "string") {
-      updateSidebarConfig("logoUrl", patch.logoUrl);
-    }
+    /* 로고는 brand.logoUrl에서 Header가 직접 읽음 — sidebar 동기화 불필요 */
   };
 
   const handleMonitoringLogoUpload = (event: ChangeEvent<HTMLInputElement>) => {
@@ -989,10 +987,6 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       header: {
         ...current.header,
         title: nextBrand.serviceName,
-      },
-      sidebar: {
-        ...current.sidebar,
-        logoUrl: nextBrand.logoUrl ?? current.sidebar.logoUrl,
       },
       defaultWidgets: Object.fromEntries(
         Object.entries(current.defaultWidgets).map(([id, config]) => [
@@ -1053,10 +1047,6 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       header: {
         ...current.header,
         title: brand.serviceName,
-      },
-      sidebar: {
-        ...current.sidebar,
-        logoUrl: brand.logoUrl ?? current.sidebar.logoUrl,
       },
       defaultWidgets: Object.fromEntries(
         Object.entries(current.defaultWidgets).map(([id, config]) => [
@@ -2075,21 +2065,6 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <MonitoringToggleControl label="푸터 표시" checked={elementConfigs.sidebar.showFooter} onChange={(showFooter) => updateSidebarConfig("showFooter", showFooter)} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Palette} title="Navigation Assets">
-              <button
-                type="button"
-                onClick={() => logoInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-3 py-4 text-xs text-white/35 transition-all hover:border-violet-400/40 hover:text-white/60"
-              >
-                {elementConfigs.sidebar.logoUrl ? (
-                  <img src={elementConfigs.sidebar.logoUrl} alt="Tenant logo" className="h-8 max-w-[180px] object-contain" />
-                ) : (
-                  <>
-                    <ImagePlus className="h-3.5 w-3.5" />
-                    고객사 로고 업로드
-                  </>
-                )}
-              </button>
-              <MonitoringTextControl label="로고 URL" value={elementConfigs.sidebar.logoUrl} onChange={(logoUrl) => updateSidebarConfig("logoUrl", logoUrl)} />
               <MonitoringTextControl label="푸터 문구" value={elementConfigs.sidebar.footerText} onChange={(footerText) => updateSidebarConfig("footerText", footerText)} />
             </MonitoringInspectorSection>
             <MonitoringResetButton label="좌측 메뉴 기본값 복원" onClick={() => setElementConfigs((current) => ({ ...current, sidebar: { ...DEFAULT_MONITORING_ELEMENT_CONFIGS.sidebar } }))} />

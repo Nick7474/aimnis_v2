@@ -531,79 +531,74 @@ export default function MonitoringLayoutCanvas({
   }, [customWidgets, defaultItems, selectedWidgetId, widgetById]);
 
   return (
-    <div className="flex h-full w-full overflow-hidden font-sans" style={rootStyle}>
+    <div className="flex h-full w-full flex-col overflow-hidden font-sans" style={rootStyle}>
+      {/* ── Header: 전체 너비 (로고 포함) ── */}
       <div
         role="button"
         tabIndex={0}
-        data-monitoring-selection-id="sidebar"
+        data-monitoring-selection-id="header"
         onPointerDown={(event) => {
           if ((event.target as HTMLElement).closest("button,a,input,textarea,select")) return;
-          onSelectElement({ id: "sidebar", label: "좌측 메뉴", kind: "sidebar" });
+          onSelectElement({ id: "header", label: "상단 메뉴", kind: "header" });
         }}
-        onClick={() => onSelectElement({ id: "sidebar", label: "좌측 메뉴", kind: "sidebar" })}
+        onClick={() => onSelectElement({ id: "header", label: "상단 메뉴", kind: "header" })}
         className="group relative shrink-0"
         style={{
           flexShrink: 0,
           position: "relative",
-          boxShadow: selectedElementId === "sidebar" ? `inset 0 0 0 2px ${GUARD_EDIT_CYAN}` : "none",
+          outline: selectedElementId === "header" ? `2px solid ${GUARD_EDIT_CYAN}` : "2px solid transparent",
+          outlineOffset: "-2px",
         }}
       >
-        {selectedElementId === "sidebar" && (
-          <div
-            className="pointer-events-none absolute inset-0 z-[80]"
-            style={{
-              border: `2px solid ${GUARD_EDIT_CYAN}`,
-              boxShadow: `0 0 0 1px rgba(255,255,255,0.65), 0 0 22px ${GUARD_EDIT_CYAN}55`,
-            }}
-          />
-        )}
-        <Sidebar
-          isOpen={isSidebarOpen}
-          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          logoUrl={elementConfigs.sidebar.logoUrl}
+        <Header
+          title={elementConfigs.header.title}
+          showStatusBadges={elementConfigs.header.showStatusBadges}
+          showTimestamp={elementConfigs.header.showTimestamp}
+          timestampLabel={elementConfigs.header.timestampLabel}
+          operatorName={elementConfigs.header.operatorName}
+          operatorRole={elementConfigs.header.operatorRole}
+          logoUrl={brand?.logoUrl}
+          logoSize={brand?.logoSize}
           brand={brandTokens}
-          expandMode={elementConfigs.sidebar.expandMode}
-          menuDensity={elementConfigs.sidebar.menuDensity}
-          showFooter={elementConfigs.sidebar.showFooter}
-          footerText={elementConfigs.sidebar.footerText}
         />
       </div>
-      <div
-        className="flex min-w-0 flex-1 flex-col"
-        style={{
-          display: "flex",
-          flex: "1 1 0%",
-          flexDirection: "column",
-          minWidth: 0,
-        }}
-      >
+      {/* ── Sidebar + Canvas: 헤더 아래 ── */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <div
           role="button"
           tabIndex={0}
-          data-monitoring-selection-id="header"
+          data-monitoring-selection-id="sidebar"
           onPointerDown={(event) => {
             if ((event.target as HTMLElement).closest("button,a,input,textarea,select")) return;
-            onSelectElement({ id: "header", label: "상단 메뉴", kind: "header" });
+            onSelectElement({ id: "sidebar", label: "좌측 메뉴", kind: "sidebar" });
           }}
-          onClick={() => onSelectElement({ id: "header", label: "상단 메뉴", kind: "header" })}
+          onClick={() => onSelectElement({ id: "sidebar", label: "좌측 메뉴", kind: "sidebar" })}
           className="group relative shrink-0"
           style={{
             flexShrink: 0,
             position: "relative",
-            outline: selectedElementId === "header" ? `2px solid ${GUARD_EDIT_CYAN}` : "2px solid transparent",
-            outlineOffset: "-2px",
+            boxShadow: selectedElementId === "sidebar" ? `inset 0 0 0 2px ${GUARD_EDIT_CYAN}` : "none",
           }}
         >
-          <Header
-            title={elementConfigs.header.title}
-            showStatusBadges={elementConfigs.header.showStatusBadges}
-            showTimestamp={elementConfigs.header.showTimestamp}
-            timestampLabel={elementConfigs.header.timestampLabel}
-            operatorName={elementConfigs.header.operatorName}
-            operatorRole={elementConfigs.header.operatorRole}
+          {selectedElementId === "sidebar" && (
+            <div
+              className="pointer-events-none absolute inset-0 z-[80]"
+              style={{
+                border: `2px solid ${GUARD_EDIT_CYAN}`,
+                boxShadow: `0 0 0 1px rgba(255,255,255,0.65), 0 0 22px ${GUARD_EDIT_CYAN}55`,
+              }}
+            />
+          )}
+          <Sidebar
+            isOpen={isSidebarOpen}
+            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
             brand={brandTokens}
+            expandMode={elementConfigs.sidebar.expandMode}
+            menuDensity={elementConfigs.sidebar.menuDensity}
+            showFooter={elementConfigs.sidebar.showFooter}
+            footerText={elementConfigs.sidebar.footerText}
           />
         </div>
         <main

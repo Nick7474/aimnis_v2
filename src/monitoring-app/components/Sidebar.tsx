@@ -18,7 +18,6 @@ interface SidebarProps {
   toggleSidebar: () => void;
   currentPage: string;
   setCurrentPage: (page: string) => void;
-  logoUrl?: string;
   brand?: {
     primaryColor: string;
     accentColor: string;
@@ -28,7 +27,6 @@ interface SidebarProps {
     textStrongColor: string;
     textColor: string;
     textSoftColor: string;
-    logoSize?: number;
   };
   expandMode?: 'hover' | 'fixed' | 'collapsed';
   menuDensity?: 'comfortable' | 'compact';
@@ -41,7 +39,6 @@ export default function Sidebar({
   toggleSidebar,
   currentPage,
   setCurrentPage,
-  logoUrl = 'https://cdn.imweb.me/upload/S20220215d5bc0d1f16d2a/d3e5b407f8f08.png',
   brand,
   expandMode = 'hover',
   menuDensity = 'comfortable',
@@ -58,7 +55,6 @@ export default function Sidebar({
     textStrongColor: '#f8fafc',
     textColor: '#cbd5e1',
     textSoftColor: '#94a3b8',
-    logoSize: 32,
   };
   const isExpanded = expandMode === 'fixed' || (expandMode === 'hover' && (isOpen || isHovered));
   const menuButtonClass = menuDensity === 'compact'
@@ -87,8 +83,6 @@ export default function Sidebar({
       style={{
         backgroundColor: colors.surfaceColor,
         borderColor: colors.borderColor,
-        display: 'flex',
-        flexDirection: 'column',
         flexShrink: 0,
         height: '100%',
         minHeight: 0,
@@ -96,33 +90,14 @@ export default function Sidebar({
         width: isExpanded ? 220 : 72,
       }}
     >
-      {/* Logo Area */}
-      <div 
-        className="h-[72px] flex items-center justify-center shrink-0 transition-all duration-300"
-      >
-        <div 
-          className={cn(
-            "overflow-hidden transition-[width] duration-300 ease-in-out",
-            isExpanded ? "w-[158px]" : "w-[54px]"
-          )}
-        >
-          <img
-              src={logoUrl}
-              alt="Logo"
-              className="block w-[158px] max-w-none object-left object-cover"
-              style={{ height: Math.max(20, Math.min(56, colors.logoSize ?? 32)) }}
-          />
-        </div>
-      </div>
-
-      {/* Menu Area */}
-      <nav className="flex-1 py-2 overflow-y-auto overflow-x-hidden space-y-2 px-3 custom-scrollbar">
+      {/* Menu Area — starts from top (logo moved to header) */}
+      <nav className="custom-scrollbar flex-1 space-y-1 overflow-x-hidden overflow-y-auto px-3 py-3">
         {menuItems.map((item) => (
           <button
             key={item.name}
             onClick={() => setCurrentPage(item.name)}
             className={cn(
-              "flex flex-row items-center rounded-xl whitespace-nowrap transition-colors w-full",
+              "flex w-full flex-row items-center whitespace-nowrap rounded-xl transition-colors",
               menuButtonClass,
             )}
             style={
@@ -139,16 +114,18 @@ export default function Sidebar({
       </nav>
 
       {/* Collapse Toggle */}
-      {expandMode !== 'collapsed' && <div className="p-2">
-        <button
-          onClick={toggleSidebar}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors"
-          style={{ color: colors.textSoftColor }}
-        >
-          {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-          {isExpanded && <span className="text-sm">{isOpen ? '메뉴 접기' : '메뉴 고정'}</span>}
-        </button>
-      </div>}
+      {expandMode !== 'collapsed' && (
+        <div className="p-2">
+          <button
+            onClick={toggleSidebar}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors"
+            style={{ color: colors.textSoftColor }}
+          >
+            {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+            {isExpanded && <span className="text-sm">{isOpen ? '메뉴 접기' : '메뉴 고정'}</span>}
+          </button>
+        </div>
+      )}
 
       {/* Footer */}
       {showFooter && isExpanded && (
