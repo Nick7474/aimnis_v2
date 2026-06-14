@@ -56,6 +56,8 @@ import {
 import MonitoringChatPanel from "./MonitoringChatPanel";
 import MonitoringFloatingToolbar from "./MonitoringFloatingToolbar";
 import MonitoringWidgetRenderer, { MonitoringWidgetThumbnail } from "./MonitoringWidgetRenderer";
+import MonitoringMappingCanvas from "./MonitoringDataMapping/MonitoringMappingCanvas";
+import type { MappingEdge, MappingSource } from "@/store/editorStore";
 
 interface MonitoringEditorShellProps {
   solution: SolutionManifest;
@@ -813,6 +815,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDraggingWidget, setIsDraggingWidget] = useState(false);
   const [canvasWidgets, setCanvasWidgets] = useState<CanvasWidgetInstance[]>([]);
+  const [monitoringMappingEdges, setMonitoringMappingEdges] = useState<MappingEdge[]>([]);
+  const [monitoringMappingSources, setMonitoringMappingSources] = useState<MappingSource[]>([]);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<MonitoringEditableElement | null>(null);
   const [elementConfigs, setElementConfigs] = useState<MonitoringElementConfigs>(() => cloneDefaultElementConfigs());
@@ -1758,7 +1762,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           <MonitoringNumberControl
             label="로고 크기"
             min={20}
-            max={56}
+            max={44}
             unit="px"
             value={brand.logoSize}
             onChange={(logoSize) => updateMonitoringBrand({ logoSize })}
@@ -1998,7 +2002,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <MonitoringNumberControl
                 label="로고 크기"
                 min={20}
-                max={56}
+                max={44}
                 unit="px"
                 value={brand.logoSize}
                 onChange={(logoSize) => updateMonitoringBrand({ logoSize })}
@@ -2494,15 +2498,20 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               onHideDefaultWidget={(id) => updateDefaultWidgetConfig(id, { visible: false })}
             />
           ) : (
-            <div className="flex h-full items-center justify-center p-8">
-              <div className="max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center">
-                <Database className="mx-auto h-8 w-8 text-blue-300" />
-                <p className="mt-4 text-sm font-semibold text-white">Monitoring Data Mapping Studio</p>
-                <p className="mt-2 text-xs leading-relaxed text-white/40">
-                  다음 단계에서 초음파, 진동, 열, 가스, 작업자 생체, AI 진단, SOP 이벤트 데이터 소스를 연결합니다.
-                </p>
-              </div>
-            </div>
+            <MonitoringMappingCanvas
+              mappingEdges={monitoringMappingEdges}
+              mappingSources={monitoringMappingSources}
+              addMappingEdge={(edge) => setMonitoringMappingEdges((prev) => prev.some((e) => e.id === edge.id) ? prev : [...prev, edge])}
+              removeMappingEdge={(id) => setMonitoringMappingEdges((prev) => prev.filter((e) => e.id !== id))}
+              addMappingSource={(source) => setMonitoringMappingSources((prev) => prev.some((s) => s.id === source.id) ? prev : [...prev, source])}
+              removeMappingSource={(id) => setMonitoringMappingSources((prev) => prev.filter((s) => s.id !== id))}
+              canvasWidgets={canvasWidgets.map((w) => ({
+                instanceId: w.instanceId,
+                widgetId: w.widgetId,
+                title: w.title,
+                widgetType: widgetById[w.widgetId]?.type,
+              }))}
+            />
           )}
         </main>
 
