@@ -72,6 +72,7 @@ interface MonitoringLayoutCanvasProps {
   canvasRef: RefObject<HTMLDivElement>;
   customWidgets: MonitoringCanvasWidgetInstance[];
   widgetById: Record<string, SolutionWidget>;
+  widgetLiveData?: Record<string, Record<string, unknown>>;
   elementConfigs: MonitoringElementConfigs;
   brand?: BrandSettings;
   selectedWidgetId: string | null;
@@ -357,6 +358,7 @@ export default function MonitoringLayoutCanvas({
   canvasRef,
   customWidgets,
   widgetById,
+  widgetLiveData = {},
   elementConfigs,
   brand,
   selectedWidgetId,
@@ -373,6 +375,10 @@ export default function MonitoringLayoutCanvas({
 }: MonitoringLayoutCanvasProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState("홈");
+  const sidebarBaseWidth =
+    elementConfigs.sidebar.expandMode === "fixed" ? 220 :
+    elementConfigs.sidebar.expandMode === "collapsed" ? 72 :
+    isSidebarOpen ? 220 : 72;
   const brandTokens = useMemo(
     () => ({
       ...DEFAULT_MONITORING_BRAND_TOKENS,
@@ -522,13 +528,14 @@ export default function MonitoringLayoutCanvas({
             brandPrimaryColor={brandTokens.primaryColor}
             brandSurfaceColor={brandTokens.surfaceColor}
             brandBorderColor={brandTokens.borderColor}
+            liveData={widgetLiveData[instance.instanceId]}
           />
         ),
       };
     });
 
     return resolveLayout([...customItems, ...defaultItems]);
-  }, [customWidgets, defaultItems, selectedWidgetId, widgetById]);
+  }, [customWidgets, defaultItems, selectedWidgetId, widgetById, widgetLiveData]);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden font-sans" style={rootStyle}>
@@ -559,6 +566,7 @@ export default function MonitoringLayoutCanvas({
           operatorRole={elementConfigs.header.operatorRole}
           logoUrl={brand?.logoUrl}
           logoSize={brand?.logoSize}
+          sidebarWidth={sidebarBaseWidth}
           brand={brandTokens}
         />
       </div>

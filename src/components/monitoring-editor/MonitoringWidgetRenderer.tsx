@@ -21,6 +21,7 @@ interface MonitoringWidgetRendererProps {
   brandPrimaryColor?: string;
   brandSurfaceColor?: string;
   brandBorderColor?: string;
+  liveData?: Record<string, unknown>;
 }
 
 /* ── CARD SHELL (aim-widgets.jsx의 Card와 동일) ─────── */
@@ -96,7 +97,7 @@ function WidgetFrame({
 }
 
 /* ── 20 WIDGETS (aim-widgets.jsx 원본 그대로 이식) ──── */
-export default function MonitoringWidgetRenderer({ title, widget, categoryLabel, selected, brandPrimaryColor, brandSurfaceColor, brandBorderColor }: MonitoringWidgetRendererProps) {
+export default function MonitoringWidgetRenderer({ title, widget, categoryLabel, selected, brandPrimaryColor, brandSurfaceColor, brandBorderColor, liveData }: MonitoringWidgetRendererProps) {
   const id = widget?.id ?? "";
   const bc  = brandPrimaryColor;
   const bsc = brandSurfaceColor;
@@ -106,15 +107,18 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
 
     /* 1. 초음파 아크 위험도 */
     case "ultrasonic-arc-risk": {
-      const d = [18,21,20,24,22,28,26,38,30,52,36,30,44,40,46,34,42];
+      const arcVal = (liveData?.value as number) ?? (liveData?.anomalyScore as number) ?? 73;
+      const liveSeries2 = liveData?.timeSeries as Array<{ time: string; value: number }> | undefined;
+      const d = liveSeries2 ? liveSeries2.map((p) => p.value) : [18,21,20,24,22,28,26,38,30,52,36,30,44,40,46,34,42];
+      const arcColor = arcVal >= 80 ? C.red : arcVal >= 60 ? C.yellow : C.red;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Zap className="h-4 w-4" />} accent="red" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
           <div style={{ flex: 1, display: "flex", gap: 18, minHeight: 0, alignItems: "stretch" }}>
             <div style={{ flex: 1, minHeight: 0 }}>
-              <AIMLineChart data={d} color={C.red} bare area smooth />
+              <AIMLineChart data={d} color={arcColor} bare area smooth />
             </div>
             <div style={{ flexShrink: 0, width: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <AIMGauge value={73} max={100} color={C.red} size={100} thickness={10} label="73%" sub="ARC" />
+              <AIMGauge value={arcVal} max={100} color={arcColor} size={100} thickness={10} label={`${arcVal}%`} sub="ARC" />
             </div>
           </div>
         </WidgetFrame>
@@ -300,20 +304,24 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
 
     /* 10. Autoencoder 이상 점수 */
     case "autoencoder-anomaly": {
-      const d = series(24, 30, 30, 42).map((v, i) => i > 18 ? v * 1.5 : v);
+      const gaugeVal = (liveData?.value as number) ?? 64;
+      const liveSeries = liveData?.timeSeries as Array<{ time: string; value: number }> | undefined;
+      const d = liveSeries ? liveSeries.map((p) => p.value) : series(24, 30, 30, 42).map((v, i) => i > 18 ? v * 1.5 : v);
+      const isLive = !!liveData?.value;
+      const gaugeColor = gaugeVal >= 80 ? C.red : gaugeVal >= 60 ? C.yellow : C.purple;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="violet" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <AIMGauge value={64} max={100} color={C.purple} size={96} label="64%" sub="ERROR" />
+              <AIMGauge value={gaugeVal} max={100} color={gaugeColor} size={96} label={`${gaugeVal}%`} sub="ERROR" />
             </div>
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ flex: 1, minHeight: 80 }}>
-                <AIMLineChart data={d} color={C.purple} yTicks={3} xLabels={["-24h", "-12h", "now"]} />
+                <AIMLineChart data={d} color={gaugeColor} yTicks={3} xLabels={liveSeries ? ["시작", "중간", "현재"] : ["-24h", "-12h", "now"]} />
               </div>
-              <div style={{ fontSize: 10, color: C.purple, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.purple, flexShrink: 0 }} />
-                재구성 오차 급증 감지
+              <div style={{ fontSize: 10, color: isLive ? gaugeColor : C.purple, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: isLive ? gaugeColor : C.purple, flexShrink: 0 }} />
+                {isLive ? `실시간 이상 점수 ${gaugeVal}% — 즉각 점검 필요` : "재구성 오차 급증 감지"}
               </div>
             </div>
           </div>
@@ -323,17 +331,19 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
 
     /* 11. LSTM 잔여수명 예측 */
     case "rul-lstm-forecast": {
+      const rulVal = (liveData?.rul as number) ?? 46;
       const d = [20,24,22,28,26,32,30,35,33,38,36,42,40,45,43,48,46,52,50,55,53,58,56,60];
+      const rulColor = rulVal <= 30 ? C.red : rulVal <= 60 ? C.yellow : C.cyan;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="cyan" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flex: 1, minHeight: 130 }}>
-              <AIMLineChart data={d} color={C.cyan} yTicks={4} xLabels={["D-30","D-20","D-10","오늘","D+10"]} />
+              <AIMLineChart data={d} color={rulColor} yTicks={4} xLabels={["D-30","D-20","D-10","오늘","D+10"]} />
             </div>
             <div style={{ width: 88, flexShrink: 0, display: "flex", flexDirection: "column", gap: 9 }}>
-              <div style={{ background: `${C.cyan}12`, border: `1px solid ${C.cyan}33`, borderRadius: 10, padding: "10px 11px" }}>
+              <div style={{ background: `${rulColor}12`, border: `1px solid ${rulColor}33`, borderRadius: 10, padding: "10px 11px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>RUL</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: C.cyan, fontFamily: "'DM Mono'" }}>46일</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: rulColor, fontFamily: "'DM Mono'" }}>{rulVal}일</div>
               </div>
               <div style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", borderRadius: 10, padding: "10px 11px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>Next PM</div>

@@ -1,0 +1,27 @@
+{
+  "deviceId": "EQ-1234",
+  "deviceName": "압연기 #3 메인 베어링",
+  "location": "A동 3F 설비구역",
+  "recordedAt": "2026-06-14T09:22:00",
+  "anomalyScore": 87,
+  "vibration": 4.7,
+  "temperature": 68.2,
+  "rul": 46,
+  "status": "warning",
+  "timeSeries": [
+    { "time": "06:00", "value": 21 },
+    { "time": "06:30", "value": 23 },
+    { "time": "07:00", "value": 22 },
+    { "time": "07:30", "value": 26 },
+    { "time": "08:00", "value": 25 },
+    { "time": "08:20", "value": 28 },
+    { "time": "08:40", "value": 30 },
+    { "time": "09:00", "value": 31 },
+    { "time": "09:05", "value": 35 },
+    { "time": "09:10", "value": 42 },
+    { "time": "09:15", "value": 58 },
+    { "time": "09:18", "value": 71 },
+    { "time": "09:20", "value": 79 },
+    { "time": "09:22", "value": 87 }
+  ]
+}

@@ -817,6 +817,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [canvasWidgets, setCanvasWidgets] = useState<CanvasWidgetInstance[]>([]);
   const [monitoringMappingEdges, setMonitoringMappingEdges] = useState<MappingEdge[]>([]);
   const [monitoringMappingSources, setMonitoringMappingSources] = useState<MappingSource[]>([]);
+  const [monitoringSourceData, setMonitoringSourceData] = useState<Record<string, Record<string, unknown>>>({});
+  const [widgetLiveData, setWidgetLiveData] = useState<Record<string, Record<string, unknown>>>({});
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<MonitoringEditableElement | null>(null);
   const [elementConfigs, setElementConfigs] = useState<MonitoringElementConfigs>(() => cloneDefaultElementConfigs());
@@ -2466,6 +2468,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               canvasRef={canvasRef}
               customWidgets={canvasWidgets}
               widgetById={widgetById}
+              widgetLiveData={widgetLiveData}
               elementConfigs={elementConfigs}
               brand={brand}
               selectedWidgetId={selectedWidgetId}
@@ -2511,6 +2514,13 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                 title: w.title,
                 widgetType: widgetById[w.widgetId]?.type,
               }))}
+              sourceRawData={monitoringSourceData}
+              onSourceDataLoaded={(sourceId, rawData) =>
+                setMonitoringSourceData((prev) => ({ ...prev, [sourceId]: rawData }))
+              }
+              onWidgetDataUpdate={(instanceId, data) =>
+                setWidgetLiveData((prev) => ({ ...prev, [instanceId]: { ...(prev[instanceId] ?? {}), ...data } }))
+              }
             />
           )}
         </main>
@@ -2598,6 +2608,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               canvasRef={canvasRef}
               customWidgets={canvasWidgets}
               widgetById={widgetById}
+              widgetLiveData={widgetLiveData}
               elementConfigs={elementConfigs}
               brand={brand}
               selectedWidgetId={selectedWidgetId}

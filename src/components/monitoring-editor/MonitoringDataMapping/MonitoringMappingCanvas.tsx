@@ -11,6 +11,7 @@ import {
 import type { MappingEdge, MappingSource } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import { buildApiSource, extractFilesFromDrop, parseFilesToSources } from "@/components/editor/mappingUtils";
+import { parseJsonFileToSourceWithData } from "./monitoringFileParser";
 import MonitoringSourceNode from "./nodes/MonitoringSourceNode";
 import MonitoringTargetNode from "./nodes/MonitoringTargetNode";
 import type { MonitoringSourceNodeData } from "./nodes/MonitoringSourceNode";
@@ -74,11 +75,14 @@ export interface MonitoringMappingCanvasProps {
   addMappingSource: (source: MappingSource) => void;
   removeMappingSource: (id: string) => void;
   canvasWidgets?: CanvasWidgetRef[];
+  sourceRawData?: Record<string, Record<string, unknown>>;
+  onSourceDataLoaded?: (sourceId: string, rawData: Record<string, unknown>) => void;
+  onWidgetDataUpdate?: (instanceId: string, data: Record<string, unknown>) => void;
 }
 
 export default function MonitoringMappingCanvas({
   mappingEdges, mappingSources, addMappingEdge, removeMappingEdge, addMappingSource, removeMappingSource,
-  canvasWidgets = [],
+  canvasWidgets = [], sourceRawData = {}, onSourceDataLoaded, onWidgetDataUpdate,
 }: MonitoringMappingCanvasProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setDragging] = useState(false);
@@ -260,16 +264,29 @@ export default function MonitoringMappingCanvas({
     if (files.length === 0) return;
     setParsing(true);
     try {
-      const parsed = await parseFilesToSources(files);
-      parsed.forEach(addMappingSource);
-      setNotice(parsed.length > 0
-        ? `${parsed.length}개 데이터 소스를 매핑 캔버스에 추가했습니다`
+      let count = 0;
+      for (const file of files) {
+        if (/\.json$/i.test(file.name)) {
+          const result = await parseJsonFileToSourceWithData(file);
+          if (result) {
+            addMappingSource(result.source);
+            onSourceDataLoaded?.(result.source.id, result.rawData);
+            count++;
+            continue;
+          }
+        }
+        const parsed = await parseFilesToSources([file]);
+        parsed.forEach(addMappingSource);
+        count += parsed.length;
+      }
+      setNotice(count > 0
+        ? `${count}개 데이터 소스를 매핑 캔버스에 추가했습니다`
         : "JSON, YAML, TXT API 명세만 분석할 수 있습니다");
     } finally {
       setParsing(false);
       window.setTimeout(() => setNotice(null), 2600);
     }
-  }, [addMappingSource]);
+  }, [addMappingSource, onSourceDataLoaded]);
 
   const handleDrop = useCallback(async (event: React.DragEvent) => {
     event.preventDefault();
@@ -300,6 +317,8 @@ export default function MonitoringMappingCanvas({
     const sourceLabel = fieldLabels.get(`${sourceConnector}__${sourceField}`) ?? sourceField;
     setLatestManualEdgeId(edgeId);
     addMappingEdge({ id: edgeId, sourceConnector, sourceField, targetWidgetId, targetProperty });
+    const rawValue = sourceRawData[sourceConnector]?.[sourceField];
+    if (rawValue !== undefined) onWidgetDataUpdate?.(targetWidgetId, { [targetProperty]: rawValue });
     setEdges((cur) => addEdge({
       ...connection,
       id: edgeId,
@@ -312,7 +331,7 @@ export default function MonitoringMappingCanvas({
       labelBgStyle: { fill: "rgba(10,10,20,0.9)", rx: 4, ry: 4 },
       labelBgPadding: [4, 4] as [number, number],
     }, cur));
-  }, [addMappingEdge, fieldLabels, setEdges]);
+  }, [addMappingEdge, fieldLabels, onWidgetDataUpdate, setEdges, sourceRawData]);
 
   const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     removeMappingEdge(edge.id);
