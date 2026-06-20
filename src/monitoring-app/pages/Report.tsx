@@ -301,7 +301,7 @@ export default function Report({ brand }: ReportProps) {
               <div className="px-4 py-3 border-b text-sm font-bold" style={{ background: surface, borderColor: border, color: textStrong }}>
                 주요 이슈 목록
               </div>
-              <div className="overflow-x-auto flex-1" style={{ background: bg }}>
+              <div className="overflow-x-auto flex-1" style={{ background: surface }}>
                  <table className="w-full text-left whitespace-nowrap text-xs">
                     <thead className="border-b" style={{ borderColor: border, color: textMuted }}>
                       <tr>
@@ -355,7 +355,7 @@ export default function Report({ brand }: ReportProps) {
                 리포트 저장 이력
                 <a href="#" className="text-xs font-normal hover:underline" style={{ color: primary }}>더보기</a>
               </div>
-              <div className="overflow-x-auto flex-1" style={{ background: bg }}>
+              <div className="overflow-x-auto flex-1" style={{ background: surface }}>
                  <table className="w-full text-left whitespace-nowrap text-xs">
                     <thead className="border-b" style={{ borderColor: border, color: textMuted }}>
                       <tr>

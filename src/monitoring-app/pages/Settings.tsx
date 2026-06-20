@@ -164,7 +164,7 @@ export default function Settings({ brand }: SettingsProps) {
                  <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold" style={{ background: surface, borderColor: border, color: textStrong }}>
                     사용자 목록
                  </div>
-                 <div className="overflow-x-auto flex-1 custom-scrollbar" style={{ background: `${bg}80` }}>
+                 <div className="overflow-x-auto flex-1 custom-scrollbar" style={{ background: surface }}>
                     <table className="w-full text-left whitespace-nowrap text-xs">
                       <thead className="border-b" style={{ borderColor: border, color: textMuted }}>
                         <tr>
@@ -230,7 +230,7 @@ export default function Settings({ brand }: SettingsProps) {
                  <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold" style={{ background: surface, borderColor: border, color: textStrong }}>
                     사용자 상세
                  </div>
-                 <div className="p-4 flex flex-col gap-5 overflow-y-auto custom-scrollbar flex-1" style={{ background: bg }}>
+                 <div className="p-4 flex flex-col gap-5 overflow-y-auto custom-scrollbar flex-1" style={{ background: surface }}>
                     <div className="flex gap-4 items-center mb-2">
                        <div className="w-14 h-14 rounded-full border-2 flex items-center justify-center shrink-0" style={{ background: `${primary}1A`, borderColor: `${primary}33` }}>
                           <Users size={24} style={{ color: primary }} />
@@ -308,7 +308,7 @@ export default function Settings({ brand }: SettingsProps) {
                   권한 변경 이력
                   <a href="#" className="text-xs font-normal" style={{ color: textMuted }}>전체 이력 보기 →</a>
                </div>
-               <div className="overflow-x-auto" style={{ background: bg }}>
+               <div className="overflow-x-auto" style={{ background: surface }}>
                   <table className="w-full text-left whitespace-nowrap text-xs">
                     <thead className="border-b" style={{ borderColor: border, color: textMuted }}>
                        <tr>
@@ -345,7 +345,7 @@ export default function Settings({ brand }: SettingsProps) {
                   구역 구조도
                   <button className="text-xs hover:opacity-80" style={{ color: primary }}><Plus size={14} /></button>
                </div>
-               <div className="p-4 flex-1 overflow-y-auto text-sm custom-scrollbar" style={{ background: bg, color: textStrong }}>
+               <div className="p-4 flex-1 overflow-y-auto text-sm custom-scrollbar" style={{ background: surface, color: textStrong }}>
                   <div className="flex items-center gap-2 mb-2 font-bold"><Map size={16} style={{ color: textMuted }} /> A-1 구역 (가스 취급)</div>
                   <div className="pl-6 flex items-center gap-2 mb-1.5" style={{ color: textMuted }}><Square size={10} style={{ color: textMuted }} /> 순환 펌프 #1</div>
                   <div className="pl-6 flex items-center gap-2 mb-1.5" style={{ color: textMuted }}><Square size={10} style={{ color: textMuted }} /> 순환 펌프 #2</div>
@@ -361,7 +361,7 @@ export default function Settings({ brand }: SettingsProps) {
                 <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold" style={{ background: surface, borderColor: border, color: textStrong }}>
                   상세 정보 (압축기 #A)
                 </div>
-                <div className="p-6 flex-1 flex flex-col gap-6" style={{ background: bg }}>
+                <div className="p-6 flex-1 flex flex-col gap-6" style={{ background: surface }}>
                    <div className="grid grid-cols-4 gap-4 items-center text-sm">
                       <div style={{ color: textMuted }}>설비 ID</div>
                       <div className="col-span-3"><input type="text" value="EQ-A-001" className="w-full border rounded p-2 outline-none" style={{ background: surface, borderColor: border, color: textStrong }} readOnly/></div>
@@ -400,7 +400,7 @@ export default function Settings({ brand }: SettingsProps) {
              <div className="px-4 py-3 border-b text-sm font-bold" style={{ background: surface, borderColor: border, color: textStrong }}>
                 센서별 임계치 설정
              </div>
-             <div className="p-4 flex-1 overflow-auto custom-scrollbar" style={{ background: bg }}>
+             <div className="p-4 flex-1 overflow-auto custom-scrollbar" style={{ background: surface }}>
                 <table className="w-full text-left whitespace-nowrap text-sm">
                    <thead className="border-b" style={{ borderColor: border, color: textMuted }}>
                      <tr>
@@ -447,7 +447,7 @@ export default function Settings({ brand }: SettingsProps) {
                 외부 시스템 및 디바이스 연동
                 <button className="hidden text-xs py-1 px-3 border rounded-md md:block transition-colors" style={{ background: bg, borderColor: border, color: textStrong }}>새로운 연동 추가</button>
              </div>
-             <div className="p-4 sm:p-6 flex-1 overflow-auto" style={{ background: bg }}>
+             <div className="p-4 sm:p-6 flex-1 overflow-auto" style={{ background: surface }}>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                    {[
                      { name: 'MES 생산관리 시스템', type: 'API 연동', status: '정상 연결됨', lastSync: '1분 전', icon: Share2 },
@@ -485,7 +485,7 @@ export default function Settings({ brand }: SettingsProps) {
              <div className="px-4 py-3 border-b text-sm font-bold" style={{ background: surface, borderColor: border, color: textStrong }}>
                 개인화 화면 설정
              </div>
-             <div className="p-6 flex-1" style={{ background: bg }}>
+             <div className="p-6 flex-1" style={{ background: surface }}>
                 <div className="max-w-2xl flex flex-col gap-8">
 
                    <div className="flex flex-col gap-2">

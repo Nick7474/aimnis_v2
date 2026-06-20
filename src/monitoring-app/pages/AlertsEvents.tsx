@@ -203,7 +203,7 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
               <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                  알림 목록 <span className="px-2 py-0.5 rounded text-[10px] font-normal" style={{ background: th.badgeBg, color: th.badgeText }}>총 86건</span>
               </div>
-              <div className="overflow-x-auto flex-1 min-h-[300px]" style={{ background: `${bg}4D` }}>
+              <div className="overflow-x-auto flex-1 min-h-[300px]" style={{ background: surface }}>
                  <table className="w-full text-left whitespace-nowrap">
                    <thead className="text-[11px] border-b" style={{ borderColor: border, background: th.tableHead, color: textMuted }}>
                      <tr>
@@ -273,7 +273,7 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                   알림 상세
                   <span className="text-[10px] font-normal px-2 py-0.5 rounded" style={{ background: th.badgeBg, color: th.badgeText }}>선택된 알림</span>
                 </div>
-                <div className="p-4 flex flex-col gap-6 flex-1 overflow-y-auto custom-scrollbar" style={{ background: bg }}>
+                <div className="p-4 flex flex-col gap-6 flex-1 overflow-y-auto custom-scrollbar" style={{ background: surface }}>
 
                   {/* Grid Info */}
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
