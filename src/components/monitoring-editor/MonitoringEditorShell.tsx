@@ -696,7 +696,14 @@ function normalizeCommandText(prompt: string) {
 
 function hasWidgetCreateIntent(prompt: string) {
   const normalized = normalizeCommandText(prompt);
-  return WIDGET_COMMAND_KEYWORDS.some((keyword) => normalized.includes(keyword));
+  if (WIDGET_COMMAND_KEYWORDS.some((keyword) => normalized.includes(keyword))) return true;
+  // single/short phrases: match direct widget keyword without action verb
+  if (normalized.split(/\s+/).filter(Boolean).length <= 3) {
+    return WIDGET_COMMAND_PATTERNS.some((pattern) =>
+      pattern.keywords.some((kw) => normalized.includes(kw.toLowerCase()))
+    );
+  }
+  return false;
 }
 
 function resolveWidgetIdFromPrompt(prompt: string, widgets: SolutionWidget[]) {
@@ -937,7 +944,6 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
   const applySnapshot = (snapshot: MonitoringSnapshot) => {
     setCenterView(snapshot.editor.centerView);
-    setLeftTab(snapshot.editor.leftPanelTab);
     setShowRightPanel(snapshot.editor.showRightPanel);
     setCanvasWidgets(snapshot.widgets.items ?? []);
     setSelectedWidgetId(snapshot.editor.selectedWidgetId);
@@ -2381,11 +2387,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             </div>
           </div>
 
-          {leftTab === "chat" ? (
-            <div className="min-h-0 flex-1 overflow-hidden">
-              <MonitoringChatPanel solutionId={solution.id} onWidgetCommand={handleChatWidgetCommand} onPresetCommand={handleChatPresetCommand} />
-            </div>
-          ) : (
+          <div className={cn("min-h-0 flex-1 overflow-hidden", leftTab !== "chat" && "hidden")}>
+            <MonitoringChatPanel solutionId={solution.id} onWidgetCommand={handleChatWidgetCommand} onPresetCommand={handleChatPresetCommand} />
+          </div>
+          {leftTab === "widgets" && (
             <div className="min-h-0 flex-1 overflow-y-auto">
               {/* 검색창 */}
               <div className="sticky top-0 z-10 bg-[#0a0a14] px-3 pb-2 pt-3">

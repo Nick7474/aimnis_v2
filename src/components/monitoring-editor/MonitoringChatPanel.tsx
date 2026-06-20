@@ -33,6 +33,25 @@ type QuickHint =
   | { type: "preset";  label: string; presetId: string; presetLabel: string }
   | { type: "chat";    label: string; prompt: string };
 
+const PRESET_KEYWORD_MAP: Array<{ keywords: string[]; presetId: string; presetLabel: string }> = [
+  { keywords: ["kepco", "한전", "에너지관제", "energy monitoring"], presetId: "kepco-aiot-blue", presetLabel: "KEPCO Energy Control" },
+  { keywords: ["posco", "포스코", "철강", "스마트팩토리"], presetId: "posco-smart-safety", presetLabel: "POSCO Smart Safety" },
+  { keywords: ["삼성", "samsung", "반도체", "캠퍼스"], presetId: "samsung-digital-campus", presetLabel: "Samsung Digital Campus" },
+  { keywords: ["현대", "hyundai", "모빌리티", "mobility"], presetId: "hyundai-mobility-guard", presetLabel: "Hyundai Mobility" },
+  { keywords: ["twin-x", "twinx", "인더스트리얼", "industrial gray"], presetId: "twinx-industrial-gray", presetLabel: "TWIN-X Industrial Gray" },
+  { keywords: ["공공기관", "neutral", "중립톤", "정부기관"], presetId: "public-neutral", presetLabel: "Public Institution Neutral" },
+];
+
+function detectPresetKeyword(text: string): { presetId: string; presetLabel: string } | null {
+  const lower = text.toLowerCase().trim();
+  for (const preset of PRESET_KEYWORD_MAP) {
+    if (preset.keywords.some((kw) => lower.includes(kw))) {
+      return { presetId: preset.presetId, presetLabel: preset.presetLabel };
+    }
+  }
+  return null;
+}
+
 const QUICK_HINTS: QuickHint[] = [
   { type: "widget", label: "초음파 아크",       widgetPrompt: "초음파 아크 위험 위젯을 추가해줘" },
   { type: "widget", label: "진동 FFT",          widgetPrompt: "진동 FFT 스펙트럼 추가해줘" },
@@ -86,16 +105,46 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
 
     setInput("");
     setAttachedImages([]);
+
+    // 브랜드 프리셋 키워드 즉시 처리 (API 호출 없이)
+    const presetMatch = detectPresetKeyword(text);
+    if (presetMatch) {
+      const result = onPresetCommand?.(presetMatch.presetId);
+      setMessages((current) => [
+        ...current,
+        { id: `user-${Date.now()}`, role: "user", content: text },
+        {
+          id: `assistant-${Date.now() + 1}`,
+          role: "assistant",
+          content: result?.applied
+            ? `✓ ${presetMatch.presetLabel} 브랜드 테마를 적용했습니다.\n모니터링 화면의 색상·서비스명이 변경됩니다.`
+            : `${presetMatch.presetLabel} 테마 적용에 실패했습니다.`,
+        },
+      ]);
+      return;
+    }
+
     const widgetCommand = onWidgetCommand?.(text);
+    if (widgetCommand?.added) {
+      setMessages((current) => [
+        ...current,
+        { id: `user-${Date.now()}`, role: "user", content: text },
+        {
+          id: `assistant-${Date.now() + 1}`,
+          role: "assistant",
+          content: `✓ ${widgetCommand.widgetName ?? "AIM Monitoring 위젯"}을 캔버스에 추가했습니다.`,
+        },
+      ]);
+      return;
+    }
+
     setMessages((current) => [
       ...current,
       { id: `user-${Date.now()}`, role: "user", content: text || "첨부 파일 분석 요청" },
       {
         id: `assistant-${Date.now() + 1}`,
         role: "assistant",
-        content: widgetCommand?.added
-          ? `요청하신 ${widgetCommand.widgetName ?? "AIM Monitoring 위젯"}을 컨텐츠에 추가했습니다.\n\n`
-          : "",
+        content: "",
         streaming: true,
       },
     ]);
