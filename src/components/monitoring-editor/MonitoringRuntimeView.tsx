@@ -84,7 +84,11 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
   const snapshot = (activeProject?.monitoringSnapshot as MonitoringSnapshot | undefined) ?? draftSnapshot;
   const items = snapshot?.widgets.items ?? [];
   const columns = snapshot?.widgets.grid.columns ?? 12;
-  const rowHeight = snapshot?.widgets.grid.rowHeight ?? 52;
+  const rowHeight = snapshot?.widgets.grid.rowHeight ?? 44;
+
+  // 에디터 MonitoringLayoutCanvas와 동일한 그리드 상수
+  const GRID_GAP = 16;
+  const GRID_PADDING = "20px 20px 20px 28px";
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#050814] text-white">
@@ -110,7 +114,18 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
       <main className="absolute inset-0 pt-12">
         <MonitoringApp />
         {items.length > 0 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 top-12">
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 top-0"
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${columns}, 1fr)`,
+              gridAutoRows: `${rowHeight}px`,
+              columnGap: `${GRID_GAP}px`,
+              rowGap: `${GRID_GAP}px`,
+              padding: GRID_PADDING,
+              alignContent: "start",
+            }}
+          >
             {items.map((instance) => {
               const meta = widgetById[instance.widgetId];
               if (!meta) return null;
@@ -118,12 +133,10 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
               return (
                 <div
                   key={instance.instanceId}
-                  className="pointer-events-auto absolute overflow-hidden rounded-lg"
+                  className="pointer-events-auto overflow-hidden rounded-lg"
                   style={{
-                    left: `${(instance.x / columns) * 100}%`,
-                    top: instance.y * rowHeight,
-                    width: `${(instance.w / columns) * 100}%`,
-                    height: instance.h * rowHeight,
+                    gridColumn: `${instance.x + 1} / span ${instance.w}`,
+                    gridRow: `${instance.y + 1} / span ${instance.h}`,
                   }}
                 >
                   <MonitoringWidgetRenderer
