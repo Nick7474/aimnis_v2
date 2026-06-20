@@ -70,7 +70,7 @@ export default function LoginPage() {
             {/* 서브텍스트 */}
             <p style={{ fontSize: 15, color: "var(--t2)", lineHeight: 1.7 }}>
               현장 환경을 입력하면 AI가 맞춤 솔루션을 자동 설계합니다.<br />
-              AIM GUARD부터 AIM ECO까지, 엔터프라이즈급 모니터링을<br />
+              AIM Monitering부터 AIM Guard까지, 엔터프라이즈급 모니터링을<br />
               손쉽게 구현하세요.
             </p>
 

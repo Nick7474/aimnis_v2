@@ -57,6 +57,7 @@ import MonitoringChatPanel from "./MonitoringChatPanel";
 import MonitoringFloatingToolbar from "./MonitoringFloatingToolbar";
 import MonitoringWidgetRenderer, { MonitoringWidgetThumbnail } from "./MonitoringWidgetRenderer";
 import MonitoringMappingCanvas from "./MonitoringDataMapping/MonitoringMappingCanvas";
+import MonitoringDBCanvas, { type DBConnectionState } from "./MonitoringDBCanvas";
 import type { MappingEdge, MappingSource } from "@/store/editorStore";
 import { MONITORING_WIDGET_PROPERTIES } from "./MonitoringDataMapping/monitoringMappingData";
 
@@ -67,7 +68,7 @@ interface MonitoringEditorShellProps {
 }
 
 type LeftTab = "chat" | "widgets";
-type CenterView = "monitor" | "mapping";
+type CenterView = "monitor" | "db" | "mapping";
 type RightInspectorMode = "settings" | "mapping";
 type SettingsPanelScope = "brand" | "selection";
 type WidgetInteractionKind = "move" | "resize";
@@ -829,6 +830,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [monitoringSourceData, setMonitoringSourceData] = useState<Record<string, Record<string, unknown>>>({});
   const [widgetLiveData, setWidgetLiveData] = useState<Record<string, Record<string, unknown>>>({});
   const [mappingNodePositions, setMappingNodePositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [dbConnectionState, setDbConnectionState] = useState<DBConnectionState>("idle");
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<MonitoringEditableElement | null>(null);
   const [elementConfigs, setElementConfigs] = useState<MonitoringElementConfigs>(() => cloneDefaultElementConfigs());
@@ -2227,6 +2229,22 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             </button>
             <button
               type="button"
+              onClick={() => setCenterView("db")}
+              className={cn(
+                "relative flex h-7 w-[80px] shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent text-[10px] font-medium leading-none transition-colors",
+                centerView === "db"
+                  ? "bg-sky-500/15 text-sky-200 shadow-sm ring-1 ring-sky-400/20"
+                  : "text-white/[0.35] hover:text-white/60"
+              )}
+            >
+              <TopIcon><Database className="h-3 w-3" /></TopIcon>
+              <span className="block">DB 수집</span>
+              {dbConnectionState === "connected" && (
+                <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              )}
+            </button>
+            <button
+              type="button"
               onClick={() => setCenterView("mapping")}
               className={cn(
                 "flex h-7 w-[92px] shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent text-[10px] font-medium leading-none transition-colors",
@@ -2500,7 +2518,12 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         </motion.div>
 
         <main className="relative min-h-0 flex-1 overflow-hidden bg-[#0b1120]">
-          {centerView === "monitor" ? (
+          {centerView === "db" ? (
+            <MonitoringDBCanvas
+              dbConnectionState={dbConnectionState}
+              onConnectionComplete={() => setDbConnectionState("connected")}
+            />
+          ) : centerView === "monitor" ? (
             <MonitoringLayoutCanvas
               canvasRef={canvasRef}
               customWidgets={canvasWidgets}
