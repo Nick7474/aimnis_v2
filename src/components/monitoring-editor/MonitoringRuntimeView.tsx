@@ -51,11 +51,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   "field-validation": "실증",
 };
 
+// 에디터 좌측 패널 너비 (MonitoringEditorShell.tsx MONITORING_LEFT_PANEL_WIDTH)
+const EDITOR_LEFT_PANEL = 300;
+
 export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeViewProps) {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project");
   const projects = useProjectStore((state) => state.projects);
   const [draftSnapshot, setDraftSnapshot] = useState<MonitoringSnapshot | null>(null);
+  const [vpWidth, setVpWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1280);
+
+  useEffect(() => {
+    const onResize = () => setVpWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const widgetById = useMemo(() => {
     return Object.fromEntries(widgets.map((widget) => [widget.id, widget])) as Record<string, SolutionWidget>;
@@ -118,9 +128,9 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
           <div
             className="pointer-events-none absolute"
             style={{
-              top: 48,        // 런타임 헤더 h-12
-              left: 72,       // MonitoringApp 사이드바 collapsed 너비
-              right: 0,
+              top: 48,
+              left: 0,
+              width: Math.max(600, vpWidth - EDITOR_LEFT_PANEL),
               bottom: 0,
               display: "grid",
               gridTemplateColumns: `repeat(${columns}, 1fr)`,
