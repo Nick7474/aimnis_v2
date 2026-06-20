@@ -34,6 +34,8 @@ type QuickHint =
   | { type: "chat";    label: string; prompt: string };
 
 const PRESET_KEYWORD_MAP: Array<{ keywords: string[]; presetId: string; presetLabel: string }> = [
+  // 기본값 복원 — 다른 프리셋보다 먼저 체크
+  { keywords: ["컬러 초기화", "색상 초기화", "테마 초기화", "기본 테마", "기본 컬러", "컬러 리셋", "리셋 컬러", "초기 컬러", "기본값 복원", "원래 색상", "원래대로"], presetId: "monitoring-default", presetLabel: "AIM Monitoring 기본 테마" },
   { keywords: ["kepco", "한전", "에너지관제", "energy monitoring"], presetId: "kepco-aiot-blue", presetLabel: "KEPCO Energy Control" },
   { keywords: ["posco", "포스코", "철강", "스마트팩토리"], presetId: "posco-smart-safety", presetLabel: "POSCO Smart Safety" },
   { keywords: ["삼성", "samsung", "반도체", "캠퍼스"], presetId: "samsung-digital-campus", presetLabel: "Samsung Digital Campus" },
@@ -53,13 +55,14 @@ function detectPresetKeyword(text: string): { presetId: string; presetLabel: str
 }
 
 const QUICK_HINTS: QuickHint[] = [
-  { type: "widget", label: "초음파 아크",       widgetPrompt: "초음파 아크 위험 위젯을 추가해줘" },
-  { type: "widget", label: "진동 FFT",          widgetPrompt: "진동 FFT 스펙트럼 추가해줘" },
-  { type: "widget", label: "작업자 SpO2안전",   widgetPrompt: "spo2 산소포화도 안전 위젯을 추가해줘" },
-  { type: "widget", label: "환경 위험",          widgetPrompt: "가스 열화 위젯 추가해줘" },
-  { type: "widget", label: "SOP 자동화",         widgetPrompt: "sop 자동 실행 위젯 추가해줘" },
-  { type: "preset", label: "KEPCO 톤",          presetId: "kepco-aiot-blue", presetLabel: "KEPCO AIoT Control" },
-  { type: "widget", label: "제조 설비",          widgetPrompt: "복합 센서 헬스 위젯 추가해줘" },
+  { type: "widget", label: "초음파 아크",    widgetPrompt: "초음파 아크 위험 위젯을 추가해줘" },
+  { type: "widget", label: "진동 FFT",       widgetPrompt: "진동 FFT 스펙트럼 추가해줘" },
+  { type: "widget", label: "작업자 SpO2",    widgetPrompt: "spo2 산소포화도 안전 위젯을 추가해줘" },
+  { type: "widget", label: "환경 위험",       widgetPrompt: "가스 열화 위젯 추가해줘" },
+  { type: "widget", label: "SOP 자동화",      widgetPrompt: "sop 자동 실행 위젯 추가해줘" },
+  { type: "preset", label: "KEPCO 톤",       presetId: "kepco-aiot-blue", presetLabel: "KEPCO AIoT Control" },
+  { type: "widget", label: "제조 설비",       widgetPrompt: "복합 센서 헬스 위젯 추가해줘" },
+  { type: "preset", label: "컬러 초기화",    presetId: "monitoring-default", presetLabel: "AIM Monitoring 기본 테마" },
 ];
 
 function extractDisplayText(content: string) {
@@ -110,6 +113,7 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
     const presetMatch = detectPresetKeyword(text);
     if (presetMatch) {
       const result = onPresetCommand?.(presetMatch.presetId);
+      const isReset = presetMatch.presetId === "monitoring-default";
       setMessages((current) => [
         ...current,
         { id: `user-${Date.now()}`, role: "user", content: text },
@@ -117,7 +121,9 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
           id: `assistant-${Date.now() + 1}`,
           role: "assistant",
           content: result?.applied
-            ? `✓ ${presetMatch.presetLabel} 브랜드 테마를 적용했습니다.\n모니터링 화면의 색상·서비스명이 변경됩니다.`
+            ? isReset
+              ? `✓ 컬러를 AIM Monitoring 기본 테마로 초기화했습니다.\n모든 색상과 서비스명이 최초 기본값으로 돌아갑니다.`
+              : `✓ ${presetMatch.presetLabel} 브랜드 테마를 적용했습니다.\n모니터링 화면의 색상·서비스명이 변경됩니다.`
             : `${presetMatch.presetLabel} 테마 적용에 실패했습니다.`,
         },
       ]);
