@@ -38,6 +38,23 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
   const textStrong = brand?.textStrongColor ?? '#F8FAFC';
   const textMuted  = brand?.textSoftColor   ?? '#94A3B8';
 
+  function hexLum(hex: string) {
+    const h = hex.replace('#', '');
+    return (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) / 255;
+  }
+  const isLight = hexLum(bg) > 0.5;
+  const th = {
+    tableHead:   isLight ? '#EEF1F7'         : 'rgba(30,41,59,.5)',
+    rowSelected: isLight ? `${primary}1a`    : '#1e293b',
+    rowDivider:  border,
+    chartGrid:   isLight ? 'rgba(0,0,0,.08)' : '#334155',
+    tooltipBg:   surface,
+    tooltipBd:   border,
+    badgeBg:     isLight ? border            : '#1e293b',
+    badgeText:   isLight ? textStrong        : '#94a3b8',
+    timelineDot: isLight ? surface           : '#111827',
+  };
+
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(mockAlerts[0]);
 
   const getLevelColor = (level: string) => {
@@ -64,7 +81,7 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
        <div className="shrink-0 mb-4 lg:mb-6">
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+          <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: textStrong }}>
             알림/이벤트
           </h2>
        </div>
@@ -77,8 +94,8 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                <Bell size={24} className="text-blue-500" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">오늘 전체 알림</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">86 <span className="text-sm font-normal text-slate-500">건</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>오늘 전체 알림</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>86 <span className="text-sm font-normal" style={{ color: textMuted }}>건</span></div>
             </div>
             <div className="absolute top-4 right-4 text-xs text-blue-400">전일 대비 ▼ 12.2%</div>
           </div>
@@ -88,8 +105,8 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                <AlertTriangle size={24} className="text-orange-500" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">위험/경고 알림</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">18 <span className="text-sm font-normal text-slate-500">건</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>위험/경고 알림</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>18 <span className="text-sm font-normal" style={{ color: textMuted }}>건</span></div>
             </div>
             <div className="absolute top-4 right-4 text-xs text-red-400">전일 대비 ▲ 5.9%</div>
           </div>
@@ -100,7 +117,7 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
             </div>
             <div className="flex flex-col flex-1">
                <div className="text-red-400 text-sm font-bold">미조치 알림</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">11 <span className="text-sm font-normal text-slate-500">건</span></div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>11 <span className="text-sm font-normal" style={{ color: textMuted }}>건</span></div>
             </div>
             <div className="absolute top-4 right-4 text-xs text-slate-500">전체의 12.8%</div>
           </div>
@@ -110,8 +127,8 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                <CheckCircle2 size={24} className="text-emerald-500" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">조치 완료 알림</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">75 <span className="text-sm font-normal text-slate-500">건</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>조치 완료 알림</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>75 <span className="text-sm font-normal" style={{ color: textMuted }}>건</span></div>
             </div>
             <div className="absolute top-4 right-4 text-xs text-emerald-400">전일 대비 ▼ 16.3%</div>
           </div>
@@ -183,12 +200,12 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 shrink-0 lg:h-[480px]">
            {/* List */}
            <div className="rounded-xl flex flex-col w-full lg:w-[65%] overflow-hidden h-full border" style={{ background: surface, borderColor: border }}>
-              <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold text-slate-300" style={{ borderColor: border }}>
-                 알림 목록 <span className="bg-[#1e293b] text-slate-400 px-2 py-0.5 rounded text-[10px] font-normal">총 86건</span>
+              <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
+                 알림 목록 <span className="px-2 py-0.5 rounded text-[10px] font-normal" style={{ background: th.badgeBg, color: th.badgeText }}>총 86건</span>
               </div>
               <div className="overflow-x-auto flex-1 min-h-[300px]" style={{ background: `${bg}4D` }}>
                  <table className="w-full text-left whitespace-nowrap">
-                   <thead className="text-[11px] text-slate-400 border-b bg-[#1e293b]/50" style={{ borderColor: border }}>
+                   <thead className="text-[11px] border-b" style={{ borderColor: border, background: th.tableHead, color: textMuted }}>
                      <tr>
                         <th className="px-4 py-3 font-medium cursor-pointer flex items-center gap-1">발생 시간 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></th>
                         <th className="px-3 py-3 font-medium text-center">등급</th>
@@ -201,21 +218,22 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                         <th className="px-3 py-3 font-medium text-center">상세</th>
                      </tr>
                    </thead>
-                   <tbody className="divide-y divide-[#1f2937] text-[12px]">
+                   <tbody className="text-[12px]">
                       {mockAlerts.map(alert => (
                         <tr
                           key={alert.id}
                           onClick={() => setSelectedAlert(alert)}
-                          className={`cursor-pointer transition-colors ${selectedAlert?.id === alert.id ? 'bg-[#1e293b]' : 'hover:bg-[#1e293b]/50'}`}
+                          className="cursor-pointer transition-colors"
+                          style={{ borderBottom: `1px solid ${th.rowDivider}`, background: selectedAlert?.id === alert.id ? th.rowSelected : undefined }}
                         >
-                           <td className="px-4 py-3 text-slate-300">{alert.time}</td>
+                           <td className="px-4 py-3" style={{ color: textStrong }}>{alert.time}</td>
                            <td className="px-3 py-3 text-center">
                               <span className={`px-1.5 py-0.5 border rounded-sm text-[10px] ${getLevelColor(alert.level)}`}>{alert.level}</span>
                            </td>
-                           <td className="px-3 py-3 text-center text-slate-400">{alert.type}</td>
-                           <td className="px-4 py-3 font-medium text-slate-200">{alert.target}</td>
-                           <td className="px-4 py-3 text-slate-400">{alert.location}</td>
-                           <td className="px-4 py-3 text-slate-300 truncate max-w-[200px]" title={alert.content}>{alert.content}</td>
+                           <td className="px-3 py-3 text-center" style={{ color: textMuted }}>{alert.type}</td>
+                           <td className="px-4 py-3 font-medium" style={{ color: textStrong }}>{alert.target}</td>
+                           <td className="px-4 py-3" style={{ color: textMuted }}>{alert.location}</td>
+                           <td className="px-4 py-3 truncate max-w-[200px]" style={{ color: textStrong }} title={alert.content}>{alert.content}</td>
                            <td className="px-3 py-3 text-center">
                               {alert.actionStatus === '완료' ? (
                                 <span className={getActionColor(alert.actionStatus)}>{alert.actionStatus}</span>
@@ -223,8 +241,8 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                                 <span className={`text-[10px] border px-1.5 py-0.5 rounded-sm ${getActionColor(alert.actionStatus)}`}>{alert.actionStatus}</span>
                               )}
                            </td>
-                           <td className="px-3 py-3 text-center text-slate-400">{alert.manager}</td>
-                           <td className="px-3 py-3 text-center text-slate-500"><ChevronRight size={14} className="mx-auto"/></td>
+                           <td className="px-3 py-3 text-center" style={{ color: textMuted }}>{alert.manager}</td>
+                           <td className="px-3 py-3 text-center" style={{ color: textMuted }}><ChevronRight size={14} className="mx-auto"/></td>
                         </tr>
                       ))}
                    </tbody>
@@ -232,16 +250,16 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
               </div>
               <div className="px-4 py-2 border-t flex items-center justify-center text-xs text-slate-500" style={{ borderColor: border, background: surface }}>
                  <div className="flex gap-1 items-center">
-                   <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&lt;&lt;</button>
-                   <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&lt;</button>
+                   <button className="px-2 py-1 rounded" style={{ color: textMuted, background: 'transparent' }}>&lt;&lt;</button>
+                   <button className="px-2 py-1 rounded" style={{ color: textMuted, background: 'transparent' }}>&lt;</button>
                    <button className="px-2 py-1 rounded text-white" style={{ background: `${primary}33`, color: primary }}>1</button>
-                   <button className="px-2 py-1 hover:bg-[#1f2937] rounded">2</button>
-                   <button className="px-2 py-1 hover:bg-[#1f2937] rounded">3</button>
-                   <button className="px-2 py-1 hover:bg-[#1f2937] rounded">4</button>
-                   <button className="px-2 py-1 hover:bg-[#1f2937] rounded">5</button>
-                   <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&gt;</button>
-                   <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&gt;&gt;</button>
-                   <select className="bg-transparent border border-[#334155] rounded outline-none ml-2 text-slate-400 py-1">
+                   <button className="px-2 py-1 rounded" style={{ color: textMuted, background: 'transparent' }}>2</button>
+                   <button className="px-2 py-1 rounded" style={{ color: textMuted, background: 'transparent' }}>3</button>
+                   <button className="px-2 py-1 rounded" style={{ color: textMuted, background: 'transparent' }}>4</button>
+                   <button className="px-2 py-1 rounded" style={{ color: textMuted, background: 'transparent' }}>5</button>
+                   <button className="px-2 py-1 rounded" style={{ color: textMuted, background: 'transparent' }}>&gt;</button>
+                   <button className="px-2 py-1 rounded" style={{ color: textMuted, background: 'transparent' }}>&gt;&gt;</button>
+                   <select className="border rounded outline-none ml-2 py-1" style={{ borderColor: border, color: textMuted, background: 'transparent' }}>
                       <option>10 / 페이지</option>
                    </select>
                  </div>
@@ -251,28 +269,28 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
            {/* Detail Panel */}
            {selectedAlert && (
              <div className="rounded-xl flex flex-col w-full lg:w-[35%] overflow-hidden h-full animate-in slide-in-from-right-4 fade-in duration-200 border" style={{ background: surface, borderColor: border }}>
-                <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+                <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                   알림 상세
-                  <span className="text-[10px] bg-[#1e293b] text-slate-400 font-normal px-2 py-0.5 rounded">선택된 알림</span>
+                  <span className="text-[10px] font-normal px-2 py-0.5 rounded" style={{ background: th.badgeBg, color: th.badgeText }}>선택된 알림</span>
                 </div>
                 <div className="p-4 flex flex-col gap-6 flex-1 overflow-y-auto custom-scrollbar" style={{ background: bg }}>
 
                   {/* Grid Info */}
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                      <div>
-                        <div className="text-slate-500 mb-0.5">알림 ID</div>
-                        <div className="text-slate-200 font-medium">{selectedAlert.id}</div>
+                        <div className="mb-0.5" style={{ color: textMuted }}>알림 ID</div>
+                        <div className="font-medium" style={{ color: textStrong }}>{selectedAlert.id}</div>
                      </div>
                      <div>
-                        <div className="text-slate-500 mb-0.5">위치</div>
-                        <div className="text-slate-200">{selectedAlert.location}</div>
+                        <div className="mb-0.5" style={{ color: textMuted }}>위치</div>
+                        <div style={{ color: textStrong }}>{selectedAlert.location}</div>
                      </div>
                      <div>
-                        <div className="text-slate-500 mb-0.5">발생 시간</div>
-                        <div className="text-slate-200">{selectedAlert.time}</div>
+                        <div className="mb-0.5" style={{ color: textMuted }}>발생 시간</div>
+                        <div style={{ color: textStrong }}>{selectedAlert.time}</div>
                      </div>
                      <div>
-                        <div className="text-slate-500 mb-0.5">현재 상태</div>
+                        <div className="mb-0.5" style={{ color: textMuted }}>현재 상태</div>
                         <div>
                           {selectedAlert.actionStatus === '완료' ? (
                             <span className={getActionColor(selectedAlert.actionStatus)}>{selectedAlert.actionStatus}</span>
@@ -282,30 +300,30 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                         </div>
                      </div>
                      <div>
-                        <div className="text-slate-500 mb-0.5">유형</div>
-                        <div className="text-slate-200">{selectedAlert.type}</div>
+                        <div className="mb-0.5" style={{ color: textMuted }}>유형</div>
+                        <div style={{ color: textStrong }}>{selectedAlert.type}</div>
                      </div>
                      <div className="col-span-2">
-                        <div className="text-slate-500 mb-0.5">등급</div>
+                        <div className="mb-0.5" style={{ color: textMuted }}>등급</div>
                         <div><span className={`px-1.5 py-0.5 border rounded-sm text-[10px] ${getLevelColor(selectedAlert.level)}`}>{selectedAlert.level}</span></div>
                      </div>
                      <div className="col-span-2 mt-1">
-                        <div className="text-slate-500 mb-0.5">대상명</div>
-                        <div className="text-slate-200 font-bold">{selectedAlert.target}</div>
+                        <div className="mb-0.5" style={{ color: textMuted }}>대상명</div>
+                        <div className="font-bold" style={{ color: textStrong }}>{selectedAlert.target}</div>
                      </div>
                   </div>
 
                   {/* Body Content */}
                   <div className="rounded-lg overflow-hidden border" style={{ background: surface, borderColor: border }}>
-                    <div className="px-3 py-2 border-b bg-[#1e293b]/30" style={{ borderColor: border }}>
-                       <h4 className="text-xs font-bold text-slate-300">상세 내용</h4>
+                    <div className="px-3 py-2 border-b" style={{ borderColor: border, background: isLight ? 'rgba(0,0,0,.03)' : 'rgba(30,41,59,.3)' }}>
+                       <h4 className="text-xs font-bold" style={{ color: textStrong }}>상세 내용</h4>
                     </div>
-                    <div className="p-3 text-xs text-slate-400">
+                    <div className="p-3 text-xs" style={{ color: textMuted }}>
                        <p className="mb-4">{selectedAlert.content}가 발생했습니다. 담당자 확인이 필요합니다.</p>
 
                        {selectedAlert.details && (
                          <table className="w-full text-left">
-                           <thead className="border-b border-[#334155] text-slate-500">
+                           <thead className="border-b" style={{ borderColor: border, color: textMuted }}>
                              <tr>
                                <th className="pb-1 font-normal w-1/4">관련 센서</th>
                                <th className="pb-1 font-normal">현재 값</th>
@@ -314,11 +332,11 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                                <th className="pb-1 font-normal text-right">지속 시간</th>
                              </tr>
                            </thead>
-                           <tbody className="text-slate-200">
+                           <tbody style={{ color: textStrong }}>
                              <tr>
                                <td className="pt-2">{selectedAlert.details.sensor}</td>
                                <td className="pt-2">{selectedAlert.details.currentValue}</td>
-                               <td className="pt-2 text-slate-400">{selectedAlert.details.warningLimit}</td>
+                               <td className="pt-2" style={{ color: textMuted }}>{selectedAlert.details.warningLimit}</td>
                                <td className="pt-2 text-red-400">{selectedAlert.details.dangerLimit}</td>
                                <td className="pt-2 text-right">{selectedAlert.details.duration}</td>
                              </tr>
@@ -330,18 +348,18 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
 
                   {/* Action Area */}
                   <div>
-                    <h4 className="text-xs font-bold text-slate-300 mb-3">조치 정보</h4>
+                    <h4 className="text-xs font-bold mb-3" style={{ color: textStrong }}>조치 정보</h4>
                     <div className="grid grid-cols-2 gap-3 mb-3">
                        <div>
-                         <label className="text-[10px] text-slate-500 block mb-1">담당자</label>
-                         <select className="rounded-md px-2 py-1.5 text-xs text-slate-300 outline-none w-full border border-[#334155]" style={{ background: surface }}>
+                         <label className="text-[10px] block mb-1" style={{ color: textMuted }}>담당자</label>
+                         <select className="rounded-md px-2 py-1.5 text-xs outline-none w-full border" style={{ background: surface, borderColor: border, color: textStrong }}>
                            <option>선택하세요</option>
                            <option>홍길동 (안전팀)</option>
                          </select>
                        </div>
                        <div>
-                         <label className="text-[10px] text-slate-500 block mb-1">조치 상태</label>
-                         <select className="rounded-md px-2 py-1.5 text-xs text-slate-300 outline-none w-full border border-[#334155]" style={{ background: surface }}>
+                         <label className="text-[10px] block mb-1" style={{ color: textMuted }}>조치 상태</label>
+                         <select className="rounded-md px-2 py-1.5 text-xs outline-none w-full border" style={{ background: surface, borderColor: border, color: textStrong }}>
                            <option>미조치</option>
                            <option>확인 중</option>
                            <option>조치 중</option>
@@ -349,13 +367,13 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                          </select>
                        </div>
                        <div className="col-span-2">
-                         <label className="text-[10px] text-slate-500 block mb-1">조치 내용</label>
+                         <label className="text-[10px] block mb-1" style={{ color: textMuted }}>조치 내용</label>
                          <textarea
-                           className="rounded-md px-3 py-2 text-xs text-slate-300 outline-none w-full h-[60px] resize-none border border-[#334155]"
-                           style={{ background: surface }}
+                           className="rounded-md px-3 py-2 text-xs outline-none w-full h-[60px] resize-none border"
+                           style={{ background: surface, borderColor: border, color: textStrong }}
                            placeholder="조치 내용을 입력하세요."
                          />
-                         <div className="text-right text-[10px] text-slate-500 mt-1">0 / 500</div>
+                         <div className="text-right text-[10px] mt-1" style={{ color: textMuted }}>0 / 500</div>
                        </div>
                     </div>
                     <div className="flex justify-end">
@@ -374,42 +392,42 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 shrink-0 mt-2">
            {/* Event Log */}
            <div className="rounded-xl flex flex-col flex-1 lg:w-1/2 p-4 border" style={{ background: surface, borderColor: border }}>
-              <div className="text-sm font-bold text-slate-300 mb-4">이벤트 처리 로그</div>
+              <div className="text-sm font-bold mb-4" style={{ color: textStrong }}>이벤트 처리 로그</div>
               <div className="relative flex-1">
                  {/* Line */}
-                 <div className="absolute left-[5px] top-[4px] bottom-[4px] w-0.5 bg-[#334155] z-0" />
+                 <div className="absolute left-[5px] top-[4px] bottom-[4px] w-0.5 z-0" style={{ background: border }} />
 
                  <div className="flex flex-col gap-4 relative z-10 text-xs">
                     <div className="flex items-start gap-4">
-                       <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-[#111827] mt-0.5 shrink-0" />
-                       <div className="w-[60px] text-slate-400">10:22:14</div>
-                       <div className="w-[60px] font-medium text-slate-300">알림 발생</div>
-                       <div className="flex-1 text-slate-400">보일러 순환펌프 B-102 진동 수치 35.2mm/s 초과</div>
-                       <div className="w-[50px] text-right text-slate-500">시스템</div>
+                       <div className="w-3 h-3 rounded-full bg-red-500 border-2 mt-0.5 shrink-0" style={{ borderColor: th.timelineDot }} />
+                       <div className="w-[60px]" style={{ color: textMuted }}>10:22:14</div>
+                       <div className="w-[60px] font-medium" style={{ color: textStrong }}>알림 발생</div>
+                       <div className="flex-1" style={{ color: textMuted }}>보일러 순환펌프 B-102 진동 수치 35.2mm/s 초과</div>
+                       <div className="w-[50px] text-right" style={{ color: textMuted }}>시스템</div>
                     </div>
 
                     <div className="flex items-start gap-4">
-                       <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-[#111827] mt-0.5 shrink-0" />
-                       <div className="w-[60px] text-slate-400">10:23:05</div>
-                       <div className="w-[60px] font-medium text-slate-300">담당자 확인</div>
-                       <div className="flex-1 text-slate-400">홍길동 (발전운영팀)님이 알림을 확인했습니다.</div>
-                       <div className="w-[50px] text-right text-slate-500">홍길동</div>
+                       <div className="w-3 h-3 rounded-full bg-blue-500 border-2 mt-0.5 shrink-0" style={{ borderColor: th.timelineDot }} />
+                       <div className="w-[60px]" style={{ color: textMuted }}>10:23:05</div>
+                       <div className="w-[60px] font-medium" style={{ color: textStrong }}>담당자 확인</div>
+                       <div className="flex-1" style={{ color: textMuted }}>홍길동 (발전운영팀)님이 알림을 확인했습니다.</div>
+                       <div className="w-[50px] text-right" style={{ color: textMuted }}>홍길동</div>
                     </div>
 
                     <div className="flex items-start gap-4">
-                       <div className="w-3 h-3 rounded-full bg-yellow-500 border-2 border-[#111827] mt-0.5 shrink-0" />
-                       <div className="w-[60px] text-slate-400">10:23:48</div>
-                       <div className="w-[60px] font-medium text-slate-300">조치 시작</div>
-                       <div className="flex-1 text-slate-400">현장 확인 후 설비 점검을 시작했습니다.</div>
-                       <div className="w-[50px] text-right text-slate-500">홍길동</div>
+                       <div className="w-3 h-3 rounded-full bg-yellow-500 border-2 mt-0.5 shrink-0" style={{ borderColor: th.timelineDot }} />
+                       <div className="w-[60px]" style={{ color: textMuted }}>10:23:48</div>
+                       <div className="w-[60px] font-medium" style={{ color: textStrong }}>조치 시작</div>
+                       <div className="flex-1" style={{ color: textMuted }}>현장 확인 후 설비 점검을 시작했습니다.</div>
+                       <div className="w-[50px] text-right" style={{ color: textMuted }}>홍길동</div>
                     </div>
 
                     <div className="flex items-start gap-4 opacity-50">
-                       <div className="w-3 h-3 rounded-full bg-slate-500 border-2 border-[#111827] mt-0.5 shrink-0" />
-                       <div className="w-[60px] text-slate-500">-</div>
-                       <div className="w-[60px] font-medium text-slate-500">조치 완료</div>
-                       <div className="flex-1 text-slate-500">조치가 완료되지 않았습니다.</div>
-                       <div className="w-[50px] text-right text-slate-500">-</div>
+                       <div className="w-3 h-3 rounded-full bg-slate-500 border-2 mt-0.5 shrink-0" style={{ borderColor: th.timelineDot }} />
+                       <div className="w-[60px]" style={{ color: textMuted }}>-</div>
+                       <div className="w-[60px] font-medium" style={{ color: textMuted }}>조치 완료</div>
+                       <div className="flex-1" style={{ color: textMuted }}>조치가 완료되지 않았습니다.</div>
+                       <div className="w-[50px] text-right" style={{ color: textMuted }}>-</div>
                     </div>
                  </div>
               </div>
@@ -417,9 +435,9 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
 
            {/* Stats Table */}
            <div className="rounded-xl flex flex-col flex-1 lg:w-1/2 p-4 border" style={{ background: surface, borderColor: border }}>
-              <div className="text-sm font-bold text-slate-300 mb-4">알림 통계 (오늘)</div>
+              <div className="text-sm font-bold mb-4" style={{ color: textStrong }}>알림 통계 (오늘)</div>
               <table className="w-full text-center text-xs">
-                 <thead className="text-slate-500 border-b border-[#334155] border-dashed">
+                 <thead className="border-b border-dashed" style={{ borderColor: border, color: textMuted }}>
                    <tr>
                      <th className="pb-2 font-normal text-left">유형</th>
                      <th className="pb-2 font-normal">전체</th>
@@ -431,8 +449,8 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                      <th className="pb-2 font-normal text-emerald-400">완료</th>
                    </tr>
                  </thead>
-                 <tbody className="divide-y divide-[#1f2937]/50 text-slate-300">
-                   <tr>
+                 <tbody style={{ color: textStrong }}>
+                   <tr style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
                      <td className="py-2 text-left">설비</td>
                      <td className="py-2">32</td>
                      <td className="py-2 text-red-400">6</td>
@@ -442,7 +460,7 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                      <td className="py-2 text-red-400">6</td>
                      <td className="py-2">26</td>
                    </tr>
-                   <tr>
+                   <tr style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
                      <td className="py-2 text-left">환경</td>
                      <td className="py-2">20</td>
                      <td className="py-2 text-red-400">4</td>
@@ -452,7 +470,7 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                      <td className="py-2 text-red-400">3</td>
                      <td className="py-2">17</td>
                    </tr>
-                   <tr>
+                   <tr style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
                      <td className="py-2 text-left">작업자</td>
                      <td className="py-2">16</td>
                      <td className="py-2 text-red-400">2</td>
@@ -462,7 +480,7 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                      <td className="py-2 text-red-400">2</td>
                      <td className="py-2">14</td>
                    </tr>
-                   <tr>
+                   <tr style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
                      <td className="py-2 text-left">시스템</td>
                      <td className="py-2">18</td>
                      <td className="py-2 text-red-400">0</td>
@@ -473,7 +491,7 @@ export default function AlertsEvents({ brand }: AlertsEventsProps) {
                      <td className="py-2">18</td>
                    </tr>
                  </tbody>
-                 <tfoot className="border-t border-[#1f2937] text-slate-200">
+                 <tfoot className="border-t" style={{ borderColor: border, color: textStrong }}>
                    <tr>
                      <td className="py-2 text-left font-bold">합계</td>
                      <td className="py-2 font-bold">86</td>

@@ -51,6 +51,20 @@ export default function EquipmentDiagnosis({ brand }: Props) {
   const textStrong = brand?.textStrongColor  ?? '#F8FAFC';
   const textMuted  = brand?.textSoftColor    ?? '#94A3B8';
 
+  function hexLum(hex: string) {
+    const h = hex.replace('#', '');
+    return (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) / 255;
+  }
+  const isLight = hexLum(bg) > 0.5;
+  const th = {
+    tableHead:   isLight ? '#EEF1F7'         : 'rgba(30,41,59,.5)',
+    rowSelected: isLight ? `${primary}1a`    : '#1e293b',
+    rowDivider:  border,
+    chartGrid:   isLight ? 'rgba(0,0,0,.08)' : '#334155',
+    tooltipBg:   surface,
+    tooltipBd:   border,
+  };
+
   const [activeTab, setActiveTab] = useState('전체 설비');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
@@ -76,7 +90,7 @@ export default function EquipmentDiagnosis({ brand }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header & Tabs */}
       <div className="shrink-0 mb-4 lg:mb-6">
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2 mb-4" style={{ color: textStrong }}>
           설비 진단
         </h2>
         <div className="flex items-center gap-6 border-b" style={{ borderColor: border }}>
@@ -84,12 +98,8 @@ export default function EquipmentDiagnosis({ brand }: Props) {
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedAsset(null); }}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
-                  ? 'border-b-2'
-                  : 'text-slate-400 border-transparent hover:text-slate-300'
-              }`}
-              style={activeTab === tab ? { color: primary, borderColor: primary } : undefined}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors`}
+              style={activeTab === tab ? { color: primary, borderColor: primary } : { color: textMuted, borderColor: 'transparent' }}
             >
               {tab}
             </button>
@@ -105,8 +115,8 @@ export default function EquipmentDiagnosis({ brand }: Props) {
                <Settings size={24} className="text-blue-400" />
             </div>
             <div className="flex flex-col">
-               <div className="text-slate-400 text-sm font-medium">전체 설비</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">156 <span className="text-sm font-normal text-slate-500">대</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>전체 설비</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>156 <span className="text-sm font-normal" style={{ color: textMuted }}>대</span></div>
             </div>
           </div>
           <div className="border rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 w-full" style={{ background: surface, borderColor: border }}>
@@ -114,8 +124,8 @@ export default function EquipmentDiagnosis({ brand }: Props) {
                <CheckCircle2 size={24} className="text-emerald-500" />
             </div>
             <div className="flex flex-col">
-               <div className="text-slate-400 text-sm font-medium">정상 설비</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">112 <span className="text-sm font-normal text-slate-500">대</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>정상 설비</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>112 <span className="text-sm font-normal" style={{ color: textMuted }}>대</span></div>
             </div>
           </div>
           <div className="border rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 w-full" style={{ background: surface, borderColor: border }}>
@@ -123,8 +133,8 @@ export default function EquipmentDiagnosis({ brand }: Props) {
                <AlertTriangle size={24} className="text-yellow-500" />
             </div>
             <div className="flex flex-col">
-               <div className="text-slate-400 text-sm font-medium">주의/위험 설비</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">28 <span className="text-sm font-normal text-slate-500">대</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>주의/위험 설비</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>28 <span className="text-sm font-normal" style={{ color: textMuted }}>대</span></div>
             </div>
           </div>
           <div className="border rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 w-full" style={{ background: surface, borderColor: border }}>
@@ -132,8 +142,8 @@ export default function EquipmentDiagnosis({ brand }: Props) {
                <History size={24} className="text-slate-400" />
             </div>
             <div className="flex flex-col">
-               <div className="text-slate-400 text-sm font-medium">미점검 설비</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">16 <span className="text-sm font-normal text-slate-500">대</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>미점검 설비</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>16 <span className="text-sm font-normal" style={{ color: textMuted }}>대</span></div>
             </div>
           </div>
         </div>
@@ -155,9 +165,9 @@ export default function EquipmentDiagnosis({ brand }: Props) {
                       <th className="pb-2 font-medium text-center">상태</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1f2937]/50">
+                  <tbody>
                     {mockHistory.map(h => (
-                      <tr key={h.id}>
+                      <tr key={h.id} style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
                         <td className="py-2.5 text-slate-400">{h.date}</td>
                         <td className="py-2.5 text-slate-200">{h.type}</td>
                         <td className="py-2.5"><span className={`px-1.5 py-0.5 rounded text-[10px] border ${getStatusColor(h.level)}`}>{h.level}</span></td>
@@ -236,7 +246,7 @@ export default function EquipmentDiagnosis({ brand }: Props) {
             </div>
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="text-xs text-slate-400 bg-[#1e293b]/50 border-b" style={{ borderColor: border }}>
+                <thead className="text-xs border-b" style={{ background: th.tableHead, borderColor: border, color: textMuted }}>
                   <tr>
                     <th className="px-4 py-3 font-medium">상태</th>
                     <th className="px-4 py-3 font-medium">설비명</th>
@@ -247,25 +257,26 @@ export default function EquipmentDiagnosis({ brand }: Props) {
                     <th className="px-4 py-3 font-medium text-center">조치 상태</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1f2937]">
+                <tbody>
                   {(activeTab === '위험 설비' ? mockAssets.filter(a => a.status === '주의' || a.status === '위험') : mockAssets).map((asset) => (
                     <tr
                       key={asset.id}
                       onClick={() => setSelectedAsset(asset)}
-                      className={`cursor-pointer transition-colors ${selectedAsset?.id === asset.id ? 'bg-[#1e293b]' : 'hover:bg-[#1e293b]/50'}`}
+                      className="cursor-pointer transition-colors"
+                      style={{ borderBottom: `1px solid ${th.rowDivider}`, background: selectedAsset?.id === asset.id ? th.rowSelected : undefined }}
                     >
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(asset.status)}`}>
                           {asset.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-200">{asset.name}</td>
-                      <td className="px-4 py-3 text-slate-400 text-xs">{asset.location}</td>
-                      <td className="px-4 py-3 text-slate-300 text-xs">{asset.mainIssue}</td>
+                      <td className="px-4 py-3 font-medium" style={{ color: textStrong }}>{asset.name}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: textMuted }}>{asset.location}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: textMuted }}>{asset.mainIssue}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`font-bold ${asset.healthScore > 50 ? 'text-red-400' : 'text-emerald-400'}`}>{asset.healthScore}</span>
                       </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{asset.lastUpdated}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: textMuted }}>{asset.lastUpdated}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`text-xs border px-2 py-0.5 rounded-full ${getActionStatusColor(asset.actionStatus)}`}>{asset.actionStatus}</span>
                       </td>
@@ -278,9 +289,9 @@ export default function EquipmentDiagnosis({ brand }: Props) {
             <div className="px-4 py-3 border-t flex items-center justify-between text-xs text-slate-500" style={{ borderColor: border }}>
                <span>전체 156건</span>
                <div className="flex gap-1">
-                 <button className="px-2 py-1 rounded hover:bg-[#1f2937]">이전</button>
+                 <button className="px-2 py-1 rounded">이전</button>
                  <button className="px-2 py-1 rounded" style={{ backgroundColor: `${primary}33`, color: primary }}>1</button>
-                 <button className="px-2 py-1 rounded hover:bg-[#1f2937]">다음</button>
+                 <button className="px-2 py-1 rounded">다음</button>
                </div>
             </div>
           </div>
@@ -360,10 +371,10 @@ export default function EquipmentDiagnosis({ brand }: Props) {
                   <div className="h-40 border rounded-lg p-3" style={{ background: bg, borderColor: border }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={mockTrendData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={th.chartGrid} vertical={false} />
                         <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 10 }} tickMargin={10} axisLine={false} tickLine={false} />
                         <YAxis stroke="#64748b" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
+                        <Tooltip contentStyle={{ backgroundColor: th.tooltipBg, borderColor: th.tooltipBd, fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
                         <Line type="monotone" dataKey="value" stroke={selectedAsset.status === '위험' ? '#ef4444' : primary} strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
@@ -371,7 +382,7 @@ export default function EquipmentDiagnosis({ brand }: Props) {
                 </div>
 
                 {/* Action Info */}
-                <div className="border rounded-lg p-3" style={{ background: 'rgba(30,41,59,0.3)', borderColor: border }}>
+                <div className="border rounded-lg p-3" style={{ background: isLight ? `${primary}0a` : 'rgba(30,41,59,0.3)', borderColor: border }}>
                   <div className="text-xs font-bold text-slate-300 mb-2">권장 조치</div>
                   <p className="text-sm text-slate-400 mb-4">{selectedAsset.mainIssue}이(가) 지속적으로 감지되고 있습니다. 즉시 점검을 수행하여 이상 유무를 확인하세요.</p>
                   <button

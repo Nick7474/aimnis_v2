@@ -55,6 +55,21 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
   const textStrong = brand?.textStrongColor  ?? '#F8FAFC';
   const textMuted  = brand?.textSoftColor    ?? '#94A3B8';
 
+  function hexLum(hex: string) {
+    const h = hex.replace('#', '');
+    return (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) / 255;
+  }
+  const isLight = hexLum(bg) > 0.5;
+  const th = {
+    tableHead:   isLight ? '#EEF1F7'         : 'rgba(30,41,59,.5)',
+    rowSelected: isLight ? `${primary}1a`    : '#1e293b',
+    rowDivider:  border,
+    chartGrid:   isLight ? 'rgba(0,0,0,.08)' : '#334155',
+    tooltipBg:   surface,
+    tooltipBd:   border,
+    filterHover: isLight ? 'rgba(0,0,0,.06)' : '#1f2937',
+  };
+
   const [activeTab, setActiveTab] = useState('전체 구역');
   const [selectedArea, setSelectedArea] = useState<EnvironmentArea | null>(null);
 
@@ -89,7 +104,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header & Tabs */}
       <div className="shrink-0 mb-4 lg:mb-6">
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2 mb-4" style={{ color: textStrong }}>
           환경 진단
         </h2>
         <div className="flex items-center gap-6 border-b" style={{ borderColor: border }}>
@@ -97,12 +112,8 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedArea(null); }}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
-                  ? 'border-b-2'
-                  : 'text-slate-400 border-transparent hover:text-slate-300'
-              }`}
-              style={activeTab === tab ? { color: primary, borderColor: primary } : undefined}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors`}
+              style={activeTab === tab ? { color: primary, borderColor: primary } : { color: textMuted, borderColor: 'transparent' }}
             >
               {tab}
             </button>
@@ -118,8 +129,8 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                <Grid size={24} className="text-blue-400" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">전체 구역</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">48 <span className="text-sm font-normal text-slate-500">개소</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>전체 구역</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>48 <span className="text-sm font-normal" style={{ color: textMuted }}>개소</span></div>
             </div>
           </div>
           <div className="border rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0" style={{ background: surface, borderColor: border }}>
@@ -127,8 +138,8 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                <ShieldCheck size={24} className="text-emerald-500" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">정상 구역</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">32 <span className="text-sm font-normal text-slate-500">개소</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>정상 구역</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>32 <span className="text-sm font-normal" style={{ color: textMuted }}>개소</span></div>
             </div>
           </div>
           <div className="border rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0" style={{ background: surface, borderColor: border }}>
@@ -136,17 +147,17 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                <AlertTriangle size={24} className="text-yellow-500" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">주의/위험 구역</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">12 <span className="text-sm font-normal text-slate-500">개소</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>주의/위험 구역</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>12 <span className="text-sm font-normal" style={{ color: textMuted }}>개소</span></div>
             </div>
           </div>
-          <div className="bg-[#111827] border border-red-500/30 rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+          <div className="border border-red-500/30 rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 shadow-[0_0_15px_rgba(239,68,68,0.05)]" style={{ background: isLight ? 'rgba(239,68,68,.05)' : '#111827' }}>
             <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
                <Ban size={24} className="text-red-500" />
             </div>
             <div className="flex flex-col flex-1">
                <div className="text-red-400 text-sm font-bold">출입 제한 필요 구역</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">4 <span className="text-sm font-normal text-slate-500">개소</span></div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>4 <span className="text-sm font-normal" style={{ color: textMuted }}>개소</span></div>
             </div>
           </div>
         </div>
@@ -168,13 +179,13 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                       <th className="pb-2 font-medium text-center">조치 상태</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1f2937]/50 text-xs">
+                  <tbody className="text-xs">
                     {mockHistory.map(history => (
-                      <tr key={history.id} className="hover:bg-[#1e293b]/50">
-                        <td className="py-2.5 text-slate-400">{history.date}</td>
-                        <td className="py-2.5 text-slate-300">{history.area}</td>
-                        <td className="py-2.5 text-center text-slate-300">{history.issue}</td>
-                        <td className="py-2.5 text-center text-slate-300">{history.value}</td>
+                      <tr key={history.id} style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
+                        <td className="py-2.5" style={{ color: textMuted }}>{history.date}</td>
+                        <td className="py-2.5" style={{ color: textStrong }}>{history.area}</td>
+                        <td className="py-2.5 text-center" style={{ color: textStrong }}>{history.issue}</td>
+                        <td className="py-2.5 text-center" style={{ color: textStrong }}>{history.value}</td>
                         <td className="py-2.5 text-center">
                            <span className={`px-1.5 py-0.5 rounded border ${getStatusColor(history.level)} text-[10px]`}>{history.level}</span>
                         </td>
@@ -227,7 +238,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
           <div className="flex items-center border rounded-lg p-1 ml-auto" style={{ background: surface, borderColor: border }}>
              <div className="px-3 text-xs text-slate-500 mr-1">항목:</div>
             {['CO', 'H2S', 'CH4', 'VOC', '온도', '습도'].map(s => (
-               <button key={s} className="px-3 py-1 text-sm rounded text-slate-400 hover:text-slate-200 hover:bg-[#1f2937]">
+               <button key={s} className="px-3 py-1 text-sm rounded" style={{ color: textMuted }}>
                  {s}
                </button>
             ))}
@@ -248,9 +259,9 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                 <option>20개씩</option>
               </select>
             </div>
-            <div className="overflow-x-auto flex-1 bg-[#0b1120]/50">
+            <div className="overflow-x-auto flex-1" style={{ background: `${bg}4D` }}>
               <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="text-xs text-slate-400 bg-[#1e293b]/50 border-b" style={{ borderColor: border }}>
+                <thead className="text-xs border-b" style={{ background: th.tableHead, borderColor: border, color: textMuted }}>
                   <tr>
                     <th className="px-4 py-3 font-medium">상태</th>
                     <th className="px-4 py-3 font-medium">구역명</th>
@@ -262,26 +273,27 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                     <th className="px-4 py-3 font-medium text-center">출입 상태</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1f2937]">
+                <tbody>
                   {(activeTab === '위험 구역' ? mockAreas.filter(a => a.status === '주의' || a.status === '위험') : mockAreas).map((area) => (
                     <tr
                       key={area.id}
                       onClick={() => setSelectedArea(area)}
-                      className={`cursor-pointer transition-colors ${selectedArea?.id === area.id ? 'bg-[#1e293b]' : 'hover:bg-[#1e293b]/50'}`}
+                      className="cursor-pointer transition-colors"
+                      style={{ borderBottom: `1px solid ${th.rowDivider}`, background: selectedArea?.id === area.id ? th.rowSelected : undefined }}
                     >
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(area.status)}`}>
                           {area.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-200">{area.name}</td>
-                      <td className="px-4 py-3 text-slate-400 text-xs">{area.location}</td>
-                      <td className="px-4 py-3 text-center text-slate-300 text-xs">{area.mainIssue}</td>
+                      <td className="px-4 py-3 font-medium" style={{ color: textStrong }}>{area.name}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: textMuted }}>{area.location}</td>
+                      <td className="px-4 py-3 text-center text-xs" style={{ color: textMuted }}>{area.mainIssue}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`font-bold ${area.status === '위험' ? 'text-red-400' : area.status === '주의' ? 'text-yellow-400' : 'text-emerald-400'}`}>{area.currentValue}</span>
                       </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs text-center hidden md:table-cell">{area.threshold}</td>
-                      <td className="px-4 py-3 text-slate-500 text-xs hidden lg:table-cell">{area.lastUpdated}</td>
+                      <td className="px-4 py-3 text-xs text-center hidden md:table-cell" style={{ color: textMuted }}>{area.threshold}</td>
+                      <td className="px-4 py-3 text-xs hidden lg:table-cell" style={{ color: textMuted }}>{area.lastUpdated}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`text-[11px] border px-2 py-0.5 rounded-sm ${getAccessStatusColor(area.accessStatus)}`}>{area.accessStatus}</span>
                       </td>
@@ -310,7 +322,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                 <div className="px-4 py-3 border-b flex items-center justify-between" style={{ background: surface, borderColor: border }}>
                   <span className="text-sm font-bold text-slate-300">구역 상세</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs bg-[#1e293b] text-slate-300 px-2 py-1 rounded">선택 구역: {selectedArea.name}</span>
+                    <span className="text-xs px-2 py-1 rounded" style={{ background: border, color: textStrong }}>선택 구역: {selectedArea.name}</span>
                     <button onClick={() => setSelectedArea(null)} className="text-slate-500 hover:text-slate-300 ml-2">
                       <ChevronRight size={18} />
                     </button>
@@ -349,7 +361,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                   {/* Sensor Data Grid */}
                   <div>
                     <table className="w-full text-sm text-left">
-                       <thead className="text-xs text-slate-500 border-b border-dashed border-[#334155]">
+                       <thead className="text-xs border-b border-dashed" style={{ borderColor: border, color: textMuted }}>
                          <tr>
                            <th className="pb-2 font-medium">측정 항목</th>
                            <th className="pb-2 font-medium text-center">현재 수치</th>
@@ -357,7 +369,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                            <th className="pb-2 font-medium text-center">상태</th>
                          </tr>
                        </thead>
-                       <tbody className="divide-y divide-[#1f2937] text-slate-300">
+                       <tbody style={{ color: textStrong }}>
                          {Object.entries(selectedArea.data).map(([key, rawData]) => {
                            const data = rawData as { value: number; threshold: number; status: string };
                            const labels: Record<string, string> = { co: 'CO', h2s: 'H2S', ch4: 'CH4', voc: 'VOC', temperature: '온도', humidity: '습도' };
@@ -366,7 +378,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                            const isWarning = data.status === '주의';
 
                            return (
-                             <tr key={key}>
+                             <tr key={key} style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
                                <td className="py-2.5">{labels[key]}</td>
                                <td className={`py-2.5 text-center font-bold ${isDanger ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-slate-200'}`}>
                                  {data.value} <span className="text-xs font-normal text-slate-500">{units[key]}</span>
@@ -422,10 +434,10 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                         <div className="flex-1 min-h-[100px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={mockTrendData}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke={th.chartGrid} vertical={false} />
                               <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 9 }} tickMargin={5} axisLine={false} tickLine={false} />
                               <YAxis stroke="#64748b" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} width={25} />
-                              <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '10px' }} itemStyle={{ color: '#fff' }} />
+                              <Tooltip contentStyle={{ backgroundColor: th.tooltipBg, borderColor: th.tooltipBd, fontSize: '10px' }} itemStyle={{ color: '#fff' }} />
                               <Line type="monotone" dataKey="value" stroke={selectedArea.status === '위험' ? '#ef4444' : '#f59e0b'} strokeWidth={2} dot={false} />
                             </LineChart>
                           </ResponsiveContainer>
@@ -452,13 +464,13 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
                           <th className="pb-2 font-medium text-center">조치 상태</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#1f2937]/50 text-xs">
+                      <tbody className="text-xs">
                         {mockHistory.map(history => (
-                          <tr key={history.id}>
-                            <td className="py-2.5 text-slate-400">{history.date}</td>
-                            <td className="py-2.5 text-slate-300 truncate max-w-[100px]" title={history.area}>{history.area}</td>
-                            <td className="py-2.5 text-center text-slate-300">{history.issue}</td>
-                            <td className="py-2.5 text-center text-slate-300">{history.value}</td>
+                          <tr key={history.id} style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
+                            <td className="py-2.5" style={{ color: textMuted }}>{history.date}</td>
+                            <td className="py-2.5 truncate max-w-[100px]" style={{ color: textStrong }} title={history.area}>{history.area}</td>
+                            <td className="py-2.5 text-center" style={{ color: textStrong }}>{history.issue}</td>
+                            <td className="py-2.5 text-center" style={{ color: textStrong }}>{history.value}</td>
                             <td className="py-2.5 text-center">
                                <span className={`px-1.5 py-0.5 rounded border ${getStatusColor(history.level)} text-[10px]`}>{history.level}</span>
                             </td>
