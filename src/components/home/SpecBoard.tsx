@@ -13,26 +13,6 @@ interface Props {
   renderHeaderExtra?: React.ReactNode;
 }
 
-const SOLUTION_INFO: Record<string, { name: string; icon: string; color: string }> = {
-  guard:      { name: "AIM GUARD",      icon: "Shield",   color: "#22d3ee" },
-  monitoring: { name: "AIM Monitoring", icon: "Activity", color: "#818cf8" },
-};
-
-function SolutionBreadcrumb({ solutionId }: { solutionId: string | null }) {
-  if (!solutionId) return null;
-  const info = SOLUTION_INFO[solutionId];
-  if (!info) return null;
-  const IconComp = ((Icons as unknown as Record<string, LucideIcon>)[info.icon] || Icons.Box) as LucideIcon;
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-      <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS" style={{ height: 14, width: 14, objectFit: "contain", opacity: 0.55 }} />
-      <span style={{ fontSize: 10, color: "var(--t4)", fontWeight: 600, letterSpacing: "0.04em" }}>AIMNIS</span>
-      <span style={{ fontSize: 12, color: "var(--t4)", opacity: 0.35, lineHeight: 1 }}>/</span>
-      <IconComp size={12} color={info.color} />
-      <span style={{ fontSize: 10, fontWeight: 700, color: info.color, letterSpacing: "0.02em" }}>{info.name}</span>
-    </div>
-  );
-}
 
 export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Props) {
   const selectedSolution = useHomeStore((s) => s.selectedSolution);
@@ -101,7 +81,6 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
         >
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <SolutionBreadcrumb solutionId={selectedSolution} />
               <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--t1)", margin: 0, marginBottom: 6 }}>
                 Spec Board
               </h2>
@@ -158,7 +137,6 @@ export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Pr
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
-            <SolutionBreadcrumb solutionId={selectedSolution} />
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
               <h2
                 style={{
