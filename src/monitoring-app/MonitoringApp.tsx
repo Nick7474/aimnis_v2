@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import MonitoringPageBuilder from "./components/MonitoringPageBuilder";
 import Dashboard from "./components/Dashboard";
+import RuntimeWidgetOverlay from "./components/RuntimeWidgetOverlay";
 import IntegratedDashboard from "./pages/IntegratedDashboard";
 import EquipmentDiagnosis from "./pages/EquipmentDiagnosis";
 import EnvironmentDiagnosis from "./pages/EnvironmentDiagnosis";
@@ -104,6 +105,7 @@ export default function MonitoringApp({ runtimeMode = false }: MonitoringAppProp
         <Header />
         <main className="custom-scrollbar relative flex-1 overflow-y-auto px-[20px] pb-[20px] pt-4 lg:pt-6">
           {renderPage()}
+          {runtimeMode && <RuntimeWidgetOverlay />}
         </main>
 
         {/* Page Builder — absolute within content area (좌사이드바·탑메뉴 제외) */}

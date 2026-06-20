@@ -25,10 +25,12 @@ export interface PublishedProject {
   monitoringSnapshot?: unknown;
 }
 
+type UpsertPayload = Omit<PublishedProject, "id" | "publishedAt" | "updatedAt" | "version"> & { id?: string };
+
 interface ProjectState {
   projects: PublishedProject[];
   publish: (p: Omit<PublishedProject, "id" | "publishedAt" | "updatedAt" | "version">) => PublishedProject;
-  upsert: (p: Omit<PublishedProject, "id" | "publishedAt" | "updatedAt" | "version">) => PublishedProject;
+  upsert: (p: UpsertPayload) => PublishedProject;
   remove: (id: string) => void;
 }
 
@@ -59,16 +61,18 @@ export const useProjectStore = create<ProjectState>()(
       },
 
       upsert: (data) => {
-        const existing = get().projects.find(p => p.solution === data.solution);
         const now = new Date().toISOString().split("T")[0];
+        // ID가 있으면 해당 프로젝트 업데이트, 없으면 새로 생성
+        const existing = data.id ? get().projects.find(p => p.id === data.id) : null;
         if (existing) {
           const nums = get().projects
             .filter(p => p.solution === data.solution)
             .map(p => parseFloat(p.version.replace("v", "")) || 0);
           const nextVer = `v${(Math.max(...nums) + 0.1).toFixed(1)}`;
+          const { id: _id, ...rest } = data;
           const updated: PublishedProject = {
             ...existing,
-            ...data,
+            ...rest,
             id: existing.id,
             version: nextVer,
             updatedAt: now,

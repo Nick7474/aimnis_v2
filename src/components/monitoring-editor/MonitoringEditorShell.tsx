@@ -975,6 +975,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const handleConfirmPublish = () => {
     const snapshot = createSnapshot();
     const project = upsertProject({
+      id: projectId ?? undefined,
       name: publishForm.name || solution.name,
       solution: solution.id,
       status: "active",
@@ -993,6 +994,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     setPublishDone({ id: project.id });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1600);
+    // 새 프로젝트인 경우 URL에 project ID 반영
+    if (!projectId) {
+      router.replace(`/editor?solution=monitoring&project=${project.id}`);
+    }
   };
 
   const handleGoHome = () => {
