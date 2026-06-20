@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -57,15 +57,17 @@ import MonitoringChatPanel from "./MonitoringChatPanel";
 import MonitoringFloatingToolbar from "./MonitoringFloatingToolbar";
 import MonitoringWidgetRenderer, { MonitoringWidgetThumbnail } from "./MonitoringWidgetRenderer";
 import MonitoringMappingCanvas from "./MonitoringDataMapping/MonitoringMappingCanvas";
-import MonitoringDBCanvas, { type DBConnectionState } from "./MonitoringDBCanvas";
-import type { MappingEdge, MappingSource } from "@/store/editorStore";
-import { MONITORING_WIDGET_PROPERTIES } from "./MonitoringDataMapping/monitoringMappingData";
+import MonitoringDBCanvas from "./MonitoringDBCanvas";
+import MonitoringPageBuilder from "@/monitoring-app/components/MonitoringPageBuilder";
+import { useMonitoringPagesStore, type MonitoringPageConfig } from "@/store/monitoringPagesStore";
+import type { MappingEdge } from "@/store/editorStore";
 
 interface MonitoringEditorShellProps {
   solution: SolutionManifest;
   template: SolutionTemplate | null;
   widgets: SolutionWidget[];
 }
+
 
 type LeftTab = "chat" | "widgets";
 type CenterView = "monitor" | "db" | "mapping";
@@ -283,15 +285,20 @@ const MONITORING_BRAND_PRESETS: MonitoringBrandSlot[] = [
     tenantName: "KEPCO Energy",
     serviceName: "Clean Energy AIoT Monitoring",
     productName: "Energy Monitoring",
-    primaryColor: "#4F46E5",
-    secondaryColor: "#22C7D7",
-    accentColor: "#A78BFA",
+    primaryColor: "#0C8AE5",
+    secondaryColor: "#38BDF8",
+    accentColor: "#0C8AE5",
     successColor: "#22C55E",
-    warningColor: "#F97316",
-    dangerColor: "#E11D48",
-    backgroundColor: "#F7F9FC",
+    warningColor: "#F59E0B",
+    dangerColor: "#EF4444",
+    backgroundColor: "#F8F9FD",
     surfaceColor: "#FFFFFF",
-    borderColor: "#E4E8F2",
+    borderColor: "#E0E6F0",
+    textStrongColor: "#1E2124",
+    textColor: "#3A4552",
+    textSoftColor: "#6D7882",
+    textFaintColor: "#9DAAB8",
+    sidebarColor: "#003481",
     density: "spacious",
     mapTone: "mono",
   },
@@ -826,11 +833,13 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [isDraggingWidget, setIsDraggingWidget] = useState(false);
   const [canvasWidgets, setCanvasWidgets] = useState<CanvasWidgetInstance[]>([]);
   const [monitoringMappingEdges, setMonitoringMappingEdges] = useState<MappingEdge[]>([]);
-  const [monitoringMappingSources, setMonitoringMappingSources] = useState<MappingSource[]>([]);
-  const [monitoringSourceData, setMonitoringSourceData] = useState<Record<string, Record<string, unknown>>>({});
   const [widgetLiveData, setWidgetLiveData] = useState<Record<string, Record<string, unknown>>>({});
   const [mappingNodePositions, setMappingNodePositions] = useState<Record<string, { x: number; y: number }>>({});
-  const [dbConnectionState, setDbConnectionState] = useState<DBConnectionState>("idle");
+  const [connectedSourceIds, setConnectedSourceIds] = useState<Set<string>>(new Set());
+  const [connectedSourceMeta, setConnectedSourceMeta] = useState<Record<string, { name: string; endpoint: string; fields?: string[] }>>({});
+  const [isPageBuilderOpen, setIsPageBuilderOpen] = useState(false);
+  const [pendingNavPage, setPendingNavPage] = useState<string | null>(null);
+  const { addedPages, addPage, removePage } = useMonitoringPagesStore();
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<MonitoringEditableElement | null>(null);
   const [elementConfigs, setElementConfigs] = useState<MonitoringElementConfigs>(() => cloneDefaultElementConfigs());
@@ -849,33 +858,6 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const widgetById = useMemo(() => {
     return Object.fromEntries(widgets.map((widget) => [widget.id, widget])) as Record<string, SolutionWidget>;
   }, [widgets]);
-
-  const handleSourceIngested = useCallback((sourceId: string, rawData: Record<string, unknown>) => {
-    setMonitoringSourceData((prev) => ({ ...prev, [sourceId]: rawData }));
-    const newEdges: MappingEdge[] = [];
-    const liveUpdates: Record<string, Record<string, unknown>> = {};
-    canvasWidgets.forEach((widget) => {
-      const wType = widgetById[widget.widgetId]?.type ?? widget.widgetId;
-      const props = MONITORING_WIDGET_PROPERTIES[wType] ?? MONITORING_WIDGET_PROPERTIES[widget.widgetId] ?? ["value"];
-      props.forEach((prop) => {
-        const key = prop.toLowerCase();
-        const rawVal = rawData[key] ?? rawData[prop];
-        if (rawVal === undefined) return;
-        const edgeId = `auto-${sourceId}-${key}-${widget.instanceId}-${prop}`;
-        setMonitoringMappingEdges((prev) => prev.some((e) => e.id === edgeId) ? prev : [...prev, { id: edgeId, sourceConnector: sourceId, sourceField: key, targetWidgetId: widget.instanceId, targetProperty: prop }]);
-        newEdges.push({ id: edgeId, sourceConnector: sourceId, sourceField: key, targetWidgetId: widget.instanceId, targetProperty: prop });
-        if (!liveUpdates[widget.instanceId]) liveUpdates[widget.instanceId] = {};
-        liveUpdates[widget.instanceId][prop] = rawVal;
-      });
-    });
-    if (Object.keys(liveUpdates).length > 0) {
-      setWidgetLiveData((prev) => {
-        const next = { ...prev };
-        Object.entries(liveUpdates).forEach(([id, data]) => { next[id] = { ...(next[id] ?? {}), ...data }; });
-        return next;
-      });
-    }
-  }, [canvasWidgets, widgetById]);
 
   const selectedWidget = selectedWidgetId ? canvasWidgets.find((widget) => widget.instanceId === selectedWidgetId) ?? null : null;
   const selectedWidgetMeta = selectedWidget ? widgetById[selectedWidget.widgetId] : null;
@@ -2239,7 +2221,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             >
               <TopIcon><Database className="h-3 w-3" /></TopIcon>
               <span className="block">DB 수집</span>
-              {dbConnectionState === "connected" && (
+              {connectedSourceIds.size > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
               )}
             </button>
@@ -2517,11 +2499,17 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         </AnimatePresence>
         </motion.div>
 
-        <main className="relative min-h-0 flex-1 overflow-hidden bg-[#0b1120]">
+        <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0b1120]">
+          {/* ── 중앙 뷰 컨테이너 ── */}
+          <div className="relative min-h-0 flex-1 overflow-hidden">
           {centerView === "db" ? (
             <MonitoringDBCanvas
-              dbConnectionState={dbConnectionState}
-              onConnectionComplete={() => setDbConnectionState("connected")}
+              initialConnectedIds={connectedSourceIds}
+              onSourceConnect={(id, name, endpoint, fields) => {
+                setConnectedSourceIds((prev) => new Set([...Array.from(prev), id]));
+                setConnectedSourceMeta((prev) => ({ ...prev, [id]: { name, endpoint, fields } }));
+              }}
+              onNavigateToMapping={() => setCenterView("mapping")}
             />
           ) : centerView === "monitor" ? (
             <MonitoringLayoutCanvas
@@ -2559,30 +2547,46 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               onStartWidgetInteraction={startWidgetInteraction}
               onStartDefaultWidgetInteraction={startDefaultWidgetInteraction}
               onHideDefaultWidget={(id) => updateDefaultWidgetConfig(id, { visible: false })}
+              addedPages={addedPages}
+              onOpenPageBuilder={() => setIsPageBuilderOpen(true)}
+              navigateToPage={pendingNavPage}
+              onNavigated={() => setPendingNavPage(null)}
+              onRemovePage={removePage}
             />
           ) : (
             <MonitoringMappingCanvas
               mappingEdges={monitoringMappingEdges}
-              mappingSources={monitoringMappingSources}
               addMappingEdge={(edge) => setMonitoringMappingEdges((prev) => prev.some((e) => e.id === edge.id) ? prev : [...prev, edge])}
               removeMappingEdge={(id) => setMonitoringMappingEdges((prev) => prev.filter((e) => e.id !== id))}
-              addMappingSource={(source) => setMonitoringMappingSources((prev) => prev.some((s) => s.id === source.id) ? prev : [...prev, source])}
-              removeMappingSource={(id) => setMonitoringMappingSources((prev) => prev.filter((s) => s.id !== id))}
               canvasWidgets={canvasWidgets.map((w) => ({
                 instanceId: w.instanceId,
                 widgetId: w.widgetId,
                 title: w.title,
                 widgetType: widgetById[w.widgetId]?.type,
               }))}
-              sourceRawData={monitoringSourceData}
-              onSourceDataLoaded={handleSourceIngested}
-              onWidgetDataUpdate={(instanceId, data) =>
-                setWidgetLiveData((prev) => ({ ...prev, [instanceId]: { ...(prev[instanceId] ?? {}), ...data } }))
-              }
               savedNodePositions={mappingNodePositions}
               onNodePositionsChange={setMappingNodePositions}
+              connectedSourceIds={connectedSourceIds}
+              connectedSourceMeta={connectedSourceMeta}
+              activePageLabel="홈 대시보드"
             />
           )}
+          </div>
+
+          {/* ── 페이지 추가 패널 — main 안에서 absolute, 탑메뉴·좌패널 제외 ── */}
+          <AnimatePresence>
+            {isPageBuilderOpen && (
+              <MonitoringPageBuilder
+                addedPageKeys={new Set(addedPages.map((p) => p.key))}
+                onClose={() => setIsPageBuilderOpen(false)}
+                onCreatePage={(key: string, config: MonitoringPageConfig) => {
+                  addPage(key, config);
+                  setPendingNavPage(config.pageTitle || key);
+                  setIsPageBuilderOpen(false);
+                }}
+              />
+            )}
+          </AnimatePresence>
         </main>
 
         <AnimatePresence>
@@ -2684,6 +2688,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           </motion.div>
         )}
       </AnimatePresence>
+
     </div>
   );
 }
