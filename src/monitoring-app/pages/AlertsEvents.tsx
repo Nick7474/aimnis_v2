@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, Calendar, Bell, AlertTriangle, AlertOctagon, CheckCircle2, ChevronRight } from 'lucide-react';
+import type { BrandSettings } from '@/lib/brandPresets';
 
 interface Alert {
   id: string;
@@ -25,7 +26,18 @@ const mockAlerts: Alert[] = [
   { id: 'ALM-008', time: '2024-05-21 09:45:07', level: '정보', type: '작업자', target: '이지연 (운전팀)', location: '제어실', content: '출입 통제 구역 출입 감지', actionStatus: '완료', manager: '김도현' },
 ];
 
-export default function AlertsEvents() {
+interface AlertsEventsProps {
+  brand?: BrandSettings;
+}
+
+export default function AlertsEvents({ brand }: AlertsEventsProps) {
+  const bg      = brand?.backgroundColor ?? '#0b1120';
+  const surface = brand?.surfaceColor     ?? '#111827';
+  const border  = brand?.borderColor      ?? '#1f2937';
+  const primary = brand?.primaryColor     ?? '#2563EB';
+  const textStrong = brand?.textStrongColor ?? '#F8FAFC';
+  const textMuted  = brand?.textSoftColor   ?? '#94A3B8';
+
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(mockAlerts[0]);
 
   const getLevelColor = (level: string) => {
@@ -60,7 +72,7 @@ export default function AlertsEvents() {
       <div className="flex flex-col gap-4 lg:gap-6 flex-1 overflow-auto pb-[20px] pr-2 custom-scrollbar">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+          <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
                <Bell size={24} className="text-blue-500" />
             </div>
@@ -70,8 +82,8 @@ export default function AlertsEvents() {
             </div>
             <div className="absolute top-4 right-4 text-xs text-blue-400">전일 대비 ▼ 12.2%</div>
           </div>
-          
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+
+          <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0">
                <AlertTriangle size={24} className="text-orange-500" />
             </div>
@@ -82,7 +94,7 @@ export default function AlertsEvents() {
             <div className="absolute top-4 right-4 text-xs text-red-400">전일 대비 ▲ 5.9%</div>
           </div>
 
-          <div className="bg-[#111827] border border-red-500/30 rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+          <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]" style={{ background: surface }}>
             <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
                <AlertOctagon size={24} className="text-red-500" />
             </div>
@@ -93,7 +105,7 @@ export default function AlertsEvents() {
             <div className="absolute top-4 right-4 text-xs text-slate-500">전체의 12.8%</div>
           </div>
 
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+          <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
                <CheckCircle2 size={24} className="text-emerald-500" />
             </div>
@@ -111,23 +123,24 @@ export default function AlertsEvents() {
              <span className="text-[10px] text-slate-500 mb-1">키워드 검색</span>
              <div className="relative">
                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-               <input type="text" placeholder="알림 내용, 대상명 검색" className="bg-[#111827] border border-[#1f2937] rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 outline-none w-full" />
+               <input type="text" placeholder="알림 내용, 대상명 검색" className="rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 outline-none w-full border" style={{ background: surface, borderColor: border }} />
              </div>
           </div>
-          
+
           <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1">기간 선택</span>
              <div className="relative">
                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-               <input type="text" value="2024-05-21 00:00 ~ 2024-05-21 23:59" readOnly className="bg-[#111827] border border-[#1f2937] rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-300 outline-none w-[240px] cursor-pointer" />
+               <input type="text" value="2024-05-21 00:00 ~ 2024-05-21 23:59" readOnly className="rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-300 outline-none w-[240px] cursor-pointer border" style={{ background: surface, borderColor: border }} />
              </div>
           </div>
 
           <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1">유형</span>
-             <div className="flex items-center bg-[#111827] border border-[#1f2937] rounded-lg p-0.5 h-[30px]">
+             <div className="flex items-center rounded-lg p-0.5 h-[30px] border" style={{ background: surface, borderColor: border }}>
                 {['전체', '설비', '환경', '작업자', '시스템'].map(s => (
-                   <button key={s} className={`px-3 py-1 text-xs rounded ${s === '전체' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                   <button key={s} className={`px-3 py-1 text-xs rounded ${s === '전체' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                     style={s === '전체' ? { background: primary } : undefined}>
                      {s}
                    </button>
                 ))}
@@ -136,19 +149,20 @@ export default function AlertsEvents() {
 
           <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1">등급</span>
-             <div className="flex items-center bg-[#111827] border border-[#1f2937] rounded-lg p-0.5 h-[30px]">
+             <div className="flex items-center rounded-lg p-0.5 h-[30px] border" style={{ background: surface, borderColor: border }}>
                 {['전체', '정보', '주의', '경고', '위험'].map(s => (
-                   <button key={s} className={`px-2.5 py-1 text-xs flex items-center gap-1 rounded ${s === '전체' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                   <button key={s} className={`px-2.5 py-1 text-xs flex items-center gap-1 rounded ${s === '전체' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                     style={s === '전체' ? { background: primary } : undefined}>
                      {(s !== '전체') && <div className={`w-1.5 h-1.5 rounded-full ${s === '정보' ? 'bg-blue-500' : s === '주의' ? 'bg-yellow-500' : s === '경고' ? 'bg-orange-500' : 'bg-red-500'}`} />}
                      {s}
                    </button>
                 ))}
              </div>
           </div>
-          
+
           <div className="flex flex-col ml-auto">
              <span className="text-[10px] text-slate-500 mb-1">조치 상태</span>
-             <select className="bg-[#111827] border border-[#1f2937] rounded-lg px-2 py-1 text-xs text-slate-300 outline-none h-[30px] min-w-[100px]">
+             <select className="rounded-lg px-2 py-1 text-xs text-slate-300 outline-none h-[30px] min-w-[100px] border" style={{ background: surface, borderColor: border }}>
                 <option>전체</option>
                 <option>미조치</option>
                 <option>확인 중</option>
@@ -156,10 +170,10 @@ export default function AlertsEvents() {
                 <option>완료</option>
              </select>
           </div>
-          
+
           <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1">위치</span>
-             <select className="bg-[#111827] border border-[#1f2937] rounded-lg px-2 py-1 text-xs text-slate-300 outline-none h-[30px] min-w-[100px]">
+             <select className="rounded-lg px-2 py-1 text-xs text-slate-300 outline-none h-[30px] min-w-[100px] border" style={{ background: surface, borderColor: border }}>
                 <option>전체</option>
              </select>
           </div>
@@ -168,13 +182,13 @@ export default function AlertsEvents() {
         {/* Main Split View */}
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 shrink-0 lg:h-[480px]">
            {/* List */}
-           <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col w-full lg:w-[65%] overflow-hidden h-full">
-              <div className="px-4 py-3 border-b border-[#1f2937] flex items-center gap-2 text-sm font-bold text-slate-300">
+           <div className="rounded-xl flex flex-col w-full lg:w-[65%] overflow-hidden h-full border" style={{ background: surface, borderColor: border }}>
+              <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold text-slate-300" style={{ borderColor: border }}>
                  알림 목록 <span className="bg-[#1e293b] text-slate-400 px-2 py-0.5 rounded text-[10px] font-normal">총 86건</span>
               </div>
-              <div className="overflow-x-auto flex-1 bg-[#0b1120]/30 min-h-[300px]">
+              <div className="overflow-x-auto flex-1 min-h-[300px]" style={{ background: `${bg}4D` }}>
                  <table className="w-full text-left whitespace-nowrap">
-                   <thead className="text-[11px] text-slate-400 border-b border-[#1f2937] bg-[#1e293b]/50">
+                   <thead className="text-[11px] text-slate-400 border-b bg-[#1e293b]/50" style={{ borderColor: border }}>
                      <tr>
                         <th className="px-4 py-3 font-medium cursor-pointer flex items-center gap-1">발생 시간 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></th>
                         <th className="px-3 py-3 font-medium text-center">등급</th>
@@ -189,7 +203,7 @@ export default function AlertsEvents() {
                    </thead>
                    <tbody className="divide-y divide-[#1f2937] text-[12px]">
                       {mockAlerts.map(alert => (
-                        <tr 
+                        <tr
                           key={alert.id}
                           onClick={() => setSelectedAlert(alert)}
                           className={`cursor-pointer transition-colors ${selectedAlert?.id === alert.id ? 'bg-[#1e293b]' : 'hover:bg-[#1e293b]/50'}`}
@@ -216,11 +230,11 @@ export default function AlertsEvents() {
                    </tbody>
                  </table>
               </div>
-              <div className="px-4 py-2 border-t border-[#1f2937] flex items-center justify-center text-xs text-slate-500 bg-[#111827]">
+              <div className="px-4 py-2 border-t flex items-center justify-center text-xs text-slate-500" style={{ borderColor: border, background: surface }}>
                  <div className="flex gap-1 items-center">
                    <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&lt;&lt;</button>
                    <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&lt;</button>
-                   <button className="px-2 py-1 bg-blue-600/20 text-blue-400 rounded">1</button>
+                   <button className="px-2 py-1 rounded text-white" style={{ background: `${primary}33`, color: primary }}>1</button>
                    <button className="px-2 py-1 hover:bg-[#1f2937] rounded">2</button>
                    <button className="px-2 py-1 hover:bg-[#1f2937] rounded">3</button>
                    <button className="px-2 py-1 hover:bg-[#1f2937] rounded">4</button>
@@ -233,16 +247,16 @@ export default function AlertsEvents() {
                  </div>
               </div>
            </div>
-           
+
            {/* Detail Panel */}
            {selectedAlert && (
-             <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col w-full lg:w-[35%] overflow-hidden h-full animate-in slide-in-from-right-4 fade-in duration-200">
-                <div className="px-4 py-3 border-b border-[#1f2937] flex items-center gap-2 text-sm font-bold text-slate-300">
+             <div className="rounded-xl flex flex-col w-full lg:w-[35%] overflow-hidden h-full animate-in slide-in-from-right-4 fade-in duration-200 border" style={{ background: surface, borderColor: border }}>
+                <div className="px-4 py-3 border-b flex items-center gap-2 text-sm font-bold text-slate-300" style={{ borderColor: border }}>
                   알림 상세
                   <span className="text-[10px] bg-[#1e293b] text-slate-400 font-normal px-2 py-0.5 rounded">선택된 알림</span>
                 </div>
-                <div className="p-4 flex flex-col gap-6 bg-[#0b1120] flex-1 overflow-y-auto custom-scrollbar">
-                  
+                <div className="p-4 flex flex-col gap-6 flex-1 overflow-y-auto custom-scrollbar" style={{ background: bg }}>
+
                   {/* Grid Info */}
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                      <div>
@@ -282,13 +296,13 @@ export default function AlertsEvents() {
                   </div>
 
                   {/* Body Content */}
-                  <div className="border border-[#1f2937] rounded-lg bg-[#111827] overflow-hidden">
-                    <div className="px-3 py-2 border-b border-[#1f2937] bg-[#1e293b]/30">
+                  <div className="rounded-lg overflow-hidden border" style={{ background: surface, borderColor: border }}>
+                    <div className="px-3 py-2 border-b bg-[#1e293b]/30" style={{ borderColor: border }}>
                        <h4 className="text-xs font-bold text-slate-300">상세 내용</h4>
                     </div>
                     <div className="p-3 text-xs text-slate-400">
                        <p className="mb-4">{selectedAlert.content}가 발생했습니다. 담당자 확인이 필요합니다.</p>
-                       
+
                        {selectedAlert.details && (
                          <table className="w-full text-left">
                            <thead className="border-b border-[#334155] text-slate-500">
@@ -320,14 +334,14 @@ export default function AlertsEvents() {
                     <div className="grid grid-cols-2 gap-3 mb-3">
                        <div>
                          <label className="text-[10px] text-slate-500 block mb-1">담당자</label>
-                         <select className="bg-[#111827] border border-[#334155] rounded-md px-2 py-1.5 text-xs text-slate-300 outline-none w-full">
+                         <select className="rounded-md px-2 py-1.5 text-xs text-slate-300 outline-none w-full border border-[#334155]" style={{ background: surface }}>
                            <option>선택하세요</option>
                            <option>홍길동 (안전팀)</option>
                          </select>
                        </div>
                        <div>
                          <label className="text-[10px] text-slate-500 block mb-1">조치 상태</label>
-                         <select className="bg-[#111827] border border-[#334155] rounded-md px-2 py-1.5 text-xs text-slate-300 outline-none w-full">
+                         <select className="rounded-md px-2 py-1.5 text-xs text-slate-300 outline-none w-full border border-[#334155]" style={{ background: surface }}>
                            <option>미조치</option>
                            <option>확인 중</option>
                            <option>조치 중</option>
@@ -336,8 +350,9 @@ export default function AlertsEvents() {
                        </div>
                        <div className="col-span-2">
                          <label className="text-[10px] text-slate-500 block mb-1">조치 내용</label>
-                         <textarea 
-                           className="bg-[#111827] border border-[#334155] rounded-md px-3 py-2 text-xs text-slate-300 outline-none w-full h-[60px] resize-none"
+                         <textarea
+                           className="rounded-md px-3 py-2 text-xs text-slate-300 outline-none w-full h-[60px] resize-none border border-[#334155]"
+                           style={{ background: surface }}
                            placeholder="조치 내용을 입력하세요."
                          />
                          <div className="text-right text-[10px] text-slate-500 mt-1">0 / 500</div>
@@ -358,12 +373,12 @@ export default function AlertsEvents() {
         {/* Bottom Stats / Logs Layout */}
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 shrink-0 mt-2">
            {/* Event Log */}
-           <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col flex-1 lg:w-1/2 p-4">
+           <div className="rounded-xl flex flex-col flex-1 lg:w-1/2 p-4 border" style={{ background: surface, borderColor: border }}>
               <div className="text-sm font-bold text-slate-300 mb-4">이벤트 처리 로그</div>
               <div className="relative flex-1">
                  {/* Line */}
                  <div className="absolute left-[5px] top-[4px] bottom-[4px] w-0.5 bg-[#334155] z-0" />
-                 
+
                  <div className="flex flex-col gap-4 relative z-10 text-xs">
                     <div className="flex items-start gap-4">
                        <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-[#111827] mt-0.5 shrink-0" />
@@ -372,7 +387,7 @@ export default function AlertsEvents() {
                        <div className="flex-1 text-slate-400">보일러 순환펌프 B-102 진동 수치 35.2mm/s 초과</div>
                        <div className="w-[50px] text-right text-slate-500">시스템</div>
                     </div>
-                    
+
                     <div className="flex items-start gap-4">
                        <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-[#111827] mt-0.5 shrink-0" />
                        <div className="w-[60px] text-slate-400">10:23:05</div>
@@ -388,7 +403,7 @@ export default function AlertsEvents() {
                        <div className="flex-1 text-slate-400">현장 확인 후 설비 점검을 시작했습니다.</div>
                        <div className="w-[50px] text-right text-slate-500">홍길동</div>
                     </div>
-                    
+
                     <div className="flex items-start gap-4 opacity-50">
                        <div className="w-3 h-3 rounded-full bg-slate-500 border-2 border-[#111827] mt-0.5 shrink-0" />
                        <div className="w-[60px] text-slate-500">-</div>
@@ -401,7 +416,7 @@ export default function AlertsEvents() {
            </div>
 
            {/* Stats Table */}
-           <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col flex-1 lg:w-1/2 p-4">
+           <div className="rounded-xl flex flex-col flex-1 lg:w-1/2 p-4 border" style={{ background: surface, borderColor: border }}>
               <div className="text-sm font-bold text-slate-300 mb-4">알림 통계 (오늘)</div>
               <table className="w-full text-center text-xs">
                  <thead className="text-slate-500 border-b border-[#334155] border-dashed">

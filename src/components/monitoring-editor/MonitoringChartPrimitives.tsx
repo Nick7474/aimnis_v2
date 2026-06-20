@@ -29,11 +29,12 @@ interface LineChartProps {
   area?: boolean;
   smooth?: boolean;
   bare?: boolean;
+  isLight?: boolean;
 }
 
 export function AIMLineChart({
   data, color = C.cyan, yUnit = "", xLabels = [],
-  yTicks = 4, area = true, smooth = true, bare = false,
+  yTicks = 4, area = true, smooth = true, bare = false, isLight = false,
 }: LineChartProps) {
   const uid = useId().replace(/:/g, "");
   const box = useRef<HTMLDivElement>(null);
@@ -84,6 +85,7 @@ export function AIMLineChart({
   const areaPath = `${path} L${xs[xs.length - 1].toFixed(1)},${(padT + ch).toFixed(1)} L${padL},${(padT + ch).toFixed(1)} Z`;
   const yTickVals = Array.from({ length: yTicks + 1 }, (_, i) => min + (range / yTicks) * i);
   const fs = W < 260 ? 8 : 9;
+  const gridColor = isLight ? "rgba(0,0,0,.06)" : C.grid;
 
   return (
     <div ref={box} style={{ position: "relative", width: "100%", height: "100%", minHeight: 0 }}>
@@ -98,7 +100,7 @@ export function AIMLineChart({
           const y = padT + ch - (i / yTicks) * ch;
           return (
             <g key={i}>
-              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke={C.grid} strokeWidth="1" />
+              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke={gridColor} strokeWidth="1" />
               <text x={padL - 5} y={y + 3} fontSize={fs} fill={C.t4} textAnchor="end"
                 fontFamily="'DM Mono',monospace">{Math.round(v)}{yUnit}</text>
             </g>
@@ -125,9 +127,10 @@ interface BarChartProps {
   data: number[];
   colorFn?: (v: number, i: number) => string;
   xLabels?: string[];
+  isLight?: boolean;
 }
 
-export function AIMBarChart({ data, colorFn, xLabels = [] }: BarChartProps) {
+export function AIMBarChart({ data, colorFn, xLabels = [], isLight = false }: BarChartProps) {
   const box = useRef<HTMLDivElement>(null);
   const [sz, setSz] = useState({ w: 320, h: 140 });
   useEffect(() => {
@@ -148,6 +151,7 @@ export function AIMBarChart({ data, colorFn, xLabels = [] }: BarChartProps) {
   const bw = cw / data.length;
   const yTicks = 3;
   const fs = W < 260 ? 8 : 9;
+  const gridColor = isLight ? "rgba(0,0,0,.06)" : C.grid;
   return (
     <div ref={box} style={{ position: "relative", width: "100%", height: "100%", minHeight: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}>
@@ -155,7 +159,7 @@ export function AIMBarChart({ data, colorFn, xLabels = [] }: BarChartProps) {
           const y = padT + ch - (i / yTicks) * ch;
           return (
             <g key={i}>
-              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke={C.grid} strokeWidth="1" />
+              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke={gridColor} strokeWidth="1" />
               <text x={padL - 5} y={y + 3} fontSize={fs} fill={C.t4} textAnchor="end"
                 fontFamily="'DM Mono',monospace">{Math.round((max / yTicks) * i)}</text>
             </g>
@@ -193,11 +197,12 @@ interface GaugeProps {
   sub?: string;
   track?: string;
   thickness?: number;
+  isLight?: boolean;
 }
 
 export function AIMGauge({
   value, max = 100, color = C.blue, size = 104,
-  label = "", sub = "", track = "rgba(255,255,255,.07)", thickness = 9,
+  label = "", sub = "", track, thickness = 9, isLight = false,
 }: GaugeProps) {
   const box = useRef<HTMLDivElement>(null);
   const [displaySize, setDisplaySize] = useState(size);
@@ -219,6 +224,8 @@ export function AIMGauge({
   const circ = 2 * Math.PI * r;
   const pct = Math.min(value / max, 1);
   const uid = useId().replace(/:/g, "");
+  const actualTrack = track ?? (isLight ? "rgba(0,0,0,.08)" : "rgba(255,255,255,.07)");
+  const textFill = isLight ? "#1E2124" : "#f1f5f9";
   return (
     <div ref={box} style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
     <svg width={displaySize} height={displaySize} viewBox={`0 0 ${size} ${size}`}>
@@ -228,13 +235,13 @@ export function AIMGauge({
           <stop offset="100%" stopColor={color} stopOpacity="0.55" />
         </linearGradient>
       </defs>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={track} strokeWidth={thickness} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={actualTrack} strokeWidth={thickness} />
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={`url(#g${uid})`} strokeWidth={thickness}
         strokeLinecap="round"
         strokeDasharray={`${circ * pct} ${circ}`}
         transform={`rotate(-90 ${cx} ${cy})`}
         style={{ transition: "stroke-dasharray .6s" }} />
-      <text x={cx} y={cy - 1} fontSize="20" fontWeight="700" fill="#f1f5f9"
+      <text x={cx} y={cy - 1} fontSize="20" fontWeight="700" fill={textFill}
         textAnchor="middle" fontFamily="'DM Mono',monospace">{label}</text>
       {sub && (
         <text x={cx} y={cy + 14} fontSize="9" fill={C.t3}
@@ -277,16 +284,20 @@ interface ProgBarProps {
   value: number;
   color?: string;
   suffix?: string;
+  isLight?: boolean;
 }
 
-export function AIMProgBar({ label, value, color = C.green, suffix = "%" }: ProgBarProps) {
+export function AIMProgBar({ label, value, color = C.green, suffix = "%", isLight = false }: ProgBarProps) {
+  const textStrong = isLight ? "#1E2124" : "#e2e8f0";
+  const labelColor = isLight ? C.t3 : C.t2;
+  const trackBg = isLight ? "rgba(0,0,0,.06)" : "rgba(255,255,255,.06)";
   return (
     <div style={{ marginBottom: 11 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, gap: 8 }}>
-        <span style={{ fontSize: 11, color: C.t2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
-        <span style={{ fontSize: 11, color: "#e2e8f0", fontFamily: "'DM Mono',monospace", fontWeight: 500, flexShrink: 0 }}>{value}{suffix}</span>
+        <span style={{ fontSize: 11, color: labelColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+        <span style={{ fontSize: 11, color: textStrong, fontFamily: "'DM Mono',monospace", fontWeight: 500, flexShrink: 0 }}>{value}{suffix}</span>
       </div>
-      <div style={{ height: 6, borderRadius: 4, background: "rgba(255,255,255,.06)", overflow: "hidden" }}>
+      <div style={{ height: 6, borderRadius: 4, background: trackBg, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${value}%`, borderRadius: 4, background: `linear-gradient(90deg,${color},${color}cc)`, transition: "width .5s" }} />
       </div>
     </div>
@@ -299,21 +310,27 @@ interface StatTileProps {
   value: string;
   color?: string;
   sub?: string;
+  isLight?: boolean;
 }
 
-export function AIMStatTile({ label, value, color = "#e2e8f0", sub }: StatTileProps) {
+export function AIMStatTile({ label, value, color = "#e2e8f0", sub, isLight = false }: StatTileProps) {
+  const tileBg = isLight ? "rgba(0,0,0,.03)" : "rgba(255,255,255,.025)";
+  const tileBd = isLight ? "rgba(0,0,0,.08)" : "rgba(255,255,255,.06)";
+  const labelColor = C.t3;
+  const subColor = C.t4;
+  const valueColor = color === "#e2e8f0" && isLight ? "#1E2124" : color;
   return (
     <div style={{
       flex: 1,
-      background: "rgba(255,255,255,.025)",
-      border: "1px solid rgba(255,255,255,.06)",
+      background: tileBg,
+      border: `1px solid ${tileBd}`,
       borderRadius: 10,
       padding: "13px 15px",
       minWidth: 0,
     }}>
-      <div style={{ fontSize: 10, color: C.t3, marginBottom: 7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: "'DM Mono',monospace", letterSpacing: "-0.02em" }}>{value}</div>
-      {sub && <div style={{ fontSize: 9, color: C.t4, marginTop: 3 }}>{sub}</div>}
+      <div style={{ fontSize: 10, color: labelColor, marginBottom: 7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: valueColor, fontFamily: "'DM Mono',monospace", letterSpacing: "-0.02em" }}>{value}</div>
+      {sub && <div style={{ fontSize: 9, color: subColor, marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }

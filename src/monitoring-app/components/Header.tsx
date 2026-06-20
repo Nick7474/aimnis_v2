@@ -60,7 +60,7 @@ export default function Header({
   return (
     <header
       className="flex h-14 shrink-0 items-center border-b"
-      style={{ backgroundColor: colors.backgroundColor, borderColor: colors.borderColor }}
+      style={{ backgroundColor: colors.surfaceColor, borderColor: colors.borderColor }}
     >
       {/* Logo area — same width as sidebar, centered */}
       <div

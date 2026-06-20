@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Bell, AlertTriangle, CheckCircle2, RotateCcw, Calendar, Download, FileText, ChevronRight } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
+import type { BrandSettings } from '@/lib/brandPresets';
 
 const mockBarData = [
   { name: '설비', 위험: 12, 경고: 18, 주의: 9, 정보: 6 },
@@ -33,7 +34,18 @@ const mockHistory = [
   { id: 5, name: '월간 운영 리포트 (종합)', period: '2024-04-01 ~ 2024-04-30', time: '2024-05-01 09:05', status: '완료' },
 ];
 
-export default function Report() {
+interface ReportProps {
+  brand?: BrandSettings;
+}
+
+export default function Report({ brand }: ReportProps) {
+  const bg      = brand?.backgroundColor ?? '#0b1120';
+  const surface = brand?.surfaceColor     ?? '#111827';
+  const border  = brand?.borderColor      ?? '#1f2937';
+  const primary = brand?.primaryColor     ?? '#2563EB';
+  const textStrong = brand?.textStrongColor ?? '#F8FAFC';
+  const textMuted  = brand?.textSoftColor   ?? '#94A3B8';
+
   const [activeTab, setActiveTab] = useState('일일 리포트');
 
   const getLevelColor = (level: string) => {
@@ -63,16 +75,17 @@ export default function Report() {
         <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 mb-4">
           리포트
         </h2>
-        <div className="flex items-center gap-6 border-b border-[#1f2937]">
+        <div className="flex items-center gap-6 border-b" style={{ borderColor: border }}>
           {['일일 리포트', '설비 리포트', '환경 리포트', '작업자 리포트'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab 
-                  ? 'text-blue-400 border-blue-500' 
-                  : 'text-slate-400 border-transparent hover:text-slate-300'
-              }`}
+              className="pb-3 text-sm font-medium border-b-2 transition-colors"
+              style={
+                activeTab === tab
+                  ? { color: primary, borderColor: primary }
+                  : { color: textMuted, borderColor: 'transparent' }
+              }
             >
               {tab}
             </button>
@@ -83,16 +96,16 @@ export default function Report() {
       <div className="flex flex-col gap-4 lg:gap-6 flex-1 overflow-auto pb-[20px] pr-2 custom-scrollbar">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
-            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-               <Bell size={24} className="text-blue-500" />
+          <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: `${primary}1A` }}>
+               <Bell size={24} style={{ color: primary }} />
             </div>
             <div className="flex flex-col flex-1">
                <div className="text-slate-400 text-sm font-medium">전체 알림 건수</div>
                <div className="text-3xl font-bold text-slate-100 mt-0.5">86 <span className="text-sm font-normal text-slate-500">건</span></div>
             </div>
           </div>
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+          <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0">
                <AlertTriangle size={24} className="text-orange-500" />
             </div>
@@ -101,7 +114,7 @@ export default function Report() {
                <div className="text-3xl font-bold text-slate-100 mt-0.5">30 <span className="text-sm font-normal text-slate-500">건</span></div>
             </div>
           </div>
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+          <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
                <CheckCircle2 size={24} className="text-emerald-500" />
             </div>
@@ -110,7 +123,7 @@ export default function Report() {
                <div className="text-3xl font-bold text-slate-100 mt-0.5">87.2 <span className="text-sm font-normal text-slate-500">%</span></div>
             </div>
           </div>
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+          <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
                <RotateCcw size={24} className="text-purple-500" />
             </div>
@@ -122,12 +135,13 @@ export default function Report() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4 shrink-0 bg-[#111827] border border-[#1f2937] p-3 rounded-xl">
+        <div className="flex flex-wrap items-center gap-4 shrink-0 border p-3 rounded-xl" style={{ background: surface, borderColor: border }}>
            <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1 ml-1">기간 선택</span>
-             <div className="flex items-center bg-[#1e293b] rounded-lg p-0.5 h-[32px]">
+             <div className="flex items-center rounded-lg p-0.5 h-[32px]" style={{ background: bg }}>
                {['오늘', '최근 7일', '최근 30일'].map(s => (
-                 <button key={s} className={`px-3 py-1 text-xs rounded ${s === '최근 7일' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                 <button key={s} className={`px-3 py-1 text-xs rounded ${s === '최근 7일' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                   style={s === '최근 7일' ? { backgroundColor: primary } : {}}>
                    {s}
                  </button>
                ))}
@@ -139,9 +153,10 @@ export default function Report() {
 
            <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1 ml-1">리포트 유형</span>
-             <div className="flex items-center bg-[#1e293b] rounded-lg p-0.5 h-[32px]">
+             <div className="flex items-center rounded-lg p-0.5 h-[32px]" style={{ background: bg }}>
                {['전체', '설비', '환경', '작업자', '조치'].map(s => (
-                 <button key={s} className={`px-3 py-1 text-xs rounded ${s === '전체' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                 <button key={s} className={`px-3 py-1 text-xs rounded ${s === '전체' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                   style={s === '전체' ? { backgroundColor: primary } : {}}>
                    {s}
                  </button>
                ))}
@@ -150,27 +165,27 @@ export default function Report() {
 
            <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1 ml-1">위험 등급</span>
-             <select className="bg-[#1e293b] border-none rounded-lg px-3 text-xs text-slate-300 outline-none h-[32px] min-w-[100px]">
+             <select className="border-none rounded-lg px-3 text-xs text-slate-300 outline-none h-[32px] min-w-[100px]" style={{ background: bg }}>
                <option>전체</option>
              </select>
            </div>
-           
+
            <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1 ml-1">위치</span>
-             <select className="bg-[#1e293b] border-none rounded-lg px-3 text-xs text-slate-300 outline-none h-[32px] min-w-[100px]">
+             <select className="border-none rounded-lg px-3 text-xs text-slate-300 outline-none h-[32px] min-w-[100px]" style={{ background: bg }}>
                <option>전체</option>
              </select>
            </div>
 
            <div className="flex flex-col">
              <span className="text-[10px] text-slate-500 mb-1 ml-1">조치 상태</span>
-             <select className="bg-[#1e293b] border-none rounded-lg px-3 text-xs text-slate-300 outline-none h-[32px] min-w-[100px]">
+             <select className="border-none rounded-lg px-3 text-xs text-slate-300 outline-none h-[32px] min-w-[100px]" style={{ background: bg }}>
                <option>전체</option>
              </select>
            </div>
 
            <div className="ml-auto flex items-center gap-2 mt-4">
-               <button className="flex items-center gap-1.5 bg-[#1e293b] border border-[#334155] hover:bg-[#334155] text-slate-300 text-xs px-3 py-1.5 rounded-lg transition-colors">
+               <button className="flex items-center gap-1.5 border border-[#334155] hover:bg-[#334155] text-slate-300 text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ background: bg }}>
                  <FileText size={14} /> PDF 다운로드
                </button>
                <button className="flex items-center gap-1.5 bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30 text-xs px-3 py-1.5 rounded-lg transition-colors">
@@ -180,19 +195,19 @@ export default function Report() {
         </div>
 
         {/* AI Summary */}
-        <div className="bg-blue-900/10 border border-blue-500/30 rounded-xl p-4 flex gap-4 items-start shrink-0">
-           <div className="p-2 bg-blue-500/20 rounded-lg shrink-0 mt-0.5">
-             <FileText size={18} className="text-blue-400" />
+        <div className="rounded-xl p-4 flex gap-4 items-start shrink-0 border" style={{ background: `${primary}1A`, borderColor: `${primary}4D` }}>
+           <div className="p-2 rounded-lg shrink-0 mt-0.5" style={{ background: `${primary}33` }}>
+             <FileText size={18} style={{ color: primary }} />
            </div>
            <p className="text-sm text-slate-300 leading-relaxed">
-             선택 기간(<span className="font-bold text-slate-200">최근 7일</span>) 동안 전체 알림은 <span className="font-bold text-blue-400">86건</span>이며, 위험/경고 알림은 <span className="font-bold text-blue-400">30건</span>(34.9%) 발생했습니다.<br/>
+             선택 기간(<span className="font-bold text-slate-200">최근 7일</span>) 동안 전체 알림은 <span className="font-bold" style={{ color: primary }}>86건</span>이며, 위험/경고 알림은 <span className="font-bold" style={{ color: primary }}>30건</span>(34.9%) 발생했습니다.<br/>
              조치 완료율은 <span className="font-bold text-emerald-400">87.2%</span>로 양호한 수준이며, 보일러 순환펌프 P-102 등 <span className="font-bold text-emerald-400">7개</span> 대상이 반복 발생하고 있습니다.
            </p>
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 shrink-0 h-[300px]">
-           <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col p-4 lg:col-span-3">
+           <div className="rounded-xl flex flex-col p-4 lg:col-span-3 border" style={{ background: surface, borderColor: border }}>
               <div className="text-sm font-bold text-slate-300 mb-4">알림 유형별 통계</div>
               <div className="flex-1 min-h-0">
                  <ResponsiveContainer width="100%" height="100%">
@@ -215,7 +230,7 @@ export default function Report() {
               </div>
            </div>
            
-           <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col p-4 lg:col-span-2">
+           <div className="rounded-xl flex flex-col p-4 lg:col-span-2 border" style={{ background: surface, borderColor: border }}>
               <div className="text-sm font-bold text-slate-300 mb-4">조치 상태별 통계</div>
               <div className="flex flex-1 items-center">
                  <div className="w-[140px] h-[140px] shrink-0 relative">
@@ -242,7 +257,7 @@ export default function Report() {
                     </div>
                  </div>
                  <div className="flex-1 ml-4 text-[11px]">
-                    <div className="flex items-center justify-between font-bold text-slate-400 mb-2 border-b border-[#1f2937] pb-1">
+                    <div className="flex items-center justify-between font-bold text-slate-400 mb-2 border-b pb-1" style={{ borderColor: border }}>
                        <span>상태</span>
                        <span className="w-10 text-right">건수</span>
                        <span className="w-12 text-right">비율</span>
@@ -257,7 +272,7 @@ export default function Report() {
                          <div className="w-12 text-right text-slate-400">{(item.value / 86 * 100).toFixed(1)}%</div>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between font-bold text-slate-300 mt-2 border-t border-[#1f2937] pt-2">
+                    <div className="flex items-center justify-between font-bold text-slate-300 mt-2 border-t pt-2" style={{ borderColor: border }}>
                        <span>합계</span>
                        <span className="w-10 text-right">86</span>
                        <span className="w-12 text-right">100%</span>
@@ -270,13 +285,13 @@ export default function Report() {
         {/* Bottom Lists */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 shrink-0 min-h-[300px]">
            
-           <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col overflow-hidden lg:col-span-3 h-full">
-              <div className="px-4 py-3 border-b border-[#1f2937] text-sm font-bold text-slate-300 bg-[#111827]">
+           <div className="rounded-xl flex flex-col overflow-hidden lg:col-span-3 h-full border" style={{ background: surface, borderColor: border }}>
+              <div className="px-4 py-3 border-b text-sm font-bold text-slate-300" style={{ background: surface, borderColor: border }}>
                 주요 이슈 목록
               </div>
-              <div className="overflow-x-auto bg-[#0b1120] flex-1">
+              <div className="overflow-x-auto flex-1" style={{ background: bg }}>
                  <table className="w-full text-left whitespace-nowrap text-xs">
-                    <thead className="text-slate-500 border-b border-[#1f2937]">
+                    <thead className="text-slate-500 border-b" style={{ borderColor: border }}>
                       <tr>
                         <th className="px-4 py-3 font-normal text-center">순위</th>
                         <th className="px-3 py-3 font-normal text-center">구분</th>
@@ -310,10 +325,10 @@ export default function Report() {
                     </tbody>
                  </table>
               </div>
-              <div className="px-3 py-2 border-t border-[#1f2937] flex justify-center bg-[#111827]">
+              <div className="px-3 py-2 border-t flex justify-center" style={{ background: surface, borderColor: border }}>
                   <div className="flex gap-1">
                      <button className="px-2 py-1 text-slate-500 hover:bg-[#1f2937] rounded flex items-center">&lt;</button>
-                     <button className="px-2.5 py-1 bg-blue-600/20 text-blue-400 rounded text-xs font-medium">1</button>
+                     <button className="px-2.5 py-1 rounded text-xs font-medium" style={{ background: `${primary}33`, color: primary }}>1</button>
                      <button className="px-2.5 py-1 text-slate-400 hover:bg-[#1f2937] rounded text-xs">2</button>
                      <button className="px-2 py-1 text-slate-500 hover:bg-[#1f2937] rounded flex items-center">&gt;</button>
                      <select className="ml-2 bg-transparent border border-[#334155] rounded text-slate-400 text-xs px-2 outline-none">
@@ -322,15 +337,15 @@ export default function Report() {
                   </div>
               </div>
            </div>
-           
-           <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col overflow-hidden lg:col-span-2 h-full">
-              <div className="px-4 py-3 border-b border-[#1f2937] text-sm font-bold text-slate-300 bg-[#111827] flex justify-between items-center">
+
+           <div className="rounded-xl flex flex-col overflow-hidden lg:col-span-2 h-full border" style={{ background: surface, borderColor: border }}>
+              <div className="px-4 py-3 border-b text-sm font-bold text-slate-300 flex justify-between items-center" style={{ background: surface, borderColor: border }}>
                 리포트 저장 이력
-                <a href="#" className="text-xs text-blue-400 font-normal hover:underline">더보기</a>
+                <a href="#" className="text-xs font-normal hover:underline" style={{ color: primary }}>더보기</a>
               </div>
-              <div className="overflow-x-auto bg-[#0b1120] flex-1">
+              <div className="overflow-x-auto flex-1" style={{ background: bg }}>
                  <table className="w-full text-left whitespace-nowrap text-xs">
-                    <thead className="text-slate-500 border-b border-[#1f2937]">
+                    <thead className="text-slate-500 border-b" style={{ borderColor: border }}>
                       <tr>
                         <th className="px-4 py-3 font-normal">리포트명</th>
                         <th className="px-4 py-3 font-normal">기간</th>
@@ -348,7 +363,7 @@ export default function Report() {
                               {item.status === '완료' ? (
                                 <span className="text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded text-[10px]">완료</span>
                               ) : (
-                                <span className="text-blue-400 border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 rounded text-[10px]">생성 중</span>
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] border" style={{ color: primary, borderColor: `${primary}4D`, background: `${primary}1A` }}>생성 중</span>
                               )}
                            </td>
                         </tr>
@@ -356,10 +371,10 @@ export default function Report() {
                     </tbody>
                  </table>
               </div>
-              <div className="px-3 py-2 border-t border-[#1f2937] flex justify-center bg-[#111827]">
+              <div className="px-3 py-2 border-t flex justify-center" style={{ background: surface, borderColor: border }}>
                   <div className="flex gap-1">
                      <button className="px-2 py-1 text-slate-500 hover:bg-[#1f2937] rounded flex items-center">&lt;</button>
-                     <button className="px-2.5 py-1 bg-blue-600/20 text-blue-400 rounded text-xs font-medium">1</button>
+                     <button className="px-2.5 py-1 rounded text-xs font-medium" style={{ background: `${primary}33`, color: primary }}>1</button>
                      <button className="px-2.5 py-1 text-slate-400 hover:bg-[#1f2937] rounded text-xs">2</button>
                      <button className="px-2 py-1 text-slate-500 hover:bg-[#1f2937] rounded flex items-center">&gt;</button>
                   </div>

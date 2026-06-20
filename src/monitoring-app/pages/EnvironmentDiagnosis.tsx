@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Search, MapPin, Grid, ShieldCheck, AlertTriangle, Ban, ChevronRight, Wind, Thermometer, Droplets, ArrowRight } from 'lucide-react';
+import { Search, Grid, ShieldCheck, AlertTriangle, Ban, ChevronRight, Wind, Thermometer, Droplets } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import type { BrandSettings } from '@/lib/brandPresets';
 
 interface EnvironmentArea {
   id: string;
@@ -42,7 +43,18 @@ const mockHistory = [
   { id: 3, date: '2024-05-21 10:12:45', area: '배전실 1층', issue: 'CO', value: '30 ppm', level: '위험', status: '미조치' },
 ];
 
-export default function EnvironmentDiagnosis() {
+interface Props {
+  brand?: BrandSettings;
+}
+
+export default function EnvironmentDiagnosis({ brand }: Props) {
+  const bg         = brand?.backgroundColor ?? '#0b1120';
+  const surface    = brand?.surfaceColor     ?? '#111827';
+  const border     = brand?.borderColor      ?? '#1f2937';
+  const primary    = brand?.primaryColor     ?? '#2563EB';
+  const textStrong = brand?.textStrongColor  ?? '#F8FAFC';
+  const textMuted  = brand?.textSoftColor    ?? '#94A3B8';
+
   const [activeTab, setActiveTab] = useState('전체 구역');
   const [selectedArea, setSelectedArea] = useState<EnvironmentArea | null>(null);
 
@@ -80,16 +92,17 @@ export default function EnvironmentDiagnosis() {
         <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 mb-4">
           환경 진단
         </h2>
-        <div className="flex items-center gap-6 border-b border-[#1f2937]">
+        <div className="flex items-center gap-6 border-b" style={{ borderColor: border }}>
           {['전체 구역', '위험 구역', '환경 알림 이력'].map(tab => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedArea(null); }}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab 
-                  ? 'text-blue-400 border-blue-500' 
+                activeTab === tab
+                  ? 'border-b-2'
                   : 'text-slate-400 border-transparent hover:text-slate-300'
               }`}
+              style={activeTab === tab ? { color: primary, borderColor: primary } : undefined}
             >
               {tab}
             </button>
@@ -100,7 +113,7 @@ export default function EnvironmentDiagnosis() {
       <div className="flex flex-col gap-4 lg:gap-6 flex-1 overflow-auto pb-[20px] pr-2 custom-scrollbar">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+          <div className="border rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
                <Grid size={24} className="text-blue-400" />
             </div>
@@ -109,7 +122,7 @@ export default function EnvironmentDiagnosis() {
                <div className="text-3xl font-bold text-slate-100 mt-0.5">48 <span className="text-sm font-normal text-slate-500">개소</span></div>
             </div>
           </div>
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+          <div className="border rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
                <ShieldCheck size={24} className="text-emerald-500" />
             </div>
@@ -118,7 +131,7 @@ export default function EnvironmentDiagnosis() {
                <div className="text-3xl font-bold text-slate-100 mt-0.5">32 <span className="text-sm font-normal text-slate-500">개소</span></div>
             </div>
           </div>
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0">
+          <div className="border rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0" style={{ background: surface, borderColor: border }}>
             <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
                <AlertTriangle size={24} className="text-yellow-500" />
             </div>
@@ -139,13 +152,13 @@ export default function EnvironmentDiagnosis() {
         </div>
 
         {activeTab === '환경 알림 이력' ? (
-          <div className="bg-[#111827] border border-[#1f2937] rounded-xl overflow-hidden flex flex-col min-h-[400px]">
-            <div className="px-4 py-3 border-b border-[#1f2937] flex items-center justify-between text-sm font-bold text-slate-300 bg-[#111827]">
+          <div className="border rounded-xl overflow-hidden flex flex-col min-h-[400px]" style={{ background: surface, borderColor: border }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold text-slate-300" style={{ background: surface, borderColor: border }}>
               환경 알림 이력 목록
             </div>
-            <div className="p-4 bg-[#0b1120] flex-1">
+            <div className="p-4 flex-1" style={{ background: bg }}>
                 <table className="w-full text-sm text-left whitespace-nowrap">
-                  <thead className="text-[11px] text-slate-500 border-b border-[#1f2937]">
+                  <thead className="text-[11px] text-slate-500 border-b" style={{ borderColor: border }}>
                     <tr>
                       <th className="pb-2 font-medium">발생 시간</th>
                       <th className="pb-2 font-medium">구역명</th>
@@ -166,7 +179,7 @@ export default function EnvironmentDiagnosis() {
                            <span className={`px-1.5 py-0.5 rounded border ${getStatusColor(history.level)} text-[10px]`}>{history.level}</span>
                         </td>
                         <td className="py-2.5 text-center">
-                           <span className={`text-[10px] flex justify-center`}>
+                           <span className="text-[10px] flex justify-center">
                               <span className={`px-2 py-0.5 rounded-sm border ${getActionStatusColor(history.status)}`}>{history.status}</span>
                            </span>
                         </td>
@@ -183,26 +196,35 @@ export default function EnvironmentDiagnosis() {
         <div className="flex flex-wrap items-center gap-3 shrink-0">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input type="text" placeholder="구역명을 입력하세요" className="bg-[#111827] border border-[#1f2937] rounded-lg pl-9 pr-4 py-2 text-sm text-slate-200 outline-none focus:border-blue-500 w-[240px]" />
+            <input
+              type="text"
+              placeholder="구역명을 입력하세요"
+              className="border rounded-lg pl-9 pr-4 py-2 text-sm text-slate-200 outline-none w-[240px]"
+              style={{ background: surface, borderColor: border }}
+            />
           </div>
-          
-          <select className="bg-[#111827] border border-[#1f2937] rounded-lg px-3 py-2 text-sm text-slate-300 outline-none focus:border-blue-500 min-w-[120px]">
+
+          <select className="border rounded-lg px-3 py-2 text-sm text-slate-300 outline-none min-w-[120px]" style={{ background: surface, borderColor: border }}>
             <option>위치: 전체</option>
             <option>발전소 1층</option>
             <option>발전소 2층</option>
             <option>발전소 외부</option>
           </select>
-          
-          <div className="flex items-center bg-[#111827] border border-[#1f2937] rounded-lg p-1">
+
+          <div className="flex items-center border rounded-lg p-1" style={{ background: surface, borderColor: border }}>
              <div className="px-3 text-xs text-slate-500 mr-1">상태:</div>
             {['전체', '정상', '주의', '위험'].map(s => (
-               <button key={s} className={`px-3 py-1 text-sm rounded ${s === '전체' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+               <button
+                 key={s}
+                 className={`px-3 py-1 text-sm rounded ${s === '전체' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                 style={s === '전체' ? { backgroundColor: primary } : undefined}
+               >
                  {s}
                </button>
             ))}
           </div>
 
-          <div className="flex items-center bg-[#111827] border border-[#1f2937] rounded-lg p-1 ml-auto">
+          <div className="flex items-center border rounded-lg p-1 ml-auto" style={{ background: surface, borderColor: border }}>
              <div className="px-3 text-xs text-slate-500 mr-1">항목:</div>
             {['CO', 'H2S', 'CH4', 'VOC', '온도', '습도'].map(s => (
                <button key={s} className="px-3 py-1 text-sm rounded text-slate-400 hover:text-slate-200 hover:bg-[#1f2937]">
@@ -215,17 +237,20 @@ export default function EnvironmentDiagnosis() {
         {/* Content Area (List + Detail) */}
         <div className="flex flex-col xl:flex-row gap-4 lg:gap-6 flex-1 min-h-[500px]">
           {/* Enhanced List */}
-          <div className={`bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col overflow-hidden transition-all duration-300 ${selectedArea ? 'xl:w-[50%] shrink-0' : 'w-full'}`}>
-            <div className="px-4 py-3 border-b border-[#1f2937] flex items-center justify-between text-sm font-bold text-slate-300">
+          <div
+            className={`border rounded-xl flex flex-col overflow-hidden transition-all duration-300 ${selectedArea ? 'xl:w-[50%] shrink-0' : 'w-full'}`}
+            style={{ background: surface, borderColor: border }}
+          >
+            <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold text-slate-300" style={{ borderColor: border }}>
               구역별 환경 상태
-              <select className="bg-transparent border border-[#334155] rounded text-xs px-2 py-1 outline-none text-slate-400">
+              <select className="border rounded text-xs px-2 py-1 outline-none text-slate-400" style={{ background: 'transparent', borderColor: '#334155' }}>
                 <option>10개씩</option>
                 <option>20개씩</option>
               </select>
             </div>
             <div className="overflow-x-auto flex-1 bg-[#0b1120]/50">
               <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="text-xs text-slate-400 bg-[#1e293b]/50 border-b border-[#1f2937]">
+                <thead className="text-xs text-slate-400 bg-[#1e293b]/50 border-b" style={{ borderColor: border }}>
                   <tr>
                     <th className="px-4 py-3 font-medium">상태</th>
                     <th className="px-4 py-3 font-medium">구역명</th>
@@ -239,8 +264,8 @@ export default function EnvironmentDiagnosis() {
                 </thead>
                 <tbody className="divide-y divide-[#1f2937]">
                   {(activeTab === '위험 구역' ? mockAreas.filter(a => a.status === '주의' || a.status === '위험') : mockAreas).map((area) => (
-                    <tr 
-                      key={area.id} 
+                    <tr
+                      key={area.id}
                       onClick={() => setSelectedArea(area)}
                       className={`cursor-pointer transition-colors ${selectedArea?.id === area.id ? 'bg-[#1e293b]' : 'hover:bg-[#1e293b]/50'}`}
                     >
@@ -265,15 +290,15 @@ export default function EnvironmentDiagnosis() {
                 </tbody>
               </table>
             </div>
-            
-            <div className="px-4 py-3 border-t border-[#1f2937] flex items-center justify-between text-xs text-slate-500">
+
+            <div className="px-4 py-3 border-t flex items-center justify-between text-xs text-slate-500" style={{ borderColor: border }}>
                <span>전체 48건</span>
                <div className="flex gap-1">
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&lt;</button>
-                 <button className="px-2 py-1 bg-blue-600/20 text-blue-400 rounded">1</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded">2</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded">3</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&gt;</button>
+                 <button className="px-2 py-1 rounded text-slate-400 hover:bg-[#1f2937]">&lt;</button>
+                 <button className="px-2 py-1 rounded" style={{ backgroundColor: `${primary}33`, color: primary }}>1</button>
+                 <button className="px-2 py-1 rounded hover:bg-[#1f2937]">2</button>
+                 <button className="px-2 py-1 rounded hover:bg-[#1f2937]">3</button>
+                 <button className="px-2 py-1 rounded text-slate-400 hover:bg-[#1f2937]">&gt;</button>
                </div>
             </div>
           </div>
@@ -281,8 +306,8 @@ export default function EnvironmentDiagnosis() {
           {/* Details Panel */}
           {selectedArea && (
             <div className="flex flex-col gap-4 lg:gap-6 w-full xl:w-[50%] shrink-0">
-              <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col overflow-hidden animate-in slide-in-from-right-4 fade-in duration-200">
-                <div className="px-4 py-3 border-b border-[#1f2937] flex items-center justify-between bg-[#111827]">
+              <div className="border rounded-xl flex flex-col overflow-hidden animate-in slide-in-from-right-4 fade-in duration-200" style={{ background: surface, borderColor: border }}>
+                <div className="px-4 py-3 border-b flex items-center justify-between" style={{ background: surface, borderColor: border }}>
                   <span className="text-sm font-bold text-slate-300">구역 상세</span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-[#1e293b] text-slate-300 px-2 py-1 rounded">선택 구역: {selectedArea.name}</span>
@@ -292,9 +317,9 @@ export default function EnvironmentDiagnosis() {
                   </div>
                 </div>
 
-                <div className="p-4 flex flex-col gap-6 bg-[#0b1120]">
+                <div className="p-4 flex flex-col gap-6" style={{ background: bg }}>
                   {/* Basic Info */}
-                  <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm bg-[#111827] p-4 rounded-lg border border-[#1f2937]">
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm border rounded-lg p-4" style={{ background: surface, borderColor: border }}>
                      <div>
                        <div className="text-xs text-slate-500 mb-1">구역명</div>
                        <div className="font-bold text-slate-200">{selectedArea.name}</div>
@@ -324,7 +349,7 @@ export default function EnvironmentDiagnosis() {
                   {/* Sensor Data Grid */}
                   <div>
                     <table className="w-full text-sm text-left">
-                       <thead className="text-xs text-slate-500 border-b border-[#334155] border-dashed">
+                       <thead className="text-xs text-slate-500 border-b border-dashed border-[#334155]">
                          <tr>
                            <th className="pb-2 font-medium">측정 항목</th>
                            <th className="pb-2 font-medium text-center">현재 수치</th>
@@ -339,7 +364,7 @@ export default function EnvironmentDiagnosis() {
                            const units: Record<string, string> = { co: 'ppm', h2s: 'ppm', ch4: '%LEL', voc: 'ppm', temperature: '°C', humidity: '%' };
                            const isDanger = data.status === '위험';
                            const isWarning = data.status === '주의';
-                           
+
                            return (
                              <tr key={key}>
                                <td className="py-2.5">{labels[key]}</td>
@@ -359,7 +384,7 @@ export default function EnvironmentDiagnosis() {
 
                   {/* Action Info & Chart in a row */}
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="text-sm bg-[#111827] border border-[#1f2937] rounded-lg p-3">
+                     <div className="text-sm border rounded-lg p-3" style={{ background: surface, borderColor: border }}>
                         <div className="text-xs font-bold text-slate-400 mb-3">조치 정보</div>
                         <div className="flex flex-col gap-2">
                            <div className="flex justify-between">
@@ -379,15 +404,18 @@ export default function EnvironmentDiagnosis() {
                              <span className={`text-[11px] px-2 py-0.5 border rounded ${getActionStatusColor(selectedArea.actionStatus)}`}>{selectedArea.actionStatus}</span>
                            </div>
                         </div>
-                        <button className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 rounded-lg transition-colors">
+                        <button
+                          className="w-full mt-3 text-white text-xs font-medium py-2 rounded-lg transition-colors hover:opacity-90"
+                          style={{ backgroundColor: primary }}
+                        >
                           조치 등록
                         </button>
                      </div>
 
-                     <div className="bg-[#111827] border border-[#1f2937] rounded-lg p-3 flex flex-col justify-between">
+                     <div className="border rounded-lg p-3 flex flex-col justify-between" style={{ background: surface, borderColor: border }}>
                         <div className="text-xs font-bold text-slate-400 mb-2 flex justify-between">
                           주요 환경 추이 ({selectedArea.name})
-                          <select className="bg-transparent border border-[#334155] text-[10px] rounded outline-none text-slate-300">
+                          <select className="border rounded outline-none text-slate-300 text-[10px]" style={{ background: 'transparent', borderColor: '#334155' }}>
                             <option>{selectedArea.mainIssue}</option>
                           </select>
                         </div>
@@ -408,13 +436,13 @@ export default function EnvironmentDiagnosis() {
               </div>
 
               {/* History */}
-              <div className="bg-[#111827] border border-[#1f2937] rounded-xl overflow-hidden flex flex-col">
-                <div className="px-4 py-3 border-b border-[#1f2937] flex items-center justify-between text-sm font-bold text-slate-300 bg-[#111827]">
+              <div className="border rounded-xl overflow-hidden flex flex-col" style={{ background: surface, borderColor: border }}>
+                <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold text-slate-300" style={{ background: surface, borderColor: border }}>
                   환경 알림 이력
                 </div>
-                <div className="p-4 bg-[#0b1120]">
+                <div className="p-4" style={{ background: bg }}>
                     <table className="w-full text-sm text-left whitespace-nowrap">
-                      <thead className="text-[11px] text-slate-500 border-b border-[#1f2937]">
+                      <thead className="text-[11px] text-slate-500 border-b" style={{ borderColor: border }}>
                         <tr>
                           <th className="pb-2 font-medium">발생 시간</th>
                           <th className="pb-2 font-medium">구역명</th>
@@ -448,7 +476,7 @@ export default function EnvironmentDiagnosis() {
                     </div>
                 </div>
               </div>
-              
+
             </div>
           )}
         </div>

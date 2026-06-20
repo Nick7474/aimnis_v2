@@ -42,6 +42,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
 
   const [input, setInput] = useState("");
   const [activeSolution, setActiveSolution] = useState<string | null>(null);
+  const [showSolutionHint, setShowSolutionHint] = useState(false);
 
   const { selectedSolution, setSelectedSolution, setIsWorking, setSelectedScenario } = useHomeStore();
   const { projects: savedProjects } = useProjectStore();
@@ -54,8 +55,14 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
       )
     : savedProjects.slice(0, 4);
 
+  const triggerSolutionHint = () => {
+    setShowSolutionHint(true);
+    window.setTimeout(() => setShowSolutionHint(false), 2200);
+  };
+
   const handleScenarioChip = (sc: typeof scenarios[number]) => {
-    setSelectedSolution(activeSolution ?? selectedSolution ?? "guard");
+    if (!activeSolution) { triggerSolutionHint(); return; }
+    setSelectedSolution(activeSolution);
     setSelectedScenario(sc.id);
     setIsWorking(true);
   };
@@ -79,8 +86,9 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     e.preventDefault();
     const text = input.trim();
     if (!text || aiState === "streaming") return;
+    if (!activeSolution) { triggerSolutionHint(); return; }
 
-    const solId = activeSolution ?? selectedSolution ?? "guard";
+    const solId = activeSolution;
     setSelectedSolution(solId);
     setPendingSolution(solId);
     setAiState("streaming");
@@ -397,12 +405,14 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
             <div className="px-4 pb-2">
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); if (showSolutionHint) setShowSolutionHint(false); }}
               onKeyDown={handleKeyDown}
               placeholder={
-                activeSolution === "guard"
+                !activeSolution
+                  ? "하단에서 솔루션을 먼저 선택해주세요"
+                  : activeSolution === "guard"
                   ? "예: 배터리공장 화재 감지 + 에너지 모니터링 대시보드 만들어줘"
-                  : "솔루션을 선택하거나 요구사항을 직접 입력하세요"
+                  : "예: 압연 설비 이상 감지 + 작업자 안전 모니터링 구성해줘"
               }
               rows={3}
               className="w-full resize-none bg-transparent text-sm text-white placeholder:text-white/20 focus:outline-none"
@@ -446,12 +456,13 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               {/* 전송 버튼 */}
               <motion.button
                 type="submit"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                disabled={!input.trim() || aiState === "streaming"}
+                whileHover={activeSolution && input.trim() ? { scale: 1.05 } : {}}
+                whileTap={activeSolution && input.trim() ? { scale: 0.95 } : {}}
+                disabled={!input.trim() || aiState === "streaming" || !activeSolution}
+                onClick={!activeSolution ? (e) => { e.preventDefault(); triggerSolutionHint(); } : undefined}
                 className={cn(
                   "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl transition-all",
-                  input.trim() && aiState !== "streaming"
+                  activeSolution && input.trim() && aiState !== "streaming"
                     ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/30"
                     : "bg-white/5 text-white/20"
                 )}
@@ -470,9 +481,24 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
           </div>
         </form>
 
-        <p className="mt-3 text-center text-[11px] text-white/20">
-          Enter로 전송 · Shift+Enter 줄바꿈 · 파일 첨부 시 AI가 자동 분석
-        </p>
+        <div className="mt-3 flex h-5 items-center justify-center">
+          <AnimatePresence mode="wait">
+            {showSolutionHint ? (
+              <motion.p key="hint"
+                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                className="text-[11px] font-medium text-amber-400/80"
+              >
+                ↑ 하단에서 솔루션을 먼저 선택해주세요
+              </motion.p>
+            ) : (
+              <motion.p key="normal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="text-[11px] text-white/20"
+              >
+                Enter로 전송 · Shift+Enter 줄바꿈 · 파일 첨부 시 AI가 자동 분석
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
 
       {/* 솔루션 카드 */}

@@ -48,11 +48,11 @@ export const MONITORING_DEMO_FIELDS: Record<string, MappingField[]> = {
 export const MONITORING_CONNECTORS = Object.keys(MONITORING_DEMO_FIELDS);
 
 const SOURCE_LABELS: Record<string, string> = {
-  "equipment-sensor":  "equipment-sensor-realtime.json",
-  "environment-sensor": "environment-iot-sensor-feed.json",
-  "worker-safety":     "worker-safety-compliance-events.json",
-  "alerts-events":     "monitoring-alerts-events-stream.json",
-  "system-monitor":    "system-health-status-snapshot.json",
+  "equipment-sensor":   "설비 센서 데이터",
+  "environment-sensor": "환경 IoT 센서",
+  "worker-safety":      "작업자 안전 시스템",
+  "alerts-events":      "알림·이벤트 스트림",
+  "system-monitor":     "시스템 헬스 모니터",
 };
 
 export function buildMonitoringDemoSource(connectorId: string): MappingSource {

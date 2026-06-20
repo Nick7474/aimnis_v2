@@ -132,6 +132,14 @@ const GRID_PADDING_BOTTOM = 20;
 const GRID_PADDING_LEFT = 28;
 const GUARD_EDIT_CYAN = "#00C8FF";
 
+function hexLuminance(hex: string): number {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
 const DEFAULT_MONITORING_BRAND_TOKENS = {
   primaryColor: "#2563EB",
   secondaryColor: "#00C8FF",
@@ -413,6 +421,7 @@ export default function MonitoringLayoutCanvas({
     }),
     [brand]
   );
+  const isLightTheme = hexLuminance(brandTokens.backgroundColor) > 0.5;
   const rootStyle: CSSProperties = {
     backgroundColor: brandTokens.backgroundColor,
     color: brandTokens.textColor,
@@ -552,6 +561,8 @@ export default function MonitoringLayoutCanvas({
             brandPrimaryColor={brandTokens.primaryColor}
             brandSurfaceColor={brandTokens.surfaceColor}
             brandBorderColor={brandTokens.borderColor}
+            brandTextStrongColor={brandTokens.textStrongColor}
+            isLight={isLightTheme}
             liveData={widgetLiveData[instance.instanceId]}
           />
         ),

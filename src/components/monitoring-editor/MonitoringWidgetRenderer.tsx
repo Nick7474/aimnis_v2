@@ -21,6 +21,8 @@ interface MonitoringWidgetRendererProps {
   brandPrimaryColor?: string;
   brandSurfaceColor?: string;
   brandBorderColor?: string;
+  brandTextStrongColor?: string;
+  isLight?: boolean;
   liveData?: Record<string, unknown>;
 }
 
@@ -37,11 +39,12 @@ function SparkIcon() {
 
 function WidgetFrame({
   title, categoryLabel, accent = "blue", icon, children, selected,
-  brandColor, brandSurface, brandBorder,
+  brandColor, brandSurface, brandBorder, brandTextStrong, isLight,
 }: {
   title: string; categoryLabel?: string; accent?: string;
   icon: ReactNode; children: ReactNode; selected?: boolean;
   brandColor?: string; brandSurface?: string; brandBorder?: string;
+  brandTextStrong?: string; isLight?: boolean;
 }) {
   const widgetColor = ACCENT[accent] ?? C.blue;
   /* 브랜드 primary color가 있으면 아이콘/뱃지에 적용, 없으면 위젯 고유색 유지 */
@@ -76,7 +79,7 @@ function WidgetFrame({
             <span style={{ color: iconColor }}>{icon}</span>
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: brandTextStrong ?? (isLight ? "#1E2124" : "#f1f5f9"), letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
             {categoryLabel && <div style={{ fontSize: 10.5, color: C.t3, marginTop: 1 }}>{categoryLabel}</div>}
           </div>
         </div>
@@ -97,11 +100,19 @@ function WidgetFrame({
 }
 
 /* ── 20 WIDGETS (aim-widgets.jsx 원본 그대로 이식) ──── */
-export default function MonitoringWidgetRenderer({ title, widget, categoryLabel, selected, brandPrimaryColor, brandSurfaceColor, brandBorderColor, liveData }: MonitoringWidgetRendererProps) {
+export default function MonitoringWidgetRenderer({ title, widget, categoryLabel, selected, brandPrimaryColor, brandSurfaceColor, brandBorderColor, brandTextStrongColor, isLight: isLightProp, liveData }: MonitoringWidgetRendererProps) {
   const id = widget?.id ?? "";
   const bc  = brandPrimaryColor;
   const bsc = brandSurfaceColor;
   const bbc = brandBorderColor;
+  const isLight = !!isLightProp;
+  const th = {
+    cardBg:    isLight ? "rgba(0,0,0,.03)"  : "rgba(255,255,255,.025)",
+    cardBd:    isLight ? "rgba(0,0,0,.08)"  : "rgba(255,255,255,.06)",
+    textStrong: brandTextStrongColor ?? (isLight ? "#1E2124" : "#e2e8f0"),
+    progTrack:  isLight ? "rgba(0,0,0,.06)" : "rgba(255,255,255,.06)",
+    gaugeTrack: isLight ? "rgba(0,0,0,.08)" : "rgba(255,255,255,.07)",
+  };
 
   switch (id) {
 
@@ -112,13 +123,13 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const d = liveSeries2 ? liveSeries2.map((p) => p.value) : [18,21,20,24,22,28,26,38,30,52,36,30,44,40,46,34,42];
       const arcColor = arcVal >= 80 ? C.red : arcVal >= 60 ? C.yellow : C.red;
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Zap className="h-4 w-4" />} accent="red" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Zap className="h-4 w-4" />} accent="red" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 18, minHeight: 0, alignItems: "stretch" }}>
             <div style={{ flex: 1, minHeight: 0 }}>
-              <AIMLineChart data={d} color={arcColor} bare area smooth />
+              <AIMLineChart data={d} color={arcColor} bare area smooth isLight={isLight} />
             </div>
             <div style={{ flexShrink: 0, width: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <AIMGauge value={arcVal} max={100} color={arcColor} size={100} thickness={10} label={`${arcVal}%`} sub="ARC" />
+              <AIMGauge value={arcVal} max={100} color={arcColor} size={100} thickness={10} label={`${arcVal}%`} sub="ARC" track={th.gaugeTrack} isLight={isLight} />
             </div>
           </div>
         </WidgetFrame>
@@ -131,14 +142,14 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const rmsVal = (liveData?.rms as number) ?? (liveData?.vibration as number) ?? 4.7;
       const classLabel = (liveData?.classification as string) ?? "베어링 고조파";
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Activity className="h-4 w-4" />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Activity className="h-4 w-4" />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, minHeight: 120 }}>
             <AIMBarChart data={d} xLabels={["0","1k","2k","3k","4k","5k Hz"]}
-              colorFn={(v) => v > 55 ? C.red : v > 40 ? C.yellow : C.blue} />
+              colorFn={(v) => v > 55 ? C.red : v > 40 ? C.yellow : C.blue} isLight={isLight} />
           </div>
           <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 10, color: C.t3 }}>
-            <span>피크 <b style={{ color: "#e2e8f0", fontFamily: "'DM Mono'" }}>2.1 kHz</b></span>
-            <span>RMS <b style={{ color: "#e2e8f0", fontFamily: "'DM Mono'" }}>{rmsVal} mm/s</b></span>
+            <span>피크 <b style={{ color: th.textStrong, fontFamily: "'DM Mono'" }}>2.1 kHz</b></span>
+            <span>RMS <b style={{ color: th.textStrong, fontFamily: "'DM Mono'" }}>{rmsVal} mm/s</b></span>
             <span style={{ color: C.yellow }}>● {classLabel} 감지</span>
           </div>
         </WidgetFrame>
@@ -150,7 +161,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const r = rndSeeded(31);
       const cells = Array.from({ length: 24 }, () => heatColor(r()));
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Thermometer className="h-4 w-4" />} accent="yellow" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Thermometer className="h-4 w-4" />} accent="yellow" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flex: 1, minHeight: 90 }}><AIMHeatmap rows={4} cols={6} cells={cells} /></div>
             <div style={{ width: 78, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -158,9 +169,9 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
                 <div style={{ fontSize: 9, color: C.t3 }}>Max ΔT</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.red, fontFamily: "'DM Mono'" }}>18.6°C</div>
               </div>
-              <div style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", borderRadius: 9, padding: "8px 10px" }}>
+              <div style={{ background: th.cardBg, border: `1px solid ${th.cardBd}`, borderRadius: 9, padding: "8px 10px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>Hotspot</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#e2e8f0", fontFamily: "'DM Mono'" }}>A-03</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: th.textStrong, fontFamily: "'DM Mono'" }}>A-03</div>
               </div>
             </div>
           </div>
@@ -171,12 +182,12 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 4. 열화 가스 분해 패널 */
     case "gas-decomposition-panel":
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Flame className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Flame className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <AIMProgBar label="CO"            value={42} color={C.green}  />
-            <AIMProgBar label="CH₄ (메탄)"    value={64} color={C.yellow} />
-            <AIMProgBar label="H₂ (수소)"     value={31} color={C.cyan}   />
-            <AIMProgBar label="C₂H₂ (아세틸렌)" value={78} color={C.red} />
+            <AIMProgBar label="CO"            value={42} color={C.green}  isLight={isLight} />
+            <AIMProgBar label="CH₄ (메탄)"    value={64} color={C.yellow} isLight={isLight} />
+            <AIMProgBar label="H₂ (수소)"     value={31} color={C.cyan}   isLight={isLight} />
+            <AIMProgBar label="C₂H₂ (아세틸렌)" value={78} color={C.red} isLight={isLight} />
           </div>
           <div style={{ marginTop: 6, padding: "8px 11px", borderRadius: 8, background: "rgba(239,68,68,.08)", border: "1px solid rgba(239,68,68,.25)", fontSize: 11, color: C.red, display: "flex", alignItems: "center", gap: 7 }}>
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -195,7 +206,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
         { x: "50%", y: "45%", c: C.cyan,   l: "Z5" },
       ];
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Map className="h-4 w-4" />} accent="yellow" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Map className="h-4 w-4" />} accent="yellow" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, position: "relative", borderRadius: 10, overflow: "hidden", minHeight: 120, background: "radial-gradient(circle at 30% 40%,rgba(56,189,248,.06),transparent 60%),#0b1019", border: "1px solid rgba(255,255,255,.05)" }}>
             <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px)", backgroundSize: "28px 28px" }} />
             {dots.map((d, i) => (
@@ -221,7 +232,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const r = rndSeeded(19);
       const cells = Array.from({ length: 40 }, () => { const v = r(); return v > 0.88 ? C.red : v > 0.78 ? C.yellow : C.green; });
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<ShieldCheck className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<ShieldCheck className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, minHeight: 90 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(10,1fr)", gridTemplateRows: "repeat(4,1fr)", gap: 5, height: "100%" }}>
               {cells.map((c, i) => (
@@ -243,15 +254,15 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 7. 계측기 전원/배터리 */
     case "device-power-battery":
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Battery className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Battery className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <AIMProgBar label="휴대형 계측기" value={86} color={C.green} />
-            <AIMProgBar label="고정형 노드"   value={72} color={C.cyan}  />
-            <AIMProgBar label="교체 필요"     value={14} color={C.red}   />
+            <AIMProgBar label="휴대형 계측기" value={86} color={C.green} isLight={isLight} />
+            <AIMProgBar label="고정형 노드"   value={72} color={C.cyan}  isLight={isLight} />
+            <AIMProgBar label="교체 필요"     value={14} color={C.red}   isLight={isLight} />
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            <AIMStatTile label="평균 잔량"   value="74%" color={C.green}  />
-            <AIMStatTile label="저전력 노드" value="6"   color={C.yellow} />
+            <AIMStatTile label="평균 잔량"   value="74%" color={C.green}  isLight={isLight} />
+            <AIMStatTile label="저전력 노드" value="6"   color={C.yellow} isLight={isLight} />
           </div>
         </WidgetFrame>
       );
@@ -259,12 +270,12 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 8. 복합 계측기 배치 현황 */
     case "fleet-device-inventory":
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Activity className="h-4 w-4" />} accent="cyan" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Activity className="h-4 w-4" />} accent="cyan" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 11, alignItems: "stretch" }}>
-            <AIMStatTile label="총 계측기" value="154" sub="등록 기준" />
-            <AIMStatTile label="온라인"   value="148" color={C.green}  sub="96.1%" />
-            <AIMStatTile label="점검"     value="6"   color={C.yellow} sub="정기"  />
-            <AIMStatTile label="오프라인" value="0"   color={C.t3}    sub="없음"  />
+            <AIMStatTile label="총 계측기" value="154" sub="등록 기준" isLight={isLight} />
+            <AIMStatTile label="온라인"   value="148" color={C.green}  sub="96.1%" isLight={isLight} />
+            <AIMStatTile label="점검"     value="6"   color={C.yellow} sub="정기"  isLight={isLight} />
+            <AIMStatTile label="오프라인" value="0"   color={C.t3}    sub="없음"  isLight={isLight} />
           </div>
         </WidgetFrame>
       );
@@ -275,7 +286,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const cur = Math.min(3, Math.max(0, ((liveData?.stage as number) ?? 2) - 1));
       const rulDays = (liveData?.rul as number) ?? 46;
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<AlertTriangle className="h-4 w-4" />} accent="violet" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<AlertTriangle className="h-4 w-4" />} accent="violet" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
               {stages.map((s, i) => (
@@ -292,13 +303,13 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
                       <div style={{ flex: 1, height: 2, background: i < cur ? C.purple : "rgba(255,255,255,.1)", margin: "0 4px" }} />
                     )}
                   </div>
-                  <span style={{ fontSize: 10, color: i === cur ? "#e2e8f0" : C.t4, fontWeight: i === cur ? 600 : 400, marginTop: 6, alignSelf: "flex-start" }}>{s}</span>
+                  <span style={{ fontSize: 10, color: i === cur ? th.textStrong : C.t4, fontWeight: i === cur ? 600 : 400, marginTop: 6, alignSelf: "flex-start" }}>{s}</span>
                 </div>
               ))}
             </div>
             <div style={{ padding: "10px 12px", borderRadius: 9, background: `${C.purple}14`, border: `1px solid ${C.purple}33` }}>
               <div style={{ fontSize: 10, color: C.t3, marginBottom: 2 }}>현재 단계 · 잔여 수명 추정</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{stages[cur]} 단계 · 약 <span style={{ color: C.purple, fontFamily: "'DM Mono'" }}>{rulDays}일</span></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: th.textStrong }}>{stages[cur]} 단계 · 약 <span style={{ color: C.purple, fontFamily: "'DM Mono'" }}>{rulDays}일</span></div>
             </div>
           </div>
         </WidgetFrame>
@@ -313,14 +324,14 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const isLive = !!liveData?.value;
       const gaugeColor = gaugeVal >= 80 ? C.red : gaugeVal >= 60 ? C.yellow : C.purple;
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="violet" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="violet" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <AIMGauge value={gaugeVal} max={100} color={gaugeColor} size={96} label={`${gaugeVal}%`} sub="ERROR" />
+              <AIMGauge value={gaugeVal} max={100} color={gaugeColor} size={96} label={`${gaugeVal}%`} sub="ERROR" track={th.gaugeTrack} isLight={isLight} />
             </div>
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ flex: 1, minHeight: 80 }}>
-                <AIMLineChart data={d} color={gaugeColor} yTicks={3} xLabels={liveSeries ? ["시작", "중간", "현재"] : ["-24h", "-12h", "now"]} />
+                <AIMLineChart data={d} color={gaugeColor} yTicks={3} xLabels={liveSeries ? ["시작", "중간", "현재"] : ["-24h", "-12h", "now"]} isLight={isLight} />
               </div>
               <div style={{ fontSize: 10, color: isLive ? gaugeColor : C.purple, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: isLive ? gaugeColor : C.purple, flexShrink: 0 }} />
@@ -338,19 +349,19 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const d = [20,24,22,28,26,32,30,35,33,38,36,42,40,45,43,48,46,52,50,55,53,58,56,60];
       const rulColor = rulVal <= 30 ? C.red : rulVal <= 60 ? C.yellow : C.cyan;
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="cyan" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="cyan" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flex: 1, minHeight: 130 }}>
-              <AIMLineChart data={d} color={rulColor} yTicks={4} xLabels={["D-30","D-20","D-10","오늘","D+10"]} />
+              <AIMLineChart data={d} color={rulColor} yTicks={4} xLabels={["D-30","D-20","D-10","오늘","D+10"]} isLight={isLight} />
             </div>
             <div style={{ width: 88, flexShrink: 0, display: "flex", flexDirection: "column", gap: 9 }}>
               <div style={{ background: `${rulColor}12`, border: `1px solid ${rulColor}33`, borderRadius: 10, padding: "10px 11px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>RUL</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: rulColor, fontFamily: "'DM Mono'" }}>{rulVal}일</div>
               </div>
-              <div style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", borderRadius: 10, padding: "10px 11px" }}>
+              <div style={{ background: th.cardBg, border: `1px solid ${th.cardBd}`, borderRadius: 10, padding: "10px 11px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>Next PM</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#e2e8f0", fontFamily: "'DM Mono'" }}>06.22</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: th.textStrong, fontFamily: "'DM Mono'" }}>06.22</div>
               </div>
               <div style={{ fontSize: 9, color: C.t4, lineHeight: 1.5 }}>신뢰구간<br /><span style={{ color: C.green, fontFamily: "'DM Mono'" }}>±3.2일</span></div>
             </div>
@@ -364,7 +375,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const r = rndSeeded(77);
       const cells = Array.from({ length: 60 }, () => { const v = r(); return v > 0.78 ? C.red : v > 0.62 ? C.blue : "#1e4536"; });
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Waves className="h-4 w-4" />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Waves className="h-4 w-4" />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flex: 1, minHeight: 110 }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(12,1fr)", gridTemplateRows: "repeat(5,1fr)", gap: 3, height: "100%" }}>
@@ -374,9 +385,9 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
             <div style={{ width: 88, flexShrink: 0, display: "flex", flexDirection: "column", gap: 9 }}>
               <div style={{ background: `${C.blue}12`, border: `1px solid ${C.blue}33`, borderRadius: 10, padding: "10px 11px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>Class</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>Bearing</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: th.textStrong }}>Bearing</div>
               </div>
-              <div style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)", borderRadius: 10, padding: "10px 11px" }}>
+              <div style={{ background: th.cardBg, border: `1px solid ${th.cardBd}`, borderRadius: 10, padding: "10px 11px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>Conf.</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: C.green, fontFamily: "'DM Mono'" }}>91%</div>
               </div>
@@ -389,14 +400,14 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 13. F1/F2 모델 운용 모드 */
     case "fscore-model-tuning":
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Gauge className="h-4 w-4" />} accent="violet" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Gauge className="h-4 w-4" />} accent="violet" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <AIMProgBar label="F1 균형"     value={82} color={C.purple} />
-            <AIMProgBar label="F2 안전 우선" value={94} color={C.cyan}   />
+            <AIMProgBar label="F1 균형"     value={82} color={C.purple} isLight={isLight} />
+            <AIMProgBar label="F2 안전 우선" value={94} color={C.cyan}   isLight={isLight} />
           </div>
           <div style={{ padding: "9px 12px", borderRadius: 9, background: "rgba(168,85,247,.1)", border: "1px solid rgba(168,85,247,.28)", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.purple, flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: "#e2e8f0" }}>현재 모드 · <b style={{ color: C.purple }}>오검출 최소화 (F2)</b></span>
+            <span style={{ fontSize: 11, color: th.textStrong }}>현재 모드 · <b style={{ color: C.purple }}>오검출 최소화 (F2)</b></span>
           </div>
         </WidgetFrame>
       );
@@ -407,11 +418,11 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const warnN    = (liveData?.warningCount as number) ?? 9;
       const critN    = (liveData?.criticalCount as number) ?? 2;
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<FileText className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<FileText className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 11, minHeight: 0 }}>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
               {([["정상 설비", String(normalN), C.green], ["예방정비 권고", String(warnN), C.yellow], ["긴급 점검", String(critN), C.red]] as [string,string,string][]).map(([k, v, c]) => (
-                <div key={k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", borderRadius: 9, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)" }}>
+                <div key={k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", borderRadius: 9, background: th.cardBg, border: `1px solid ${th.cardBd}` }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: C.t2 }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: c }} />{k}
                   </span>
@@ -420,7 +431,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
               ))}
             </div>
             <div style={{ width: 120, flexShrink: 0, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 6, background: "rgba(34,197,94,.06)", border: "1px solid rgba(34,197,94,.2)", borderRadius: 10 }}>
-              <AIMGauge value={89} max={100} color={C.green} size={80} label="89%" sub="가동률" />
+              <AIMGauge value={89} max={100} color={C.green} size={80} label="89%" sub="가동률" track={th.gaugeTrack} isLight={isLight} />
               <span style={{ fontSize: 10, color: C.t3 }}>주간 종합 점수</span>
             </div>
           </div>
@@ -432,16 +443,16 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     case "worker-spo2-status": {
       const d = [97,98,97,96,97,95,96,94,95,93,94,96];
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<HeartPulse className="h-4 w-4" />} accent="red" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<HeartPulse className="h-4 w-4" />} accent="red" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flexShrink: 0, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div style={{ fontSize: 32, fontWeight: 700, color: C.green, fontFamily: "'DM Mono'", lineHeight: 1 }}>96<span style={{ fontSize: 14, color: C.t3 }}>%</span></div>
               <div style={{ fontSize: 10, color: C.t3, marginTop: 4 }}>SpO₂ 평균</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginTop: 10, fontFamily: "'DM Mono'" }}>72 <span style={{ fontSize: 9, color: C.t4 }}>BPM</span></div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: th.textStrong, marginTop: 10, fontFamily: "'DM Mono'" }}>72 <span style={{ fontSize: 9, color: C.t4 }}>BPM</span></div>
             </div>
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
               <div style={{ flex: 1, minHeight: 70 }}>
-                <AIMLineChart data={d} color={C.red} yTicks={2} xLabels={["-1h", "-30m", "now"]} />
+                <AIMLineChart data={d} color={C.red} yTicks={2} xLabels={["-1h", "-30m", "now"]} isLight={isLight} />
               </div>
             </div>
           </div>
@@ -456,7 +467,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 16. 작업자 컨텍스트 융합 */
     case "worker-context-fusion":
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<ShieldCheck className="h-4 w-4" />} accent="cyan" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<ShieldCheck className="h-4 w-4" />} accent="cyan" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 11, minHeight: 0 }}>
             {([
               { n: "위치", v: "B동 3F", c: C.cyan,   d: "GPS+UWB" },
@@ -478,7 +489,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     case "worker-fall-detection": {
       const steps: [string, string][] = [["IMU 수신","done"],["낙하 가속 감지","done"],["자세 분석","active"],["SOP 트리거","wait"]];
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<AlertTriangle className="h-4 w-4" />} accent="orange" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<AlertTriangle className="h-4 w-4" />} accent="orange" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 0 }}>
             {steps.map(([s, st], i) => (
               <div key={s} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -497,7 +508,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
                   {i < steps.length - 1 && <div style={{ width: 2, height: 22, background: st === "done" ? C.green : "rgba(255,255,255,.1)" }} />}
                 </div>
                 <div style={{ paddingTop: 2, paddingBottom: 14 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: st === "active" ? 700 : 500, color: st === "wait" ? C.t4 : "#e2e8f0" }}>{s}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: st === "active" ? 700 : 500, color: st === "wait" ? C.t4 : th.textStrong }}>{s}</div>
                   <div style={{ fontSize: 10, color: C.t3, marginTop: 1 }}>{st === "done" ? "완료" : st === "active" ? "진행 중" : "대기"}</div>
                 </div>
               </div>
@@ -510,7 +521,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 18. 통신 게이트웨이 상태 */
     case "gateway-communication":
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<RadioTower className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<RadioTower className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 11 }}>
             {([["LoRa","연결",98,C.green],["LTE-M","연결",91,C.green],["Wi-Fi Mesh","약함",64,C.yellow]] as [string,string,number,string][]).map(([n, s, v, c]) => (
               <div key={n}>
@@ -520,7 +531,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
                   </span>
                   <span style={{ fontSize: 10, color: c, fontWeight: 600 }}>{s} · {v}%</span>
                 </div>
-                <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,.06)" }}>
+                <div style={{ height: 5, borderRadius: 3, background: th.progTrack }}>
                   <div style={{ height: "100%", width: `${v}%`, borderRadius: 3, background: c }} />
                 </div>
               </div>
@@ -539,16 +550,16 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
         ["보고서 자동 생성",       "대기",     C.t3],
       ];
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<CheckCircle2 className="h-4 w-4" />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<CheckCircle2 className="h-4 w-4" />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
             {items.map(([t, s, c], i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", gap: 11, padding: "10px 13px", borderRadius: 9,
-                background: c === C.blue ? "rgba(59,130,246,.08)" : "rgba(255,255,255,.025)",
-                border: `1px solid ${c === C.blue ? "rgba(59,130,246,.28)" : "rgba(255,255,255,.06)"}`,
+                background: c === C.blue ? "rgba(59,130,246,.08)" : th.cardBg,
+                border: `1px solid ${c === C.blue ? "rgba(59,130,246,.28)" : th.cardBd}`,
               }}>
                 <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `${c}22`, border: `1px solid ${c}44`, fontSize: 10, fontWeight: 700, color: c, fontFamily: "'DM Mono'" }}>{i + 1}</div>
-                <span style={{ flex: 1, fontSize: 12, color: "#e2e8f0" }}>{t}</span>
+                <span style={{ flex: 1, fontSize: 12, color: th.textStrong }}>{t}</span>
                 <span style={{ fontSize: 10, fontWeight: 600, color: c, padding: "2px 9px", borderRadius: 5, background: `${c}1a` }}>{s}</span>
               </div>
             ))}
@@ -560,9 +571,9 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 20. 현장 실증 진행률 */
     case "field-validation-progress":
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<CheckCircle2 className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<CheckCircle2 className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 16 }}>
-            <AIMGauge value={72} max={100} color={C.green} size={104} label="72%" sub="전체" />
+            <AIMGauge value={72} max={100} color={C.green} size={104} label="72%" sub="전체" track={th.gaugeTrack} isLight={isLight} />
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
               {([["설치","100%",C.green],["데이터 수집","84%",C.cyan],["검증","52%",C.yellow]] as [string,string,string][]).map(([k, v, c]) => (
                 <div key={k}>
@@ -570,7 +581,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
                     <span style={{ fontSize: 11, color: C.t2 }}>{k}</span>
                     <span style={{ fontSize: 10, color: c, fontFamily: "'DM Mono'", fontWeight: 600 }}>{v}</span>
                   </div>
-                  <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,.06)" }}>
+                  <div style={{ height: 5, borderRadius: 3, background: th.progTrack }}>
                     <div style={{ height: "100%", width: v, borderRadius: 3, background: c }} />
                   </div>
                 </div>
@@ -582,11 +593,11 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
 
     default:
       return (
-        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<SparkIcon />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
+        <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<SparkIcon />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <AIMProgBar label="Signal"     value={72} color={C.blue}   />
-            <AIMProgBar label="Confidence" value={88} color={C.green}  />
-            <AIMProgBar label="Risk"       value={48} color={C.yellow} />
+            <AIMProgBar label="Signal"     value={72} color={C.blue}   isLight={isLight} />
+            <AIMProgBar label="Confidence" value={88} color={C.green}  isLight={isLight} />
+            <AIMProgBar label="Risk"       value={48} color={C.yellow} isLight={isLight} />
           </div>
         </WidgetFrame>
       );
