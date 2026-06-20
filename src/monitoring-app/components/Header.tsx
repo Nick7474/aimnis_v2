@@ -1,4 +1,5 @@
 import { Bell, ChevronDown } from 'lucide-react';
+import MonitoringLogoSVG from './MonitoringLogoSVG';
 
 interface HeaderProps {
   title?: string;
@@ -68,15 +69,14 @@ export default function Header({
         style={{ width: sidebarWidth }}
       >
         {logoUrl && (
-          <img
-            src={logoUrl}
-            alt="Logo"
-            className="block object-contain"
-            style={isAimLogo
-              ? { width: 160, height: "auto" }
-              : { height: clampedLogoSize, maxWidth: logoMaxWidth }
-            }
-          />
+          isAimLogo
+            ? <MonitoringLogoSVG width={160} textColor={colors.textStrongColor} />
+            : <img
+                src={logoUrl}
+                alt="Logo"
+                className="block object-contain"
+                style={{ height: clampedLogoSize, maxWidth: logoMaxWidth }}
+              />
         )}
       </div>
 
