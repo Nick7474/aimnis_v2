@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ReactFlow, { Background, BackgroundVariant, BaseEdge, Controls, addEdge, applyNodeChanges, useEdgesState, useNodesState, type Connection, type Edge, type EdgeProps, type NodeChange, type Node } from "reactflow";
+import ReactFlow, { Background, BackgroundVariant, Controls, addEdge, applyNodeChanges, useEdgesState, useNodesState, type Connection, type Edge, type NodeChange, type Node } from "reactflow";
 import "reactflow/dist/style.css";
+import ProjectLineEdge from "./nodes/ProjectLineEdge";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight, Braces, CheckCircle2, FileJson2, FolderOpen, Globe2,
@@ -36,30 +37,6 @@ const EDGE_TYPES = { projectLine: ProjectLineEdge };
 
 type MappingNodeData = MonitoringSourceNodeData | MonitoringTargetNodeData;
 
-function ProjectLineEdge({ sourceX, sourceY, targetX, targetY, style, label, labelStyle, labelBgStyle, labelBgPadding, data }: EdgeProps) {
-  const direction = targetX >= sourceX ? 1 : -1;
-  const distance = Math.abs(targetX - sourceX);
-  const lead = Math.max(28, Math.min(96, distance * 0.16));
-  const startX = sourceX + lead * direction;
-  const endX = targetX - lead * direction;
-  const labelX = (startX + endX) / 2;
-  const labelY = (sourceY + targetY) / 2;
-  const isLatest = !!data?.isLatest;
-  const path = `M ${sourceX} ${sourceY} L ${startX} ${sourceY} L ${endX} ${targetY} L ${targetX} ${targetY}`;
-  return (
-    <>
-      <BaseEdge path={path} style={{ stroke: "rgba(4,7,18,0.9)", strokeWidth: 4.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
-      <BaseEdge path={path} label={label} labelX={labelX} labelY={labelY} labelStyle={labelStyle} labelBgStyle={labelBgStyle} labelBgPadding={labelBgPadding}
-        style={{ ...style, strokeLinecap: "round", strokeLinejoin: "round", filter: isLatest ? "drop-shadow(0 0 5px rgba(20,184,166,0.38))" : undefined }} />
-      {isLatest && (
-        <circle r="2.5" fill="#14b8a6">
-          <animateMotion dur="1.4s" repeatCount="indefinite" path={path} />
-        </circle>
-      )}
-    </>
-  );
-}
-
 export interface CanvasWidgetRef {
   instanceId: string;
   widgetId: string;
@@ -78,11 +55,14 @@ export interface MonitoringMappingCanvasProps {
   sourceRawData?: Record<string, Record<string, unknown>>;
   onSourceDataLoaded?: (sourceId: string, rawData: Record<string, unknown>) => void;
   onWidgetDataUpdate?: (instanceId: string, data: Record<string, unknown>) => void;
+  savedNodePositions?: Record<string, { x: number; y: number }>;
+  onNodePositionsChange?: (positions: Record<string, { x: number; y: number }>) => void;
 }
 
 export default function MonitoringMappingCanvas({
   mappingEdges, mappingSources, addMappingEdge, removeMappingEdge, addMappingSource, removeMappingSource,
   canvasWidgets = [], sourceRawData = {}, onSourceDataLoaded, onWidgetDataUpdate,
+  savedNodePositions = {}, onNodePositionsChange,
 }: MonitoringMappingCanvasProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setDragging] = useState(false);
@@ -124,12 +104,13 @@ export default function MonitoringMappingCanvas({
   const sourceNodes: Node<MappingNodeData>[] = useMemo(() =>
     sources.map((source, index) => {
       const fallbackY = source.kind === "demo" ? 80 + index * 245 : 900 + index * 245;
-      const position = MONITORING_SOURCE_POSITIONS[source.id] ?? {
+      const nodeId = `ds-${source.id}`;
+      const position = savedNodePositions[nodeId] ?? MONITORING_SOURCE_POSITIONS[source.id] ?? {
         x: source.kind === "demo" ? 54 : 220 + (index % 2) * 320,
         y: fallbackY,
       };
       return {
-        id: `ds-${source.id}`,
+        id: nodeId,
         type: "dataSource",
         position,
         data: {
@@ -146,14 +127,14 @@ export default function MonitoringMappingCanvas({
         draggable: true,
       };
     }),
-    [connectedSourceFields, sources]
+    [connectedSourceFields, savedNodePositions, sources]
   );
 
   const widgetNodes: Node<MappingNodeData>[] = useMemo(() => {
     const coreNodes: Node<MappingNodeData>[] = MONITORING_CORE_TARGETS.map((panel, index) => ({
       id: `wt-${panel.id}`,
       type: "widgetTarget",
-      position: MONITORING_TARGET_POSITIONS[panel.id] ?? { x: 840, y: 60 + index * 180 },
+      position: savedNodePositions[`wt-${panel.id}`] ?? MONITORING_TARGET_POSITIONS[panel.id] ?? { x: 840, y: 60 + index * 180 },
       data: {
         widgetId: panel.id,
         widgetType: panel.type,
@@ -169,7 +150,7 @@ export default function MonitoringMappingCanvas({
     const aiWidgetNodes: Node<MappingNodeData>[] = canvasWidgets.map((widget, index) => ({
       id: `wt-${widget.instanceId}`,
       type: "widgetTarget",
-      position: { x: 1920, y: 80 + index * 190 },
+      position: savedNodePositions[`wt-${widget.instanceId}`] ?? { x: 1920, y: 80 + index * 190 },
       data: {
         widgetId: widget.instanceId,
         widgetType: widget.widgetType ?? widget.widgetId,
@@ -183,7 +164,7 @@ export default function MonitoringMappingCanvas({
     }));
 
     return [...coreNodes, ...aiWidgetNodes];
-  }, [canvasWidgets, connectedTargetProps]);
+  }, [canvasWidgets, connectedTargetProps, savedNodePositions]);
 
   const initialNodes = useMemo<Node<MappingNodeData>[]>(() => [...sourceNodes, ...widgetNodes], [sourceNodes, widgetNodes]);
 
@@ -214,8 +195,17 @@ export default function MonitoringMappingCanvas({
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((cur) => applyNodeChanges(changes, cur));
-  }, [setNodes]);
+    setNodes((cur) => {
+      const next = applyNodeChanges(changes, cur);
+      const hasDragEnd = changes.some((c) => c.type === "position" && !(c as { dragging?: boolean }).dragging);
+      if (hasDragEnd && onNodePositionsChange) {
+        const posMap: Record<string, { x: number; y: number }> = {};
+        next.forEach((n) => { posMap[n.id] = n.position; });
+        onNodePositionsChange(posMap);
+      }
+      return next;
+    });
+  }, [onNodePositionsChange, setNodes]);
 
   useEffect(() => {
     setNodes((cur) => {

@@ -1,0 +1,55 @@
+{
+  "sessionId": "DEMO-2026-0614-KOWEPO",
+  "facility": "A동 3F 압연 설비구역",
+  "recordedAt": "2026-06-14T09:22:00",
+
+  "anomalyScore": 87,
+  "value": 87,
+  "vibration": 4.7,
+  "rms": 4.7,
+  "temperature": 68.2,
+  "rul": 46,
+  "stage": 2,
+  "classification": "Bearing",
+  "confidence": 91,
+
+  "timeSeries": [
+    { "time": "06:00", "value": 21 },
+    { "time": "06:30", "value": 23 },
+    { "time": "07:00", "value": 22 },
+    { "time": "07:30", "value": 26 },
+    { "time": "08:00", "value": 25 },
+    { "time": "08:20", "value": 28 },
+    { "time": "08:40", "value": 30 },
+    { "time": "09:00", "value": 31 },
+    { "time": "09:05", "value": 35 },
+    { "time": "09:10", "value": 42 },
+    { "time": "09:15", "value": 58 },
+    { "time": "09:18", "value": 71 },
+    { "time": "09:20", "value": 79 },
+    { "time": "09:22", "value": 87 }
+  ],
+
+  "pm25": 42,
+  "co2": 891,
+  "humidity": 43,
+  "gasLevel": 38,
+
+  "onSiteCount": 128,
+  "spo2": 96,
+  "heartRate": 72,
+  "helmetCompliance": 97,
+
+  "alertCount": 8,
+  "severity": "critical",
+
+  "serverHealth": 98,
+  "networkLatency": 12,
+
+  "normalCount": 128,
+  "warningCount": 9,
+  "criticalCount": 2,
+  "progress": 72,
+  "f1Score": 82,
+  "f2Score": 94
+}

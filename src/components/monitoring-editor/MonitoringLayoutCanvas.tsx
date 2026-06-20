@@ -159,7 +159,7 @@ export const DEFAULT_MONITORING_ELEMENT_CONFIGS: MonitoringElementConfigs = {
     operatorRole: "관리자",
   },
   sidebar: {
-    logoUrl: "https://cdn.imweb.me/upload/S20220215d5bc0d1f16d2a/d3e5b407f8f08.png",
+    logoUrl: "/img/AIM%20Mornitering2.svg",
     expandMode: "hover",
     menuDensity: "comfortable",
     showFooter: true,

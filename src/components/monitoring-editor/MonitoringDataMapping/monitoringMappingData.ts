@@ -124,11 +124,39 @@ export const MONITORING_WIDGET_DEFAULT_BINDINGS: Record<string, {
 };
 
 export const MONITORING_WIDGET_PROPERTIES: Record<string, string[]> = {
+  // Generic widget types (fallback)
   "aim-line-chart": ["timeSeries", "label", "color"],
   "aim-bar-chart":  ["chartData", "label", "color"],
   "aim-gauge":      ["value", "max", "color"],
   "aim-kpi":        ["value", "unit", "trend"],
   "aim-alert-list": ["alerts", "severity", "source"],
+
+  // Actual widget IDs (설비 이상 감지)
+  "autoencoder-anomaly":    ["value", "anomalyScore", "timeSeries", "status"],
+  "rul-lstm-forecast":      ["rul", "timeSeries", "stage", "confidence"],
+  "ultrasonic-arc-risk":    ["value", "anomalyScore", "timeSeries"],
+  "vibration-fft-spectrum": ["vibration", "rms", "timeSeries", "classification"],
+  "thermal-delta-map":      ["temperature", "maxDelta", "timeSeries"],
+  "gas-decomposition-panel":["co", "ch4", "h2", "c2h2", "gasLevel"],
+  "cnn-lstm-spectrogram":   ["vibration", "classification", "confidence", "timeSeries"],
+  "fault-progression-stage":["stage", "rul", "progress"],
+
+  // 멀티-에이전트 현황 (Multi-agent)
+  "predictive-report":      ["normalCount", "warningCount", "criticalCount", "alertCount"],
+  "multi-sensor-health":    ["normalCount", "warningCount", "criticalCount", "timeSeries"],
+
+  // 환경/작업자 위젯
+  "worker-spo2-status":     ["spo2", "heartRate", "onSiteCount"],
+  "env-air-quality":        ["pm25", "co2", "humidity", "temperature"],
+  "env-gas-monitor":        ["gasLevel", "co2", "co", "h2"],
+
+  // AI 모델 검증/튜닝
+  "fscore-model-tuning":        ["f1Score", "f2Score", "confidence"],
+  "field-validation-progress":  ["progress", "stage", "normalCount"],
+
+  // 시스템 모니터링
+  "system-health-kpi":   ["serverHealth", "networkLatency", "activeConnections"],
+  "realtime-alert-feed": ["alertCount", "severity", "source", "timeSeries"],
 };
 
 // ─── React Flow 노드 위치 ─────────────────────────────────────

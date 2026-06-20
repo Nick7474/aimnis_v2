@@ -128,6 +128,8 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 2. 진동 FFT 스펙트럼 */
     case "vibration-fft-spectrum": {
       const d = series(28, 22, 38, 13).map((v, i) => i % 7 === 3 ? v * 1.8 : v);
+      const rmsVal = (liveData?.rms as number) ?? (liveData?.vibration as number) ?? 4.7;
+      const classLabel = (liveData?.classification as string) ?? "베어링 고조파";
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Activity className="h-4 w-4" />} accent="blue" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
           <div style={{ flex: 1, minHeight: 120 }}>
@@ -136,8 +138,8 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
           </div>
           <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 10, color: C.t3 }}>
             <span>피크 <b style={{ color: "#e2e8f0", fontFamily: "'DM Mono'" }}>2.1 kHz</b></span>
-            <span>RMS <b style={{ color: "#e2e8f0", fontFamily: "'DM Mono'" }}>4.7 mm/s</b></span>
-            <span style={{ color: C.yellow }}>● 베어링 고조파 감지</span>
+            <span>RMS <b style={{ color: "#e2e8f0", fontFamily: "'DM Mono'" }}>{rmsVal} mm/s</b></span>
+            <span style={{ color: C.yellow }}>● {classLabel} 감지</span>
           </div>
         </WidgetFrame>
       );
@@ -270,7 +272,8 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     /* 9. 고장 진행 단계 */
     case "fault-progression-stage": {
       const stages = ["정상", "초기", "진행", "임박"];
-      const cur = 2;
+      const cur = Math.min(3, Math.max(0, ((liveData?.stage as number) ?? 2) - 1));
+      const rulDays = (liveData?.rul as number) ?? 46;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<AlertTriangle className="h-4 w-4" />} accent="violet" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 16 }}>
@@ -295,7 +298,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
             </div>
             <div style={{ padding: "10px 12px", borderRadius: 9, background: `${C.purple}14`, border: `1px solid ${C.purple}33` }}>
               <div style={{ fontSize: 10, color: C.t3, marginBottom: 2 }}>현재 단계 · 잔여 수명 추정</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>진행 단계 · 약 <span style={{ color: C.purple, fontFamily: "'DM Mono'" }}>46일</span></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{stages[cur]} 단계 · 약 <span style={{ color: C.purple, fontFamily: "'DM Mono'" }}>{rulDays}일</span></div>
             </div>
           </div>
         </WidgetFrame>
@@ -399,12 +402,15 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       );
 
     /* 14. 예지보전 리포트 요약 */
-    case "predictive-report":
+    case "predictive-report": {
+      const normalN  = (liveData?.normalCount  as number) ?? 128;
+      const warnN    = (liveData?.warningCount as number) ?? 9;
+      const critN    = (liveData?.criticalCount as number) ?? 2;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<FileText className="h-4 w-4" />} accent="green" selected={selected} brandColor={bc} brandSurface={bsc} brandBorder={bbc}>
           <div style={{ flex: 1, display: "flex", gap: 11, minHeight: 0 }}>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-              {([["정상 설비", "128", C.green], ["예방정비 권고", "9", C.yellow], ["긴급 점검", "2", C.red]] as [string,string,string][]).map(([k, v, c]) => (
+              {([["정상 설비", String(normalN), C.green], ["예방정비 권고", String(warnN), C.yellow], ["긴급 점검", String(critN), C.red]] as [string,string,string][]).map(([k, v, c]) => (
                 <div key={k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", borderRadius: 9, background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: C.t2 }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: c }} />{k}
@@ -420,6 +426,7 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
           </div>
         </WidgetFrame>
       );
+    }
 
     /* 15. 작업자 SpO2 안전 */
     case "worker-spo2-status": {

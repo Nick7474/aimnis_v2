@@ -533,8 +533,9 @@ function SolutionChips({
 
 // 솔루션별 로고 이미지 매핑
 const SOLUTION_LOGOS: Record<string, string> = {
-  guard: "/img/00_AimGuard.png",
-  eco:   "/img/01_AimEco.png",
+  guard:      "/img/00_AimGuard.png",
+  eco:        "/img/01_AimEco.png",
+  monitoring: "/img/AIM%20Mornitering.svg",
 };
 
 // ─── 솔루션 카드 ─────────────────────────────────────────────

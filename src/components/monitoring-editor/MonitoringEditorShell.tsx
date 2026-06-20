@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -58,6 +58,7 @@ import MonitoringFloatingToolbar from "./MonitoringFloatingToolbar";
 import MonitoringWidgetRenderer, { MonitoringWidgetThumbnail } from "./MonitoringWidgetRenderer";
 import MonitoringMappingCanvas from "./MonitoringDataMapping/MonitoringMappingCanvas";
 import type { MappingEdge, MappingSource } from "@/store/editorStore";
+import { MONITORING_WIDGET_PROPERTIES } from "./MonitoringDataMapping/monitoringMappingData";
 
 interface MonitoringEditorShellProps {
   solution: SolutionManifest;
@@ -186,7 +187,7 @@ const MONITORING_DEFAULT_BRAND: BrandSettings = {
   tenantName: "AIMWID",
   serviceName: "AIoT 복합 계측 모니터링 시스템",
   productName: "AIM Monitoring",
-  logoUrl: "https://cdn.imweb.me/upload/S20220215d5bc0d1f16d2a/d3e5b407f8f08.png",
+  logoUrl: "/img/AIM%20Mornitering2.svg",
   logoMode: "combined",
   logoSize: 32,
   primaryColor: "#2563EB",
@@ -383,6 +384,10 @@ function makeMonitoringBrandSlot(id: string, label: string, description: string,
   };
 }
 
+const LEGACY_LOGO_URLS = [
+  "https://cdn.imweb.me/upload/S20220215d5bc0d1f16d2a/d3e5b407f8f08.png",
+];
+
 function resolveSnapshotBrand(snapshot?: MonitoringSnapshot["brand"]) {
   const presetId = snapshot?.selectedPresetId ?? "monitoring-default";
   const savedBrand = snapshot?.settings;
@@ -393,7 +398,11 @@ function resolveSnapshotBrand(snapshot?: MonitoringSnapshot["brand"]) {
         savedBrand.surfaceColor === "#0C1733" &&
         savedBrand.borderColor === "#1E3A5F"));
 
-  return isLegacyMonitoringDefault ? cloneMonitoringBrand() : cloneMonitoringBrand(savedBrand);
+  const resolved = isLegacyMonitoringDefault ? cloneMonitoringBrand() : cloneMonitoringBrand(savedBrand);
+  if (resolved.logoUrl && LEGACY_LOGO_URLS.includes(resolved.logoUrl)) {
+    resolved.logoUrl = MONITORING_DEFAULT_BRAND.logoUrl;
+  }
+  return resolved;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -819,6 +828,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [monitoringMappingSources, setMonitoringMappingSources] = useState<MappingSource[]>([]);
   const [monitoringSourceData, setMonitoringSourceData] = useState<Record<string, Record<string, unknown>>>({});
   const [widgetLiveData, setWidgetLiveData] = useState<Record<string, Record<string, unknown>>>({});
+  const [mappingNodePositions, setMappingNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<MonitoringEditableElement | null>(null);
   const [elementConfigs, setElementConfigs] = useState<MonitoringElementConfigs>(() => cloneDefaultElementConfigs());
@@ -837,6 +847,33 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const widgetById = useMemo(() => {
     return Object.fromEntries(widgets.map((widget) => [widget.id, widget])) as Record<string, SolutionWidget>;
   }, [widgets]);
+
+  const handleSourceIngested = useCallback((sourceId: string, rawData: Record<string, unknown>) => {
+    setMonitoringSourceData((prev) => ({ ...prev, [sourceId]: rawData }));
+    const newEdges: MappingEdge[] = [];
+    const liveUpdates: Record<string, Record<string, unknown>> = {};
+    canvasWidgets.forEach((widget) => {
+      const wType = widgetById[widget.widgetId]?.type ?? widget.widgetId;
+      const props = MONITORING_WIDGET_PROPERTIES[wType] ?? MONITORING_WIDGET_PROPERTIES[widget.widgetId] ?? ["value"];
+      props.forEach((prop) => {
+        const key = prop.toLowerCase();
+        const rawVal = rawData[key] ?? rawData[prop];
+        if (rawVal === undefined) return;
+        const edgeId = `auto-${sourceId}-${key}-${widget.instanceId}-${prop}`;
+        setMonitoringMappingEdges((prev) => prev.some((e) => e.id === edgeId) ? prev : [...prev, { id: edgeId, sourceConnector: sourceId, sourceField: key, targetWidgetId: widget.instanceId, targetProperty: prop }]);
+        newEdges.push({ id: edgeId, sourceConnector: sourceId, sourceField: key, targetWidgetId: widget.instanceId, targetProperty: prop });
+        if (!liveUpdates[widget.instanceId]) liveUpdates[widget.instanceId] = {};
+        liveUpdates[widget.instanceId][prop] = rawVal;
+      });
+    });
+    if (Object.keys(liveUpdates).length > 0) {
+      setWidgetLiveData((prev) => {
+        const next = { ...prev };
+        Object.entries(liveUpdates).forEach(([id, data]) => { next[id] = { ...(next[id] ?? {}), ...data }; });
+        return next;
+      });
+    }
+  }, [canvasWidgets, widgetById]);
 
   const selectedWidget = selectedWidgetId ? canvasWidgets.find((widget) => widget.instanceId === selectedWidgetId) ?? null : null;
   const selectedWidgetMeta = selectedWidget ? widgetById[selectedWidget.widgetId] : null;
@@ -2515,12 +2552,12 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                 widgetType: widgetById[w.widgetId]?.type,
               }))}
               sourceRawData={monitoringSourceData}
-              onSourceDataLoaded={(sourceId, rawData) =>
-                setMonitoringSourceData((prev) => ({ ...prev, [sourceId]: rawData }))
-              }
+              onSourceDataLoaded={handleSourceIngested}
               onWidgetDataUpdate={(instanceId, data) =>
                 setWidgetLiveData((prev) => ({ ...prev, [instanceId]: { ...(prev[instanceId] ?? {}), ...data } }))
               }
+              savedNodePositions={mappingNodePositions}
+              onNodePositionsChange={setMappingNodePositions}
             />
           )}
         </main>
