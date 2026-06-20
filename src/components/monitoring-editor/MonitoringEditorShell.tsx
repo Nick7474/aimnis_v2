@@ -2193,6 +2193,17 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           <Link href="/home" className="flex items-center gap-2.5">
             <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS Logo" className="h-[24px] w-[24px] object-contain drop-shadow-xl" />
             <span className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-montserrat)" }}>AIMNIS</span>
+            <span
+              className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
+              style={{
+                background: "oklch(60% 0.20 285 / .15)",
+                color: "oklch(60% 0.20 285)",
+                border: "1px solid oklch(60% 0.20 285 / .25)",
+                letterSpacing: "0.08em",
+              }}
+            >
+              Enterprise
+            </span>
           </Link>
           <span className="text-white/15">/</span>
           <div className="flex min-w-0 items-center gap-2">

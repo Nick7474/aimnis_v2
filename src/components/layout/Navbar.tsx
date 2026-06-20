@@ -18,9 +18,9 @@ const BASE_NAV_ITEMS = [
   { href: "/guard",    label: "AIM GUARD", icon: Shield },
 ];
 
-const SOLUTION_META: Record<string, { name: string; Icon: typeof Shield; color: string }> = {
-  guard:      { name: "AIM GUARD",      Icon: Shield,   color: "#22d3ee" },
-  monitoring: { name: "AIM Monitoring", Icon: Activity, color: "#818cf8" },
+const SOLUTION_META: Record<string, { name: string; Icon: typeof Shield }> = {
+  guard:      { name: "AIM GUARD",      Icon: Shield   },
+  monitoring: { name: "AIM Monitoring", Icon: Activity },
 };
 
 export default function Navbar() {
@@ -161,8 +161,8 @@ export default function Navbar() {
           return (
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
               <span style={{ fontSize: 14, color: "var(--t4)", opacity: 0.3, lineHeight: 1 }}>/</span>
-              <SolIcon style={{ width: 13, height: 13, flexShrink: 0 }} color={meta.color} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: meta.color, whiteSpace: "nowrap", letterSpacing: "0.01em" }}>
+              <SolIcon style={{ width: 13, height: 13, flexShrink: 0 }} color="#94a3b8" />
+              <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.8)", whiteSpace: "nowrap" }}>
                 {meta.name}
               </span>
             </div>
