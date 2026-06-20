@@ -25,7 +25,11 @@ const PAGE_KEY_LABELS: Record<string, string> = {
   settings: "설정",
 };
 
-export default function MonitoringApp() {
+interface MonitoringAppProps {
+  runtimeMode?: boolean;
+}
+
+export default function MonitoringApp({ runtimeMode = false }: MonitoringAppProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState("홈");
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -84,6 +88,7 @@ export default function MonitoringApp() {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         addedPages={addedPages}
+        hidePageManagement={runtimeMode}
         onOpenPageBuilder={() => setIsBuilderOpen(true)}
         onRemovePage={(key) => {
           if (currentPage !== "홈") {
