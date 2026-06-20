@@ -23,6 +23,7 @@ export interface BrandSettings {
   textColor?: string;
   textSoftColor?: string;
   textFaintColor?: string;
+  sidebarColor?: string;
   fontFamily: string;
   radius: BrandRadius;
   density: BrandDensity;
@@ -146,15 +147,19 @@ export const BRAND_PRESETS: BrandPreset[] = [
     logoUrl: null,
     logoMode: "combined",
     logoSize: 32,
-    primaryColor: "#4F46E5",
-    secondaryColor: "#22C7D7",
-    accentColor: "#A78BFA",
+    primaryColor: "#0C8AE5",
+    secondaryColor: "#38BDF8",
+    accentColor: "#0C8AE5",
     successColor: "#22C55E",
-    warningColor: "#F97316",
-    dangerColor: "#E11D48",
-    backgroundColor: "#F7F9FC",
+    warningColor: "#F59E0B",
+    dangerColor: "#EF4444",
+    backgroundColor: "#F8F9FD",
     surfaceColor: "#FFFFFF",
-    borderColor: "#E4E8F2",
+    borderColor: "#E0E6F0",
+    textStrongColor: "#1E2124",
+    textColor: "#3A4552",
+    textSoftColor: "#6D7882",
+    sidebarColor: "#003481",
     fontFamily: "Noto Sans KR",
     radius: "soft",
     density: "spacious",
