@@ -8,9 +8,24 @@ const mockData = [
   { rank: 5, type: '환경', typeStr: '주의', icon: Leaf, location: '대기 배출구 C-1', content: '미세먼지 농도 상승', risk: '주의', time: '10:11:45' },
 ];
 
-export default function PriorityRiskTable() {
+interface WidgetBrand {
+  surfaceColor: string;
+  backgroundColor: string;
+  borderColor: string;
+  textStrongColor: string;
+  textColor: string;
+  textSoftColor: string;
+}
+
+export default function PriorityRiskTable({ brand }: { brand?: Partial<WidgetBrand> }) {
+  const surface    = brand?.surfaceColor    ?? '#111827';
+  const bg         = brand?.backgroundColor ?? '#0b1120';
+  const border     = brand?.borderColor     ?? '#1f2937';
+  const textStrong = brand?.textStrongColor ?? '#E2E8F0';
+  const textMuted  = brand?.textSoftColor   ?? '#94A3B8';
+
   const getRiskColor = (risk: string) => {
-    switch(risk) {
+    switch (risk) {
       case '위험': return 'text-red-500 border-red-500/30';
       case '경고': return 'text-yellow-500 border-yellow-500/30';
       case '주의': return 'text-orange-400 border-orange-500/30';
@@ -19,11 +34,11 @@ export default function PriorityRiskTable() {
   };
 
   return (
-    <div className="bg-[#111827] border border-[#1f2937] rounded-lg p-5 flex flex-col h-full">
-      <h3 className="text-sm font-bold text-slate-200 mb-4">위험 우선순위 목록</h3>
+    <div className="rounded-lg p-5 flex flex-col h-full" style={{ background: surface, borderWidth: 1, borderStyle: 'solid', borderColor: border }}>
+      <h3 className="text-sm font-bold mb-4" style={{ color: textStrong }}>위험 우선순위 목록</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-[11px] text-left">
-          <thead className="text-slate-400 border-b border-[#1f2937]">
+          <thead style={{ color: textMuted, borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: border }}>
             <tr>
               <th className="pb-2 font-normal text-center">순위</th>
               <th className="pb-2 font-normal text-center">유형</th>
@@ -33,29 +48,29 @@ export default function PriorityRiskTable() {
               <th className="pb-2 font-normal text-center w-20">발생 시간</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1f2937]/50">
+          <tbody>
             {mockData.map((item) => (
-              <tr key={item.rank} className="hover:bg-[#1e293b]/30">
-                <td className="py-2 text-center text-slate-300">{item.rank}</td>
+              <tr key={item.rank} style={{ borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: `${border}80` }}>
+                <td className="py-2 text-center" style={{ color: textStrong }}>{item.rank}</td>
                 <td className="py-2 text-center">
                   <div className="flex items-center justify-center gap-1.5">
                     <span className={`px-1.5 py-0.5 rounded border text-[10px] tracking-tighter ${getRiskColor(item.typeStr)}`}>{item.typeStr}</span>
-                    <item.icon size={12} className="text-slate-400"/>
+                    <item.icon size={12} style={{ color: textMuted }} />
                   </div>
                 </td>
-                <td className="py-2 text-slate-300 whitespace-nowrap">{item.location}</td>
-                <td className="py-2 text-slate-300 whitespace-nowrap">{item.content}</td>
+                <td className="py-2 whitespace-nowrap" style={{ color: textStrong }}>{item.location}</td>
+                <td className="py-2 whitespace-nowrap" style={{ color: textStrong }}>{item.content}</td>
                 <td className="py-2 text-center">
-                    <span className={`px-2 py-0.5 rounded-full border text-[10px] ${getRiskColor(item.risk)} bg-[#0b1120]`}>{item.risk}</span>
+                  <span className={`px-2 py-0.5 rounded-full border text-[10px] ${getRiskColor(item.risk)}`} style={{ background: bg }}>{item.risk}</span>
                 </td>
-                <td className="py-2 text-center text-slate-400 tracking-wider font-mono">{item.time}</td>
+                <td className="py-2 text-center tracking-wider font-mono" style={{ color: textMuted }}>{item.time}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <button className="flex items-center justify-center gap-1 mt-auto text-xs text-slate-400 hover:text-slate-200 transition-colors w-full pt-4">
-        전체 보기 <ArrowRight size={12}/>
+      <button className="flex items-center justify-center gap-1 mt-auto text-xs transition-colors w-full pt-4" style={{ color: textMuted }}>
+        전체 보기 <ArrowRight size={12} />
       </button>
     </div>
   );

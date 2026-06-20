@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type DragEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type DragEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { Activity, Bell, Info, MoreVertical, Triangle, UserCheck, Wind } from "lucide-react";
 import type { BrandSettings } from "@/lib/brandPresets";
 import type { SolutionWidget } from "@/lib/solutionLoader";
@@ -13,6 +13,13 @@ import RealtimeAlertList from "@/monitoring-app/components/RealtimeAlertList";
 import ActionProgressWidget from "@/monitoring-app/components/ActionProgressWidget";
 import SystemStatusWidget from "@/monitoring-app/components/SystemStatusWidget";
 import MonitoringWidgetRenderer from "./MonitoringWidgetRenderer";
+import IntegratedDashboard from "@/monitoring-app/pages/IntegratedDashboard";
+import EquipmentDiagnosis from "@/monitoring-app/pages/EquipmentDiagnosis";
+import EnvironmentDiagnosis from "@/monitoring-app/pages/EnvironmentDiagnosis";
+import WorkerSafety from "@/monitoring-app/pages/WorkerSafety";
+import AlertsEvents from "@/monitoring-app/pages/AlertsEvents";
+import Report from "@/monitoring-app/pages/Report";
+import SettingsPage from "@/monitoring-app/pages/Settings";
 
 type WidgetOptionValue = string | number | boolean;
 
@@ -97,6 +104,11 @@ interface MonitoringLayoutCanvasProps {
     handle?: "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw"
   ) => void;
   onHideDefaultWidget?: (id: string) => void;
+  addedPages?: import("@/store/monitoringPagesStore").MonitoringPage[];
+  onOpenPageBuilder?: () => void;
+  onRemovePage?: (key: string) => void;
+  navigateToPage?: string | null;
+  onNavigated?: () => void;
 }
 
 interface LayoutItem {
@@ -372,9 +384,21 @@ export default function MonitoringLayoutCanvas({
   onStartWidgetInteraction,
   onStartDefaultWidgetInteraction,
   onHideDefaultWidget,
+  addedPages = [],
+  onOpenPageBuilder,
+  onRemovePage,
+  navigateToPage,
+  onNavigated,
 }: MonitoringLayoutCanvasProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState("홈");
+
+  useEffect(() => {
+    if (navigateToPage) {
+      setCurrentPage(navigateToPage);
+      onNavigated?.();
+    }
+  }, [navigateToPage]);
   const sidebarBaseWidth =
     elementConfigs.sidebar.expandMode === "fixed" ? 220 :
     elementConfigs.sidebar.expandMode === "collapsed" ? 72 :
@@ -607,6 +631,15 @@ export default function MonitoringLayoutCanvas({
             menuDensity={elementConfigs.sidebar.menuDensity}
             showFooter={elementConfigs.sidebar.showFooter}
             footerText={elementConfigs.sidebar.footerText}
+            addedPages={addedPages}
+            onOpenPageBuilder={onOpenPageBuilder}
+            onRemovePage={onRemovePage ? (key) => {
+              const page = addedPages.find((p) => p.key === key);
+              if (page && (page.config.pageTitle || page.label) === currentPage) {
+                setCurrentPage("홈");
+              }
+              onRemovePage(key);
+            } : undefined}
           />
         </div>
         <main
@@ -622,10 +655,40 @@ export default function MonitoringLayoutCanvas({
           }}
         >
           {currentPage !== "홈" ? (
-            <div className="flex h-full flex-col items-center justify-center text-slate-500">
-              <h2 className="mb-2 text-xl">{currentPage}</h2>
-              <p>해당 페이지의 편집 레이아웃 전환은 다음 단계에서 연결합니다.</p>
-            </div>
+            (() => {
+              const matchedPage = addedPages.find(
+                (p) => (p.config.pageTitle || p.label) === currentPage
+              );
+              if (matchedPage) {
+                const wrapClass = "custom-scrollbar h-full overflow-y-auto px-5 pb-5 pt-4";
+                switch (matchedPage.key) {
+                  case "integrated":
+                    return (
+                      <div className={wrapClass}>
+                        <IntegratedDashboard setCurrentPage={setCurrentPage} brand={brand} />
+                      </div>
+                    );
+                  case "equipment":
+                    return <div className={wrapClass}><EquipmentDiagnosis brand={brand} /></div>;
+                  case "environment":
+                    return <div className={wrapClass}><EnvironmentDiagnosis brand={brand} /></div>;
+                  case "worker":
+                    return <div className={wrapClass}><WorkerSafety brand={brand} /></div>;
+                  case "alerts":
+                    return <div className={wrapClass}><AlertsEvents brand={brand} /></div>;
+                  case "report":
+                    return <div className={wrapClass}><Report brand={brand} /></div>;
+                  case "settings":
+                    return <div className={wrapClass}><SettingsPage brand={brand} /></div>;
+                }
+              }
+              return (
+                <div className="flex h-full flex-col items-center justify-center text-slate-500">
+                  <h2 className="mb-2 text-xl">{currentPage}</h2>
+                  <p>페이지를 준비 중입니다.</p>
+                </div>
+              );
+            })()
           ) : (
             /* 래퍼: 컨텐츠 높이 == 위젯 그리드 높이 → 그리드 오버레이가 스크롤 전체를 커버 */
             <div style={{ position: "relative", minHeight: "100%" }}>
