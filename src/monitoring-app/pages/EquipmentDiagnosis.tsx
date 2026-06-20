@@ -150,7 +150,7 @@ export default function EquipmentDiagnosis({ brand }: Props) {
 
         {activeTab === '점검 이력' ? (
           <div className="border rounded-xl flex flex-col overflow-hidden min-h-[400px]" style={{ background: surface, borderColor: border }}>
-             <div className="px-4 py-3 border-b text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+             <div className="px-4 py-3 border-b text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                최근 점검 이력
              </div>
              <div className="p-4 flex-1" style={{ background: bg }}>
@@ -241,7 +241,7 @@ export default function EquipmentDiagnosis({ brand }: Props) {
             className={`border rounded-xl flex flex-col overflow-hidden transition-all duration-300 ${selectedAsset ? 'xl:w-[60%] shrink-0' : 'w-full'}`}
             style={{ background: surface, borderColor: border }}
           >
-            <div className="px-4 py-3 border-b text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+            <div className="px-4 py-3 border-b text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
               설비 목록
             </div>
             <div className="overflow-x-auto flex-1">
@@ -303,7 +303,7 @@ export default function EquipmentDiagnosis({ brand }: Props) {
               style={{ background: surface, borderColor: border }}
             >
               <div className="px-4 py-3 border-b flex items-center justify-between sticky top-0 z-10" style={{ background: surface, borderColor: border }}>
-                <span className="text-sm font-bold text-slate-300">설비 상세</span>
+                <span className="text-sm font-bold" style={{ color: textStrong }}>설비 상세</span>
                 <button onClick={() => setSelectedAsset(null)} className="text-slate-500 hover:text-slate-300 text-xs flex items-center gap-1">
                   닫기 <ChevronRight size={14} />
                 </button>

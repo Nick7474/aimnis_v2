@@ -162,7 +162,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
              <div className="px-4 py-3 border-b text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                안전 알림 전체 이력
              </div>
-             <div className="p-4 flex-1" style={{ background: bg }}>
+             <div className="p-4 flex-1" style={{ background: surface }}>
                 <table className="w-full text-left whitespace-nowrap text-sm">
                    <thead className="text-[11px] text-slate-500 border-b" style={{ borderColor: border }}>
                      <tr>
@@ -252,7 +252,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
             <div className="px-4 py-3 border-b text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
               작업자 목록
             </div>
-            <div className="overflow-x-auto flex-1 min-h-[220px]" style={{ background: `${bg}4D` }}>
+            <div className="overflow-x-auto flex-1 min-h-[220px]" style={{ background: surface }}>
               <table className="w-full text-sm text-left whitespace-nowrap">
                 <thead className="text-[11px] border-b" style={{ borderColor: border, background: th.tableHead, color: textMuted }}>
                   <tr>
@@ -332,7 +332,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                 작업자 상세
                 <span className="text-[10px] text-slate-500 font-normal flex items-center gap-1"><History size={12}/> 10초 전 갱신</span>
               </div>
-              <div className="p-4 flex flex-col gap-5 flex-1" style={{ background: bg }}>
+              <div className="p-4 flex flex-col gap-5 flex-1" style={{ background: surface }}>
                 {/* Header Profile */}
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 shrink-0" style={{ background: border, borderColor: border }}>
@@ -453,7 +453,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
           <div className="rounded-xl flex flex-col w-full xl:w-1/3 p-4 border" style={{ background: surface, borderColor: border }}>
              <div className="text-sm font-bold mb-4" style={{ color: textStrong }}>위치/구역 정보</div>
              <div className="flex-1 flex flex-col gap-4">
-                <div className="p-3 rounded-lg flex justify-between items-center border" style={{ background: bg, borderColor: border }}>
+                <div className="p-3 rounded-lg flex justify-between items-center border" style={{ background: surface, borderColor: border }}>
                   <div>
                     <div className="text-xs text-slate-500 mb-1">현재 구역</div>
                     <div className="text-base font-bold text-slate-200">보일러동 B-102</div>
@@ -503,7 +503,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
              <div className="px-4 py-3 border-b text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                안전 알림 이력
              </div>
-             <div className="p-3 flex-1" style={{ background: bg }}>
+             <div className="p-3 flex-1" style={{ background: surface }}>
                 <table className="w-full text-left whitespace-nowrap">
                    <thead className="text-[10px] text-slate-500 border-b" style={{ borderColor: border }}>
                      <tr>

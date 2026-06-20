@@ -164,7 +164,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
 
         {activeTab === '환경 알림 이력' ? (
           <div className="border rounded-xl overflow-hidden flex flex-col min-h-[400px]" style={{ background: surface, borderColor: border }}>
-            <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold text-slate-300" style={{ background: surface, borderColor: border }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold" style={{ background: surface, borderColor: border, color: textStrong }}>
               환경 알림 이력 목록
             </div>
             <div className="p-4 flex-1" style={{ background: bg }}>
@@ -252,7 +252,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
             className={`border rounded-xl flex flex-col overflow-hidden transition-all duration-300 ${selectedArea ? 'xl:w-[50%] shrink-0' : 'w-full'}`}
             style={{ background: surface, borderColor: border }}
           >
-            <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
               구역별 환경 상태
               <select className="border rounded text-xs px-2 py-1 outline-none text-slate-400" style={{ background: 'transparent', borderColor: '#334155' }}>
                 <option>10개씩</option>
@@ -320,7 +320,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
             <div className="flex flex-col gap-4 lg:gap-6 w-full xl:w-[50%] shrink-0">
               <div className="border rounded-xl flex flex-col overflow-hidden animate-in slide-in-from-right-4 fade-in duration-200" style={{ background: surface, borderColor: border }}>
                 <div className="px-4 py-3 border-b flex items-center justify-between" style={{ background: surface, borderColor: border }}>
-                  <span className="text-sm font-bold text-slate-300">구역 상세</span>
+                  <span className="text-sm font-bold" style={{ color: textStrong }}>구역 상세</span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs px-2 py-1 rounded" style={{ background: border, color: textStrong }}>선택 구역: {selectedArea.name}</span>
                     <button onClick={() => setSelectedArea(null)} className="text-slate-500 hover:text-slate-300 ml-2">
@@ -449,7 +449,7 @@ export default function EnvironmentDiagnosis({ brand }: Props) {
 
               {/* History */}
               <div className="border rounded-xl overflow-hidden flex flex-col" style={{ background: surface, borderColor: border }}>
-                <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold text-slate-300" style={{ background: surface, borderColor: border }}>
+                <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold" style={{ background: surface, borderColor: border, color: textStrong }}>
                   환경 알림 이력
                 </div>
                 <div className="p-4" style={{ background: bg }}>
