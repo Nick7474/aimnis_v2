@@ -87,8 +87,9 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
   const rowHeight = snapshot?.widgets.grid.rowHeight ?? 44;
 
   // 에디터 MonitoringLayoutCanvas와 동일한 그리드 상수
+  // 에디터 헤더 h-14(56px) vs 런타임 헤더 h-12(48px) → 8px 보정 포함
   const GRID_GAP = 16;
-  const GRID_PADDING = "20px 20px 20px 28px";
+  const GRID_PADDING = "28px 20px 20px 28px"; // top=20+8(헤더 보정)
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#050814] text-white">
@@ -115,8 +116,12 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
         <MonitoringApp />
         {items.length > 0 && (
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 top-0"
+            className="pointer-events-none absolute"
             style={{
+              top: 48,        // 런타임 헤더 h-12
+              left: 72,       // MonitoringApp 사이드바 collapsed 너비
+              right: 0,
+              bottom: 0,
               display: "grid",
               gridTemplateColumns: `repeat(${columns}, 1fr)`,
               gridAutoRows: `${rowHeight}px`,
