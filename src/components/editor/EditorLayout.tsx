@@ -171,7 +171,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
     [addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel]
   );
   const router = useRouter();
-  const publishProject = useProjectStore(s => s.publish);
+  const upsertProject = useProjectStore(s => s.upsert);
   const [saved, setSaved] = useState(false);
   const [showPublishToast, setShowPublishToast] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
@@ -190,8 +190,14 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
     setShowPublishModal(true);
   };
 
+  const handleGoHome = () => {
+    localStorage.removeItem("aimnis_harness_draft");
+    sessionStorage.removeItem("aimnis_harness_draft");
+    router.push("/home");
+  };
+
   const handleConfirmPublish = () => {
-    const project = publishProject({
+    const project = upsertProject({
       name: publishForm.name || solution.name,
       solution: solution.id,
       status: "active",
@@ -233,7 +239,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0a0a14] px-4">
         {/* 좌측: 로고 + 솔루션명 */}
         <div className="relative z-20 flex items-center gap-3">
-          <Link href="/home" className="flex items-center gap-2.5">
+          <button type="button" onClick={handleGoHome} className="flex items-center gap-2.5">
             <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS Logo" className="h-[24px] w-[24px] object-contain drop-shadow-xl" />
             <span className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-montserrat)" }}>AIMNIS</span>
             <span
@@ -247,7 +253,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
             >
               Enterprise
             </span>
-          </Link>
+          </button>
           <span className="text-white/15">/</span>
           <div className="flex items-center gap-2">
             <div className="flex h-5 w-5 items-center justify-center">

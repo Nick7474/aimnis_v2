@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
@@ -827,8 +827,9 @@ function normalizeElementConfigs(configs?: Partial<MonitoringElementConfigs> | n
 export default function MonitoringEditorShell({ solution, widgets }: MonitoringEditorShellProps) {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project");
+  const router = useRouter();
   const projects = useProjectStore((state) => state.projects);
-  const publishProject = useProjectStore((state) => state.publish);
+  const upsertProject = useProjectStore((state) => state.upsert);
   const [leftTab, setLeftTab] = useState<LeftTab>("chat");
   const [centerView, setCenterView] = useState<CenterView>("monitor");
   const [rightInspectorMode, setRightInspectorMode] = useState<RightInspectorMode>("settings");
@@ -836,6 +837,9 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [saved, setSaved] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishForm, setPublishForm] = useState({ name: "", client: "", versionNote: "" });
+  const [publishDone, setPublishDone] = useState<{ id: string } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDraggingWidget, setIsDraggingWidget] = useState(false);
   const [canvasWidgets, setCanvasWidgets] = useState<CanvasWidgetInstance[]>([]);
@@ -963,26 +967,37 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   };
 
   const handlePublish = () => {
+    setPublishForm({ name: solution.name ?? "", client: "", versionNote: "" });
+    setPublishDone(null);
+    setShowPublishModal(true);
+  };
+
+  const handleConfirmPublish = () => {
     const snapshot = createSnapshot();
-    const project = publishProject({
-      name: solution.name,
+    const project = upsertProject({
+      name: publishForm.name || solution.name,
       solution: solution.id,
       status: "active",
-      client: "미지정",
+      client: publishForm.client || "미지정",
       description: solution.description,
-      versionNote: "AIM Monitoring editor snapshot",
+      versionNote: publishForm.versionNote || "AIM Monitoring snapshot",
       tags: ["AIM Monitoring", "AIoT", "예지보전"],
       stats: { alerts: 26, uptime: "89.4%", sensors: Math.max(154, canvasWidgets.length) },
       harnessFile: null,
       industry: "industrial-aiot",
-      systemTitle: solution.name,
+      systemTitle: publishForm.name || solution.name,
       monitoringSnapshot: snapshot,
     });
-
     window.localStorage.setItem(MONITORING_DRAFT_STORAGE_KEY, JSON.stringify(snapshot));
     setPublishedUrl(`https://${solution.id}.aimnis.ai/${project.id}`);
+    setPublishDone({ id: project.id });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1600);
+  };
+
+  const handleGoHome = () => {
+    window.localStorage.removeItem(MONITORING_DRAFT_STORAGE_KEY);
+    router.push("/home");
   };
 
   const updateMonitoringBrand = (patch: Partial<BrandSettings>, options?: { syncHeader?: boolean; syncLogo?: boolean }) => {
@@ -2190,7 +2205,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       />
       <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0a0a14] px-4">
         <div className="relative z-20 flex min-w-0 items-center gap-3">
-          <Link href="/home" className="flex items-center gap-2.5">
+          <button type="button" onClick={handleGoHome} className="flex items-center gap-2.5">
             <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS Logo" className="h-[24px] w-[24px] object-contain drop-shadow-xl" />
             <span className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-montserrat)" }}>AIMNIS</span>
             <span
@@ -2204,7 +2219,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             >
               Enterprise
             </span>
-          </Link>
+          </button>
           <span className="text-white/15">/</span>
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex h-5 w-5 items-center justify-center">
@@ -2346,15 +2361,85 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         </div>
       </header>
 
-      {publishedUrl && (
-        <div className="absolute right-4 top-16 z-50 rounded-xl border border-emerald-400/20 bg-[#07111f]/95 p-3 text-xs shadow-2xl shadow-emerald-500/10 backdrop-blur">
-          <p className="font-semibold text-emerald-200">퍼블리시 완료</p>
-          <p className="mt-1 font-mono text-[10px] text-emerald-300/80">{publishedUrl}</p>
-          <Link href="/projects" className="mt-2 inline-flex text-[10px] font-medium text-blue-200 hover:text-blue-100">
-            프로젝트에서 확인
-          </Link>
-        </div>
-      )}
+      {/* ── 퍼블리시 모달 ── */}
+      <AnimatePresence>
+        {showPublishModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }}
+              className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f1a] p-6 shadow-2xl">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-white">
+                    {publishDone ? "✅ 퍼블리시 완료" : "프로젝트 퍼블리시"}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-white/40">
+                    {publishDone ? "프로젝트가 등록됐습니다" : "프로젝트 정보를 입력하세요"}
+                  </p>
+                </div>
+                <button onClick={() => setShowPublishModal(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/70 transition-colors">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {!publishDone ? (
+                <>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">프로젝트명</label>
+                      <input value={publishForm.name} onChange={e => setPublishForm(p => ({ ...p, name: e.target.value }))}
+                        placeholder={solution.name}
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">고객사 (선택)</label>
+                      <input value={publishForm.client} onChange={e => setPublishForm(p => ({ ...p, client: e.target.value }))}
+                        placeholder="예: KEPCO, POSCO, 현대제철..."
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">버전 메모 (선택)</label>
+                      <input value={publishForm.versionNote} onChange={e => setPublishForm(p => ({ ...p, versionNote: e.target.value }))}
+                        placeholder="변경 사항을 간략히 기록하세요"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2.5">
+                    <Activity className="h-3.5 w-3.5 text-sky-400 flex-shrink-0" />
+                    <span className="text-xs text-white/50">솔루션: <span className="text-white/70">{solution.name}</span></span>
+                  </div>
+                  <button onClick={handleConfirmPublish}
+                    className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 hover:from-violet-500 hover:to-indigo-500 transition-all">
+                    <Rocket className="h-4 w-4" />
+                    프로젝트에 배포하기
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+                    ✓ 프로젝트 DB에 등록 완료
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setShowPublishModal(false); router.push("/projects"); }}
+                      className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2.5 text-xs font-medium text-white/70 hover:text-white transition-colors">
+                      프로젝트 보기
+                    </button>
+                    <button onClick={() => { setShowPublishModal(false); router.push("/monitoring"); }}
+                      className="flex-1 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 py-2.5 text-xs font-bold text-white hover:from-sky-500 hover:to-blue-500 transition-all">
+                      AIM Monitoring 실행
+                    </button>
+                  </div>
+                  <button onClick={() => setShowPublishModal(false)}
+                    className="w-full text-center text-xs text-white/30 hover:text-white/50 transition-colors py-1">
+                    닫기
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <motion.div

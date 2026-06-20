@@ -117,6 +117,15 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
     showFeedback("프로젝트 데이터를 초기화했습니다.");
   };
 
+  const handleResetUI = () => {
+    localStorage.removeItem("aimnis_monitoring_editor_draft");
+    localStorage.removeItem("aimnis_harness_draft");
+    sessionStorage.removeItem("aimnis_harness_draft");
+    sessionStorage.removeItem("aimnis_active_editor");
+    resetHome();
+    showFeedback("화면이 초기화됐습니다. 홈 설문과 에디터 임시저장이 모두 지워집니다.");
+  };
+
   const handleResetGreeting = () => {
     localStorage.removeItem("aimi_editor_welcomed");
     showFeedback("에임이 인사를 초기화했습니다. 에디터 재접속 시 첫 인사가 표시됩니다.");
@@ -321,6 +330,12 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <section>
                 <SectionHeader label="데모 관리" />
                 <div className="space-y-2">
+                  <ConfirmRow
+                    label="화면 초기화"
+                    desc="홈 설문·에디터 임시저장 삭제 (프로젝트 파일 유지)"
+                    icon={RefreshCw}
+                    onConfirm={handleResetUI}
+                  />
                   <ConfirmRow
                     label="프로젝트 데이터 초기화"
                     desc={`저장된 프로젝트 ${projects.length}개 전체 삭제`}

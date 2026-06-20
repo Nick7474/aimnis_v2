@@ -502,7 +502,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
       </motion.div>
 
       {/* 솔루션 카드 */}
-      <SolutionCards solutions={solutions} />
+      <SolutionCards solutions={solutions} activeSolution={activeSolution} />
       </div>
     </div>
   );
@@ -601,9 +601,14 @@ const ROADMAP_SOLUTIONS = [
   },
 ] as const;
 
-function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
+function SolutionCards({ solutions, activeSolution }: { solutions: SolutionManifest[]; activeSolution: string | null }) {
   const router = useRouter();
   const { setSelectedSolution, setIsWorking, setSelectedScenario } = useHomeStore();
+
+  // 선택된 솔루션 카드만 표시 (미선택 시 빈 배열)
+  const visibleSolutions = activeSolution
+    ? solutions.filter((s) => s.id === activeSolution)
+    : [];
 
   return (
     <motion.div
@@ -615,8 +620,9 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
       <p className="mb-4 text-xs text-white/30 text-center">솔루션 플랫폼</p>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
 
-        {/* 기존 솔루션 (available) */}
-        {solutions.map((sol, i) => {
+        {/* 선택된 솔루션 카드 (채팅창에서 솔루션 선택 후 표시) */}
+        <AnimatePresence>
+        {visibleSolutions.map((sol, i) => {
           const isAvailable = sol.status === "available";
           const logoSrc = SOLUTION_LOGOS[sol.id];
 
@@ -625,7 +631,8 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               key={sol.id}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 + i * 0.08 }}
+              exit={{ opacity: 0, y: 8, transition: { duration: 0.2 } }}
+              transition={{ delay: 0.05, duration: 0.35 }}
               className="p-4 flex flex-col gap-3"
               style={{
                 borderRadius: 16,
@@ -691,6 +698,7 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
             </motion.div>
           );
         })}
+        </AnimatePresence>
 
         {/* 로드맵 솔루션 (coming soon) */}
         {ROADMAP_SOLUTIONS.map((sol, i) => (
