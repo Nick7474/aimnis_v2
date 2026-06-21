@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import { motion } from "framer-motion";
 import { Activity, Bell, Info, MoreVertical, Triangle, UserCheck, Wind } from "lucide-react";
 import type { BrandSettings } from "@/lib/brandPresets";
 import type { SolutionWidget } from "@/lib/solutionLoader";
@@ -758,12 +759,25 @@ export default function MonitoringLayoutCanvas({
               >
                 {layoutItems.map((item) => {
                   const isCustom = item.source === "widget-library" && item.widgetInstance;
+                  const isBeingDragged = isCustom && item.id === selectedWidgetId;
                   const isSelected = isCustom ? selectedWidgetId === item.id : selectedElementId === item.id;
 
+                  // 드래그되지 않는 커스텀 위젯에만 layout 애니메이션 적용
+                  // → 다른 위젯이 밀려날 때 자연스럽게 슬라이드 이동 (FLIP 기법)
+                  const shouldAnimate = isCustom && !isBeingDragged;
+
                   return (
-                    <div
+                    <motion.div
                       key={`${item.source}-${item.id}`}
                       className="min-h-0"
+                      layout={shouldAnimate ? "position" : false}
+                      transition={
+                        shouldAnimate
+                          ? interactionActive
+                            ? { type: "tween", duration: 0.1, ease: "easeOut" }
+                            : { type: "spring", damping: 30, stiffness: 400 }
+                          : { duration: 0 }
+                      }
                       style={{
                         gridColumn: `${item.x + 1} / span ${item.w}`,
                         gridRow: `${item.y + 1} / span ${item.h}`,
@@ -900,7 +914,7 @@ export default function MonitoringLayoutCanvas({
                           )}
                         </div>
                       )}
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
