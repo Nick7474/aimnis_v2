@@ -569,7 +569,11 @@ export default function MonitoringLayoutCanvas({
       };
     });
 
-    return resolveLayout([...customItems, ...defaultItems]);
+    // Custom-to-custom collision만 해소. Default items는 제외.
+    // → 에디터 시각이 런타임 오버레이와 동일해짐 (커스텀 위젯이 default 항목 위에 올려짐)
+    const resolvedCustom = resolveLayout(customItems);
+    // Default 항목 먼저(하단 레이어), custom 항목 나중에(상단 레이어)
+    return [...defaultItems, ...resolvedCustom];
   }, [customWidgets, defaultItems, selectedWidgetId, widgetById, widgetLiveData]);
 
   return (
@@ -755,6 +759,8 @@ export default function MonitoringLayoutCanvas({
                       style={{
                         gridColumn: `${item.x + 1} / span ${item.w}`,
                         gridRow: `${item.y + 1} / span ${item.h}`,
+                        // Custom 위젯은 default 항목 위에 표시
+                        ...(isCustom ? { position: "relative", zIndex: 20 } : {}),
                       }}
                     >
                       {isCustom && item.widgetInstance ? (

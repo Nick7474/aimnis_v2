@@ -748,6 +748,25 @@ function canvasWidgetsIntersect(
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
 }
 
+// Custom 위젯끼리만 충돌 해소 (에디터 렌더 결과와 동일한 로직)
+// → 스냅샷/런타임이 에디터 시각과 일치하도록 보장
+function resolveCustomWidgetLayout(widgets: CanvasWidgetInstance[]): CanvasWidgetInstance[] {
+  const placed: { x: number; y: number; w: number; h: number }[] = [];
+  const sorted = [...widgets].sort((a, b) =>
+    a.y !== b.y ? a.y - b.y : a.x !== b.x ? a.x - b.x : a.instanceId.localeCompare(b.instanceId)
+  );
+  const result: CanvasWidgetInstance[] = [];
+  sorted.forEach((w) => {
+    const r = { x: Math.max(0, Math.min(w.x, GRID_COLS - w.w)), y: w.y, w: w.w, h: w.h };
+    while (placed.some((p) => !(r.x + r.w <= p.x || p.x + p.w <= r.x || r.y + r.h <= p.y || p.y + p.h <= r.y))) {
+      r.y += 1;
+    }
+    placed.push(r);
+    result.push({ ...w, x: r.x, y: r.y });
+  });
+  return result;
+}
+
 function findNextWidgetPlacement(
   widget: SolutionWidget,
   currentWidgets: CanvasWidgetInstance[],
@@ -913,12 +932,14 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
   const createSnapshot = (): MonitoringSnapshot => {
     const now = new Date().toISOString();
+    // 에디터 렌더와 동일하게 custom-to-custom 충돌을 해소한 위치로 저장
+    const resolvedWidgets = resolveCustomWidgetLayout(canvasWidgets);
     return {
       schemaVersion: "monitoring.snapshot.v1",
       solution: "monitoring",
       app: {
         activePageId: "home",
-        dashboardMode: canvasWidgets.length > 0 ? "custom" : "default",
+        dashboardMode: resolvedWidgets.length > 0 ? "custom" : "default",
         runtimeView: "operator",
       },
       editor: {
@@ -939,7 +960,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           columns: GRID_COLS,
           rowHeight: GRID_ROW_HEIGHT,
         },
-        items: canvasWidgets,
+        items: resolvedWidgets,
       },
       createdAt: now,
       updatedAt: now,
@@ -1534,6 +1555,9 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
     const handlePointerUp = () => {
       setInteraction(null);
+      // 드래그 완료 시점에 저장 위치를 resolvedCustomWidgetLayout으로 갱신
+      // → 다음 드래그 시작 위치가 에디터 시각과 일치
+      setCanvasWidgets((current) => resolveCustomWidgetLayout(current));
     };
 
     window.addEventListener("pointermove", handlePointerMove);
