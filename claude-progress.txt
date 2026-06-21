@@ -86,6 +86,24 @@
 
 ## 세션 로그
 
+### [2026-06-22] QA/QC 버그 수정 세션 — BUG 오딧 23개 중 주요 버그 수정 완료
+
+#### 완료 수정 목록
+- **Per-element 컬러 시스템**: 헤더/사이드바/위젯 컬러 인스펙터가 선택 요소에만 적용
+- **로고 크기 기본값**: 160px (AIM SVG 원본 크기)로 복원
+- **위젯 borderColor/textStrong/textSoft 전역 변경 버그 수정**: 각 위젯별 독립 적용
+- **BUG-003**: MainChartSection/WorkerSafetySection에 brand 프롭 추가 → 배경/텍스트/보더 컬러 브랜드 연동
+- **DW-003**: chart/safety 위젯에 title 프롭 전달 → 인스펙터 타이틀 변경 반영
+- **H-03**: 로고 URL/크기를 elementConfigs.header로 이동 → Header Inspector 개별 오버라이드
+- **BUG-002**: Header/Sidebar brand 프롭에 fontFamily 추가 → 폰트 패밀리 명시적 적용
+- **CW-002**: MonitoringColorControl 컬러 인풋 — 유효하지 않은 hex 값 투명도 처리
+- **CW-003**: 커스텀 위젯 인스펙터 데이터소스 컨트롤 중복 제거
+- **SB-001**: 사이드바 비활성 텍스트 컬러 수정 (textSoftColor → textColor)
+- **SB-002**: 사이드바 보더 컬러 다크 테마에서 올바르게 적용
+- **H-01**: 헤더 배경색 폴백 수정 (backgroundColor → surfaceColor)
+- **BUG-005**: 서브페이지에 brandTokens 전달 수정
+- **CW-001**: 커스텀 위젯 높이 인스펙터 max 50으로 확장
+
 ### [2026-04-12] 세션 3 — aim-guard iframe → 직접 통합 완료
 - antd, @ant-design/icons, react-router-dom, dayjs 설치
 - aim-guard 소스 전체 → src/guard-app/ 복사 (stores, mock, pages, components, admin)
