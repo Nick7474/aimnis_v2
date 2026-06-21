@@ -887,6 +887,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [defaultInteraction, setDefaultInteraction] = useState<DefaultWidgetInteraction | null>(null);
   const [widgetSearch, setWidgetSearch] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
+  const fullscreenCanvasRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const hydratedRef = useRef(false);
 
@@ -2804,7 +2805,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <Minimize2 className="h-4 w-4" />
             </button>
             <MonitoringLayoutCanvas
-              canvasRef={canvasRef}
+              canvasRef={fullscreenCanvasRef}
               customWidgets={canvasWidgets}
               widgetById={widgetById}
               widgetLiveData={widgetLiveData}
