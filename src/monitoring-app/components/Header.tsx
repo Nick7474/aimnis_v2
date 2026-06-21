@@ -23,6 +23,7 @@ interface HeaderProps {
     textStrongColor: string;
     textColor: string;
     textSoftColor: string;
+    fontFamily?: string;
   };
 }
 
@@ -55,12 +56,12 @@ export default function Header({
   const isAimLogo = typeof logoUrl === "string" && logoUrl.includes("Mornitering");
   const clampedLogoSize = isAimLogo
     ? Math.max(40, Math.min(200, logoSize ?? 160))
-    : Math.max(16, Math.min(44, logoSize ?? 32));
+    : Math.max(16, Math.min(200, logoSize ?? 32));
 
   return (
     <header
       className="flex h-14 shrink-0 items-center border-b"
-      style={{ backgroundColor: colors.surfaceColor, borderColor: colors.borderColor }}
+      style={{ backgroundColor: colors.surfaceColor, borderColor: colors.borderColor, fontFamily: colors.fontFamily }}
     >
       {/* Logo area stays fixed even when the sidebar collapses. */}
       <div

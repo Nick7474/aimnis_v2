@@ -202,9 +202,10 @@ export function MonitoringColorControl({
         />
         <input
           type="color"
-          value={value}
+          value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : '#000000'}
           onChange={(event) => onChange(event.target.value)}
           className="h-7 w-7 rounded-md border border-white/[0.08] bg-black/20 p-1"
+          style={/^#[0-9a-fA-F]{6}$/.test(value) ? undefined : { opacity: 0.3 }}
         />
       </div>
     </div>

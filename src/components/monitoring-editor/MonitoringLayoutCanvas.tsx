@@ -48,6 +48,8 @@ export interface MonitoringHeaderConfig {
   timestampLabel: string;
   operatorName: string;
   operatorRole: string;
+  logoUrl?: string;
+  logoSize?: number;
   bgColor?: string;
   borderColor?: string;
   accentColor?: string;
@@ -457,13 +459,14 @@ export default function MonitoringLayoutCanvas({
 
   const sidebarBrand = useMemo(() => ({
     ...brandTokens,
-    ...(elementConfigs.sidebar.bgColor ? { surfaceColor: elementConfigs.sidebar.bgColor } : {}),
+    ...(brand?.sidebarColor ? { sidebarColor: brand.sidebarColor } : {}),
+    ...(elementConfigs.sidebar.bgColor ? { surfaceColor: elementConfigs.sidebar.bgColor, sidebarColor: elementConfigs.sidebar.bgColor } : {}),
     ...(elementConfigs.sidebar.borderColor ? { borderColor: elementConfigs.sidebar.borderColor } : {}),
     ...(elementConfigs.sidebar.primaryColor ? { primaryColor: elementConfigs.sidebar.primaryColor } : {}),
     ...(elementConfigs.sidebar.accentColor ? { accentColor: elementConfigs.sidebar.accentColor } : {}),
     ...(elementConfigs.sidebar.textColor ? { textColor: elementConfigs.sidebar.textColor } : {}),
     ...(elementConfigs.sidebar.textSoftColor ? { textSoftColor: elementConfigs.sidebar.textSoftColor } : {}),
-  }), [brandTokens, elementConfigs.sidebar]);
+  }), [brand, brandTokens, elementConfigs.sidebar]);
 
   const rootStyle: CSSProperties = {
     backgroundColor: brandTokens.backgroundColor,
@@ -547,14 +550,14 @@ export default function MonitoringLayoutCanvas({
         source: "ai-studio-default",
         title: chart.title,
         x: chart.x, y: chart.y, w: chart.w, h: chart.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(chart).surfaceColor, borderColor: wb(chart).borderColor }}><MainChartSection /></div>,
+        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(chart).surfaceColor, borderColor: wb(chart).borderColor }}><MainChartSection brand={wb(chart)} title={chart.title} /></div>,
       },
       {
         id: "worker-safety-overview",
         source: "ai-studio-default",
         title: safety.title,
         x: safety.x, y: safety.y, w: safety.w, h: safety.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(safety).surfaceColor, borderColor: wb(safety).borderColor }}><WorkerSafetySection /></div>,
+        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(safety).surfaceColor, borderColor: wb(safety).borderColor }}><WorkerSafetySection brand={wb(safety)} title={safety.title} /></div>,
       },
       {
         id: "environment-diagnosis",
@@ -655,8 +658,8 @@ export default function MonitoringLayoutCanvas({
           timestampLabel={elementConfigs.header.timestampLabel}
           operatorName={elementConfigs.header.operatorName}
           operatorRole={elementConfigs.header.operatorRole}
-          logoUrl={brand?.logoUrl}
-          logoSize={brand?.logoSize}
+          logoUrl={elementConfigs.header.logoUrl ?? brand?.logoUrl}
+          logoSize={elementConfigs.header.logoSize ?? brand?.logoSize}
           brand={headerBrand}
         />
       </div>
@@ -732,21 +735,21 @@ export default function MonitoringLayoutCanvas({
                   case "integrated":
                     return (
                       <div className={wrapClass}>
-                        <IntegratedDashboard setCurrentPage={setCurrentPage} brand={brand} />
+                        <IntegratedDashboard setCurrentPage={setCurrentPage} brand={brandTokens as unknown as typeof brand} />
                       </div>
                     );
                   case "equipment":
-                    return <div className={wrapClass}><EquipmentDiagnosis brand={brand} /></div>;
+                    return <div className={wrapClass}><EquipmentDiagnosis brand={brandTokens as unknown as typeof brand} /></div>;
                   case "environment":
-                    return <div className={wrapClass}><EnvironmentDiagnosis brand={brand} /></div>;
+                    return <div className={wrapClass}><EnvironmentDiagnosis brand={brandTokens as unknown as typeof brand} /></div>;
                   case "worker":
-                    return <div className={wrapClass}><WorkerSafety brand={brand} /></div>;
+                    return <div className={wrapClass}><WorkerSafety brand={brandTokens as unknown as typeof brand} /></div>;
                   case "alerts":
-                    return <div className={wrapClass}><AlertsEvents brand={brand} /></div>;
+                    return <div className={wrapClass}><AlertsEvents brand={brandTokens as unknown as typeof brand} /></div>;
                   case "report":
-                    return <div className={wrapClass}><Report brand={brand} /></div>;
+                    return <div className={wrapClass}><Report brand={brandTokens as unknown as typeof brand} /></div>;
                   case "settings":
-                    return <div className={wrapClass}><SettingsPage brand={brand} /></div>;
+                    return <div className={wrapClass}><SettingsPage brand={brandTokens as unknown as typeof brand} /></div>;
                 }
               }
               return (

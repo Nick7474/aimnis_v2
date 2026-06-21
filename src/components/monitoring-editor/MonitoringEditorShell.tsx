@@ -1108,10 +1108,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      updateMonitoringBrand(
-        { logoUrl: typeof reader.result === "string" ? reader.result : null },
-        { syncLogo: true }
-      );
+      const url = typeof reader.result === "string" ? reader.result : undefined;
+      updateHeaderConfig("logoUrl", url);
     };
     reader.readAsDataURL(file);
     event.target.value = "";
@@ -2052,7 +2050,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             <MonitoringNumberControl
               label="세로 그리드"
               min={MIN_WIDGET_H}
-              max={12}
+              max={50}
               value={selectedWidget.h}
               onChange={(h) => updateSelectedWidget({ h })}
             />
@@ -2067,7 +2065,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               }
               readOnly
             />
-            {selectedWidgetOptionDefinitions.map((option) => {
+            {selectedWidgetOptionDefinitions.filter((o) => o.id !== "dataSource").map((option) => {
               const currentValue = selectedWidget.options[option.id] ?? option.defaultValue;
 
               if (option.type === "toggle") {
@@ -2149,8 +2147,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                 onClick={() => logoInputRef.current?.click()}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-3 py-4 text-xs text-white/35 transition-all hover:border-violet-400/40 hover:text-white/60"
               >
-                {brand.logoUrl ? (
-                  <img src={brand.logoUrl} alt="Tenant logo" className="h-8 max-w-[180px] object-contain" />
+                {(elementConfigs.header.logoUrl ?? brand.logoUrl) ? (
+                  <img src={elementConfigs.header.logoUrl ?? brand.logoUrl!} alt="Tenant logo" className="h-8 max-w-[180px] object-contain" />
                 ) : (
                   <>
                     <ImagePlus className="h-3.5 w-3.5" />
@@ -2163,8 +2161,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                 min={20}
                 max={200}
                 unit="px"
-                value={brand.logoSize}
-                onChange={(logoSize) => updateMonitoringBrand({ logoSize })}
+                value={elementConfigs.header.logoSize ?? brand.logoSize}
+                onChange={(logoSize) => updateHeaderConfig("logoSize", logoSize)}
               />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Type} title="Identity">
@@ -2174,7 +2172,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <MonitoringTextControl label="권한" value={elementConfigs.header.operatorRole} onChange={(operatorRole) => updateHeaderConfig("operatorRole", operatorRole)} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Palette} title="Header Tone">
-              <MonitoringColorControl label="헤더 배경" value={elementConfigs.header.bgColor ?? brand.backgroundColor} onChange={(bgColor) => updateHeaderConfig("bgColor", bgColor)} />
+              <MonitoringColorControl label="헤더 배경" value={elementConfigs.header.bgColor ?? brand.surfaceColor} onChange={(bgColor) => updateHeaderConfig("bgColor", bgColor)} />
               <MonitoringColorControl label="보더" value={elementConfigs.header.borderColor ?? brand.borderColor} onChange={(borderColor) => updateHeaderConfig("borderColor", borderColor)} />
               <MonitoringColorControl label="강조 색상" value={elementConfigs.header.accentColor ?? brand.accentColor} onChange={(accentColor) => updateHeaderConfig("accentColor", accentColor)} />
               <MonitoringColorControl label="제목 텍스트" value={elementConfigs.header.textStrongColor ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateHeaderConfig("textStrongColor", textStrongColor)} />
