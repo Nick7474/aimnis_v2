@@ -123,6 +123,7 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
           onSelectElement={() => {}}
           onStartWidgetInteraction={() => {}}
           addedPages={addedPages}
+          hidePageManagement
         />
       </main>
     </div>

@@ -107,6 +107,7 @@ interface MonitoringLayoutCanvasProps {
   ) => void;
   onHideDefaultWidget?: (id: string) => void;
   addedPages?: import("@/store/monitoringPagesStore").MonitoringPage[];
+  hidePageManagement?: boolean;
   onOpenPageBuilder?: () => void;
   onRemovePage?: (key: string) => void;
   navigateToPage?: string | null;
@@ -403,6 +404,7 @@ export default function MonitoringLayoutCanvas({
   onStartDefaultWidgetInteraction,
   onHideDefaultWidget,
   addedPages = [],
+  hidePageManagement = false,
   onOpenPageBuilder,
   onRemovePage,
   navigateToPage,
@@ -417,10 +419,6 @@ export default function MonitoringLayoutCanvas({
       onNavigated?.();
     }
   }, [navigateToPage]);
-  const sidebarBaseWidth =
-    elementConfigs.sidebar.expandMode === "fixed" ? 220 :
-    elementConfigs.sidebar.expandMode === "collapsed" ? 72 :
-    isSidebarOpen ? 220 : 72;
   const brandTokens = useMemo(
     () => ({
       ...DEFAULT_MONITORING_BRAND_TOKENS,
@@ -612,7 +610,6 @@ export default function MonitoringLayoutCanvas({
           operatorRole={elementConfigs.header.operatorRole}
           logoUrl={brand?.logoUrl}
           logoSize={brand?.logoSize}
-          sidebarWidth={sidebarBaseWidth}
           brand={brandTokens}
         />
       </div>
@@ -654,6 +651,7 @@ export default function MonitoringLayoutCanvas({
             showFooter={elementConfigs.sidebar.showFooter}
             footerText={elementConfigs.sidebar.footerText}
             addedPages={addedPages}
+            hidePageManagement={hidePageManagement}
             onOpenPageBuilder={onOpenPageBuilder}
             onRemovePage={onRemovePage ? (key) => {
               const page = addedPages.find((p) => p.key === key);

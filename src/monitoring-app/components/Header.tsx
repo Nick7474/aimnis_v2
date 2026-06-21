@@ -10,7 +10,6 @@ interface HeaderProps {
   operatorRole?: string;
   logoUrl?: string | null;
   logoSize?: number;
-  sidebarWidth?: number;
   brand?: {
     primaryColor: string;
     secondaryColor: string;
@@ -36,7 +35,6 @@ export default function Header({
   operatorRole = '관리자',
   logoUrl,
   logoSize = 32,
-  sidebarWidth = 220,
   brand,
 }: HeaderProps) {
   const colors = brand ?? {
@@ -55,7 +53,6 @@ export default function Header({
   };
 
   const clampedLogoSize = Math.max(20, Math.min(44, logoSize ?? 32));
-  const logoMaxWidth = Math.min(160, sidebarWidth - 24);
   const isAimLogo = typeof logoUrl === "string" && logoUrl.includes("Mornitering");
 
   return (
@@ -63,10 +60,9 @@ export default function Header({
       className="flex h-14 shrink-0 items-center border-b"
       style={{ backgroundColor: colors.surfaceColor, borderColor: colors.borderColor }}
     >
-      {/* Logo area — same width as sidebar, centered */}
+      {/* Logo area stays fixed even when the sidebar collapses. */}
       <div
-        className="flex h-full shrink-0 items-center justify-center transition-all duration-300"
-        style={{ width: sidebarWidth }}
+        className="flex h-full w-[220px] shrink-0 items-center justify-center"
       >
         {logoUrl && (
           isAimLogo
@@ -75,7 +71,7 @@ export default function Header({
                 src={logoUrl}
                 alt="Logo"
                 className="block object-contain"
-                style={{ height: clampedLogoSize, maxWidth: logoMaxWidth }}
+                style={{ height: clampedLogoSize, maxWidth: 160 }}
               />
         )}
       </div>

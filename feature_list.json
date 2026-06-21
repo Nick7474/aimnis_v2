@@ -309,5 +309,20 @@
     "passes": true,
     "completedAt": "2026-06-21",
     "notes": "레이아웃 기준을 editor state/snapshot 하나로 통합하고 기본·커스텀 위젯 오버레이 회귀를 제거함"
+  },
+  {
+    "id": "F-019",
+    "category": "monitoring",
+    "priority": 20,
+    "description": "AIM Monitoring 확대·실행 화면 사이드바 및 헤더 회귀 수정",
+    "steps": [
+      "확대 화면에서 좌측 메뉴 하단 페이지 추가 버튼 숨김",
+      "/monitoring 실행 화면에서 페이지 추가 버튼 숨김",
+      "좌측 메뉴 접기 전·후 상단 로고 영역을 220px로 유지",
+      "TypeScript 검사, production build, editor/monitoring route 200 확인"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-22",
+    "notes": "페이지 관리 UI 표시 여부를 캔버스 prop으로 분리하고 헤더 로고 크기를 사이드바 열림 상태와 분리함"
   }
 ]

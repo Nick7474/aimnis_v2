@@ -2902,6 +2902,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               onSelectWidget={(id) => { setSelectedWidgetId(id); setIsFullscreen(false); }}
               onSelectElement={() => {}}
               onStartWidgetInteraction={() => {}}
+              hidePageManagement
             />
           </motion.div>
         )}
