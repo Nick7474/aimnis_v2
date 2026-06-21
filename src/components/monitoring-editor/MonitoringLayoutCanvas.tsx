@@ -48,6 +48,11 @@ export interface MonitoringHeaderConfig {
   timestampLabel: string;
   operatorName: string;
   operatorRole: string;
+  bgColor?: string;
+  borderColor?: string;
+  accentColor?: string;
+  textStrongColor?: string;
+  textSoftColor?: string;
 }
 
 export interface MonitoringSidebarConfig {
@@ -56,6 +61,12 @@ export interface MonitoringSidebarConfig {
   menuDensity: "comfortable" | "compact";
   showFooter: boolean;
   footerText: string;
+  bgColor?: string;
+  borderColor?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  textColor?: string;
+  textSoftColor?: string;
 }
 
 export interface MonitoringDefaultWidgetConfig {
@@ -63,6 +74,10 @@ export interface MonitoringDefaultWidgetConfig {
   dataBinding: string;
   accentColor: string;
   visible: boolean;
+  bgColor?: string;
+  borderColor?: string;
+  textStrongColor?: string;
+  textSoftColor?: string;
   /* 사용자가 이동/크기조절한 경우 저장 — 없으면 기본값 사용 */
   x?: number;
   y?: number;
@@ -430,6 +445,26 @@ export default function MonitoringLayoutCanvas({
     [brand]
   );
   const isLightTheme = hexLuminance(brandTokens.backgroundColor) > 0.5;
+
+  const headerBrand = useMemo(() => ({
+    ...brandTokens,
+    ...(elementConfigs.header.bgColor ? { surfaceColor: elementConfigs.header.bgColor, backgroundColor: elementConfigs.header.bgColor } : {}),
+    ...(elementConfigs.header.borderColor ? { borderColor: elementConfigs.header.borderColor } : {}),
+    ...(elementConfigs.header.accentColor ? { accentColor: elementConfigs.header.accentColor } : {}),
+    ...(elementConfigs.header.textStrongColor ? { textStrongColor: elementConfigs.header.textStrongColor } : {}),
+    ...(elementConfigs.header.textSoftColor ? { textSoftColor: elementConfigs.header.textSoftColor } : {}),
+  }), [brandTokens, elementConfigs.header]);
+
+  const sidebarBrand = useMemo(() => ({
+    ...brandTokens,
+    ...(elementConfigs.sidebar.bgColor ? { surfaceColor: elementConfigs.sidebar.bgColor } : {}),
+    ...(elementConfigs.sidebar.borderColor ? { borderColor: elementConfigs.sidebar.borderColor } : {}),
+    ...(elementConfigs.sidebar.primaryColor ? { primaryColor: elementConfigs.sidebar.primaryColor } : {}),
+    ...(elementConfigs.sidebar.accentColor ? { accentColor: elementConfigs.sidebar.accentColor } : {}),
+    ...(elementConfigs.sidebar.textColor ? { textColor: elementConfigs.sidebar.textColor } : {}),
+    ...(elementConfigs.sidebar.textSoftColor ? { textSoftColor: elementConfigs.sidebar.textSoftColor } : {}),
+  }), [brandTokens, elementConfigs.sidebar]);
+
   const rootStyle: CSSProperties = {
     backgroundColor: brandTokens.backgroundColor,
     color: brandTokens.textColor,
@@ -449,6 +484,10 @@ export default function MonitoringLayoutCanvas({
           config,
           title: config?.title ?? fallbackTitle,
           accentColor: config?.accentColor ?? "#3b82f6",
+          bgColor: config?.bgColor,
+          borderColor: config?.borderColor,
+          textStrongColor: config?.textStrongColor,
+          textSoftColor: config?.textSoftColor,
           visible: config?.visible ?? true,
           x: config?.x ?? fallbackX,
           y: config?.y ?? fallbackY,
@@ -456,6 +495,13 @@ export default function MonitoringLayoutCanvas({
           h: config?.h ?? fallbackH,
         };
       };
+      const wb = (cfg: { bgColor?: string; borderColor?: string; textStrongColor?: string; textSoftColor?: string }) => ({
+        ...brandTokens,
+        ...(cfg.bgColor ? { surfaceColor: cfg.bgColor } : {}),
+        ...(cfg.borderColor ? { borderColor: cfg.borderColor } : {}),
+        ...(cfg.textStrongColor ? { textStrongColor: cfg.textStrongColor } : {}),
+        ...(cfg.textSoftColor ? { textSoftColor: cfg.textSoftColor } : {}),
+      });
       const equipment    = item("summary-equipment-status", "전체 설비 상태",  0, 0,  3, 3);
       const environment  = item("summary-environment-risk", "환경 위험 상태",   3, 0,  3, 3);
       const worker       = item("summary-worker-safety",    "작업자 안전 상태", 6, 0,  3, 3);
@@ -473,70 +519,70 @@ export default function MonitoringLayoutCanvas({
         source: "ai-studio-default",
         title: equipment.title,
         x: equipment.x, y: equipment.y, w: equipment.w, h: equipment.h,
-        render: () => <SummaryCard title={equipment.title} icon={Activity} value="128" unit="/ 154 대" sub="6 대" accentColor={equipment.accentColor} brand={brandTokens} />,
+        render: () => <SummaryCard title={equipment.title} icon={Activity} value="128" unit="/ 154 대" sub="6 대" accentColor={equipment.accentColor} brand={wb(equipment)} />,
       },
       {
         id: "summary-environment-risk",
         source: "ai-studio-default",
         title: environment.title,
         x: environment.x, y: environment.y, w: environment.w, h: environment.h,
-        render: () => <SummaryCard title={environment.title} icon={Wind} value="주의" unit="(Yellow)" sub="1 단계" tone="yellow" accentColor={environment.accentColor} brand={brandTokens} />,
+        render: () => <SummaryCard title={environment.title} icon={Wind} value="주의" unit="(Yellow)" sub="1 단계" tone="yellow" accentColor={environment.accentColor} brand={wb(environment)} />,
       },
       {
         id: "summary-worker-safety",
         source: "ai-studio-default",
         title: worker.title,
         x: worker.x, y: worker.y, w: worker.w, h: worker.h,
-        render: () => <SummaryCard title={worker.title} icon={UserCheck} value="주의" unit="(Yellow)" sub="2 명" tone="yellow" accentColor={worker.accentColor} brand={brandTokens} />,
+        render: () => <SummaryCard title={worker.title} icon={UserCheck} value="주의" unit="(Yellow)" sub="2 명" tone="yellow" accentColor={worker.accentColor} brand={wb(worker)} />,
       },
       {
         id: "summary-alert-count",
         source: "ai-studio-default",
         title: alerts.title,
         x: alerts.x, y: alerts.y, w: alerts.w, h: alerts.h,
-        render: () => <SummaryCard title={alerts.title} icon={Bell} value="26" unit="건" sub="10 건" accentColor={alerts.accentColor} brand={brandTokens} />,
+        render: () => <SummaryCard title={alerts.title} icon={Bell} value="26" unit="건" sub="10 건" accentColor={alerts.accentColor} brand={wb(alerts)} />,
       },
       {
         id: "equipment-anomaly-chart",
         source: "ai-studio-default",
         title: chart.title,
         x: chart.x, y: chart.y, w: chart.w, h: chart.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: brandTokens.surfaceColor, borderColor: brandTokens.borderColor }}><MainChartSection /></div>,
+        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(chart).surfaceColor, borderColor: wb(chart).borderColor }}><MainChartSection /></div>,
       },
       {
         id: "worker-safety-overview",
         source: "ai-studio-default",
         title: safety.title,
         x: safety.x, y: safety.y, w: safety.w, h: safety.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: brandTokens.surfaceColor, borderColor: brandTokens.borderColor }}><WorkerSafetySection /></div>,
+        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(safety).surfaceColor, borderColor: wb(safety).borderColor }}><WorkerSafetySection /></div>,
       },
       {
         id: "environment-diagnosis",
         source: "ai-studio-default",
         title: envDiagnosis.title,
         x: envDiagnosis.x, y: envDiagnosis.y, w: envDiagnosis.w, h: envDiagnosis.h,
-        render: () => <EnvironmentStatusWidget setCurrentPage={setCurrentPage} brand={brandTokens} />,
+        render: () => <EnvironmentStatusWidget setCurrentPage={setCurrentPage} brand={wb(envDiagnosis)} />,
       },
       {
         id: "realtime-alerts",
         source: "ai-studio-default",
         title: realtime.title,
         x: realtime.x, y: realtime.y, w: realtime.w, h: realtime.h,
-        render: () => <RealtimeAlertList brand={brandTokens} />,
+        render: () => <RealtimeAlertList brand={wb(realtime)} />,
       },
       {
         id: "action-progress",
         source: "ai-studio-default",
         title: action.title,
         x: action.x, y: action.y, w: action.w, h: action.h,
-        render: () => <ActionProgressWidget brand={brandTokens} />,
+        render: () => <ActionProgressWidget brand={wb(action)} />,
       },
       {
         id: "system-status",
         source: "ai-studio-default",
         title: system.title,
         x: system.x, y: system.y, w: system.w, h: system.h,
-        render: () => <SystemStatusWidget brand={brandTokens} />,
+        render: () => <SystemStatusWidget brand={wb(system)} />,
       },
       ];
 
@@ -567,9 +613,10 @@ export default function MonitoringLayoutCanvas({
             }
             selected={selectedWidgetId === instance.instanceId}
             brandPrimaryColor={brandTokens.primaryColor}
-            brandSurfaceColor={brandTokens.surfaceColor}
-            brandBorderColor={brandTokens.borderColor}
-            brandTextStrongColor={brandTokens.textStrongColor}
+            brandSurfaceColor={(instance.options.bgColor as string | undefined) ?? brandTokens.surfaceColor}
+            brandBorderColor={(instance.options.borderColor as string | undefined) ?? brandTokens.borderColor}
+            brandTextStrongColor={(instance.options.textStrongColor as string | undefined) ?? brandTokens.textStrongColor}
+            brandTextSoftColor={(instance.options.textSoftColor as string | undefined) ?? brandTokens.textSoftColor}
             isLight={isLightTheme}
             liveData={widgetLiveData[instance.instanceId]}
           />
@@ -610,7 +657,7 @@ export default function MonitoringLayoutCanvas({
           operatorRole={elementConfigs.header.operatorRole}
           logoUrl={brand?.logoUrl}
           logoSize={brand?.logoSize}
-          brand={brandTokens}
+          brand={headerBrand}
         />
       </div>
       {/* ── Sidebar + Canvas: 헤더 아래 ── */}
@@ -645,7 +692,7 @@ export default function MonitoringLayoutCanvas({
             toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            brand={brandTokens}
+            brand={sidebarBrand}
             expandMode={elementConfigs.sidebar.expandMode}
             menuDensity={elementConfigs.sidebar.menuDensity}
             showFooter={elementConfigs.sidebar.showFooter}

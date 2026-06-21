@@ -14,3 +14,7 @@
 - 검증: `npx tsc --noEmit`, `npm run build`, editor/monitoring HTTP 200
 - 데모 로그인의 브라우저 이메일 형식 검사를 제거하고 `/home` 전체 페이지 이동으로 진입 안정화
 - 검증: `npx tsc --noEmit`, `npm run build`
+- Playwright 기반 QA/QC 하네스 구축: 정적 검사, 11개 브라우저 스모크, 4개 1280px 시각 기준선
+- QA 발견 수정: AIM ECO 필수 패키지, 프로젝트 카드 ref 경고, Monitoring 사이드바 접기 hover 회귀
+- Monitoring 패널 라인·개별 패널 톤·헤더·사이드바 스타일 반영을 자동 검증
+- 검증: `npm run qa` 11/11, `npm run qa:visual` 4/4, `npm run build`

@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "qa": "npm run qa:static && npm run qa:smoke && npm run qa:visual",
+    "qa:static": "tsc --noEmit && node scripts/qa/static-audit.mjs",
+    "qa:smoke": "playwright test tests/qa/smoke.spec.ts",
+    "qa:visual": "playwright test tests/qa/visual.spec.ts",
+    "qa:visual:update": "playwright test tests/qa/visual.spec.ts --update-snapshots",
+    "qa:report": "playwright show-report"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
@@ -48,6 +54,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

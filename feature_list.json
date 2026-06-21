@@ -339,5 +339,23 @@
     "passes": true,
     "completedAt": "2026-06-22",
     "notes": "데모 안내와 다르게 브라우저 email 검증에 막히던 흐름을 제거하고 window.location.assign으로 안정적인 홈 진입을 보장함"
+  },
+  {
+    "id": "F-021",
+    "category": "quality",
+    "priority": 22,
+    "description": "AIMNIS 전체 QA/QC 하네스 및 UI 회귀 수정",
+    "steps": [
+      "솔루션 패키지·TypeScript 정적 검사",
+      "7개 핵심 경로 런타임·콘솔 오류 스모크",
+      "로그인·Monitoring 사이드바·확대·패널 라인 계약 검사",
+      "4개 핵심 화면 1280px 시각 회귀 기준선",
+      "AIM ECO 필수 솔루션 패키지 보완",
+      "프로젝트 카드 ref 경고와 Monitoring 메뉴 접기 회귀 수정",
+      "전체 QA, 시각 회귀, production build 통과"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-22",
+    "notes": "Playwright 기반 재현 가능한 QA 하네스를 구축하고 첫 전수 검사에서 발견한 구조·콘솔·사이드바 회귀를 수정함"
   }
 ]

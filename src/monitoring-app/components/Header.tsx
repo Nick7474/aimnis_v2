@@ -52,8 +52,10 @@ export default function Header({
     textSoftColor: '#94a3b8',
   };
 
-  const clampedLogoSize = Math.max(20, Math.min(44, logoSize ?? 32));
   const isAimLogo = typeof logoUrl === "string" && logoUrl.includes("Mornitering");
+  const clampedLogoSize = isAimLogo
+    ? Math.max(40, Math.min(200, logoSize ?? 160))
+    : Math.max(16, Math.min(44, logoSize ?? 32));
 
   return (
     <header
@@ -66,7 +68,7 @@ export default function Header({
       >
         {logoUrl && (
           isAimLogo
-            ? <MonitoringLogoSVG width={160} textColor={colors.textStrongColor} />
+            ? <MonitoringLogoSVG width={clampedLogoSize} textColor={colors.textStrongColor} />
             : <img
                 src={logoUrl}
                 alt="Logo"

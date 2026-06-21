@@ -192,7 +192,7 @@ const MONITORING_DEFAULT_BRAND: BrandSettings = {
   productName: "AIM Monitoring",
   logoUrl: "/img/AIM%20Mornitering2.svg",
   logoMode: "combined",
-  logoSize: 32,
+  logoSize: 160,
   primaryColor: "#2563EB",
   secondaryColor: "#00C8FF",
   accentColor: "#3B82F6",
@@ -1921,7 +1921,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           <MonitoringNumberControl
             label="로고 크기"
             min={20}
-            max={44}
+            max={200}
             unit="px"
             value={brand.logoSize}
             onChange={(logoSize) => updateMonitoringBrand({ logoSize })}
@@ -2108,10 +2108,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           </MonitoringInspectorSection>
 
           <MonitoringInspectorSection icon={Palette} title="Panel Style">
-            <MonitoringColorControl label="패널 배경" value={brand.surfaceColor} onChange={(surfaceColor) => updateMonitoringBrand({ surfaceColor })} />
-            <MonitoringColorControl label="패널 라인" value={brand.borderColor} onChange={(borderColor) => updateMonitoringBrand({ borderColor })} />
-            <MonitoringColorControl label="주요 텍스트" value={brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateMonitoringBrand({ textStrongColor })} />
-            <MonitoringColorControl label="보조 텍스트" value={brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateMonitoringBrand({ textSoftColor })} />
+            <MonitoringColorControl label="패널 배경" value={(selectedWidget?.options.bgColor as string | undefined) ?? brand.surfaceColor} onChange={(bgColor) => updateSelectedWidgetOption("bgColor", bgColor)} />
+            <MonitoringColorControl label="패널 라인" value={(selectedWidget?.options.borderColor as string | undefined) ?? brand.borderColor} onChange={(borderColor) => updateSelectedWidgetOption("borderColor", borderColor)} />
+            <MonitoringColorControl label="주요 텍스트" value={(selectedWidget?.options.textStrongColor as string | undefined) ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateSelectedWidgetOption("textStrongColor", textStrongColor)} />
+            <MonitoringColorControl label="보조 텍스트" value={(selectedWidget?.options.textSoftColor as string | undefined) ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateSelectedWidgetOption("textSoftColor", textSoftColor)} />
           </MonitoringInspectorSection>
 
           <button
@@ -2161,7 +2161,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <MonitoringNumberControl
                 label="로고 크기"
                 min={20}
-                max={44}
+                max={200}
                 unit="px"
                 value={brand.logoSize}
                 onChange={(logoSize) => updateMonitoringBrand({ logoSize })}
@@ -2174,11 +2174,11 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <MonitoringTextControl label="권한" value={elementConfigs.header.operatorRole} onChange={(operatorRole) => updateHeaderConfig("operatorRole", operatorRole)} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Palette} title="Header Tone">
-              <MonitoringColorControl label="헤더 배경" value={brand.backgroundColor} onChange={(backgroundColor) => updateMonitoringBrand({ backgroundColor })} />
-              <MonitoringColorControl label="보더" value={brand.borderColor} onChange={(borderColor) => updateMonitoringBrand({ borderColor })} />
-              <MonitoringColorControl label="강조 색상" value={brand.accentColor} onChange={(accentColor) => updateMonitoringBrand({ accentColor })} />
-              <MonitoringColorControl label="제목 텍스트" value={brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateMonitoringBrand({ textStrongColor })} />
-              <MonitoringColorControl label="보조 텍스트" value={brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateMonitoringBrand({ textSoftColor })} />
+              <MonitoringColorControl label="헤더 배경" value={elementConfigs.header.bgColor ?? brand.backgroundColor} onChange={(bgColor) => updateHeaderConfig("bgColor", bgColor)} />
+              <MonitoringColorControl label="보더" value={elementConfigs.header.borderColor ?? brand.borderColor} onChange={(borderColor) => updateHeaderConfig("borderColor", borderColor)} />
+              <MonitoringColorControl label="강조 색상" value={elementConfigs.header.accentColor ?? brand.accentColor} onChange={(accentColor) => updateHeaderConfig("accentColor", accentColor)} />
+              <MonitoringColorControl label="제목 텍스트" value={elementConfigs.header.textStrongColor ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateHeaderConfig("textStrongColor", textStrongColor)} />
+              <MonitoringColorControl label="보조 텍스트" value={elementConfigs.header.textSoftColor ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateHeaderConfig("textSoftColor", textSoftColor)} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Settings2} title="Header Options">
               <MonitoringToggleControl label="시간 표시" checked={elementConfigs.header.showTimestamp} onChange={(showTimestamp) => updateHeaderConfig("showTimestamp", showTimestamp)} />
@@ -2198,12 +2198,12 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           >
             {renderSelectionScopeBanner("좌측 메뉴")}
             <MonitoringInspectorSection icon={Palette} title="Navigation Tone">
-              <MonitoringColorControl label="활성 메뉴" value={brand.primaryColor} onChange={(primaryColor) => updateMonitoringBrand({ primaryColor })} />
-              <MonitoringColorControl label="아이콘/강조" value={brand.accentColor} onChange={(accentColor) => updateMonitoringBrand({ accentColor })} />
-              <MonitoringColorControl label="사이드바 배경" value={brand.surfaceColor} onChange={(surfaceColor) => updateMonitoringBrand({ surfaceColor })} />
-              <MonitoringColorControl label="라인 컬러" value={brand.borderColor} onChange={(borderColor) => updateMonitoringBrand({ borderColor })} />
-              <MonitoringColorControl label="비활성 메뉴 텍스트" value={brand.textColor ?? "#CBD5E1"} onChange={(textColor) => updateMonitoringBrand({ textColor })} />
-              <MonitoringColorControl label="섹션/버전 텍스트" value={brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateMonitoringBrand({ textSoftColor })} />
+              <MonitoringColorControl label="활성 메뉴" value={elementConfigs.sidebar.primaryColor ?? brand.primaryColor} onChange={(primaryColor) => updateSidebarConfig("primaryColor", primaryColor)} />
+              <MonitoringColorControl label="아이콘/강조" value={elementConfigs.sidebar.accentColor ?? brand.accentColor} onChange={(accentColor) => updateSidebarConfig("accentColor", accentColor)} />
+              <MonitoringColorControl label="사이드바 배경" value={elementConfigs.sidebar.bgColor ?? brand.surfaceColor} onChange={(bgColor) => updateSidebarConfig("bgColor", bgColor)} />
+              <MonitoringColorControl label="라인 컬러" value={elementConfigs.sidebar.borderColor ?? brand.borderColor} onChange={(borderColor) => updateSidebarConfig("borderColor", borderColor)} />
+              <MonitoringColorControl label="비활성 메뉴 텍스트" value={elementConfigs.sidebar.textColor ?? brand.textColor ?? "#CBD5E1"} onChange={(textColor) => updateSidebarConfig("textColor", textColor)} />
+              <MonitoringColorControl label="섹션/버전 텍스트" value={elementConfigs.sidebar.textSoftColor ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateSidebarConfig("textSoftColor", textSoftColor)} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={LayoutDashboard} title="Navigation Feel">
               <MonitoringSelectControl
@@ -2261,10 +2261,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <MonitoringToggleControl label="위젯 표시" checked={selectedDefaultWidgetConfig.visible} onChange={(visible) => updateDefaultWidgetConfig(selectedElement.id, { visible })} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Palette} title="Panel Style">
-              <MonitoringColorControl label="패널 배경" value={brand.surfaceColor} onChange={(surfaceColor) => updateMonitoringBrand({ surfaceColor })} />
-              <MonitoringColorControl label="패널 라인" value={brand.borderColor} onChange={(borderColor) => updateMonitoringBrand({ borderColor })} />
-              <MonitoringColorControl label="주요 텍스트" value={brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateMonitoringBrand({ textStrongColor })} />
-              <MonitoringColorControl label="보조 텍스트" value={brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateMonitoringBrand({ textSoftColor })} />
+              <MonitoringColorControl label="패널 배경" value={selectedDefaultWidgetConfig?.bgColor ?? brand.surfaceColor} onChange={(bgColor) => updateDefaultWidgetConfig(selectedElement.id, { bgColor })} />
+              <MonitoringColorControl label="패널 라인" value={selectedDefaultWidgetConfig?.borderColor ?? brand.borderColor} onChange={(borderColor) => updateDefaultWidgetConfig(selectedElement.id, { borderColor })} />
+              <MonitoringColorControl label="주요 텍스트" value={selectedDefaultWidgetConfig?.textStrongColor ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateDefaultWidgetConfig(selectedElement.id, { textStrongColor })} />
+              <MonitoringColorControl label="보조 텍스트" value={selectedDefaultWidgetConfig?.textSoftColor ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateDefaultWidgetConfig(selectedElement.id, { textSoftColor })} />
             </MonitoringInspectorSection>
             <button
               type="button"

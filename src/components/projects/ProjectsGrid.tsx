@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -183,12 +183,16 @@ interface ProjectCardProps {
   onOpen: () => void;
 }
 
-function ProjectCard({ project, index, copiedId, onEdit, onDelete, onCopyUrl, onOpen }: ProjectCardProps) {
+const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function ProjectCard(
+  { project, index, copiedId, onEdit, onDelete, onCopyUrl, onOpen },
+  ref
+) {
   const color = SOLUTION_COLORS[project.solution] ?? "#7c3aed";
   const isActive = project.status === "active";
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -277,7 +281,7 @@ function ProjectCard({ project, index, copiedId, onEdit, onDelete, onCopyUrl, on
       </div>
     </motion.div>
   );
-}
+});
 
 function StatusBadge({ status }: { status: string }) {
   return (
