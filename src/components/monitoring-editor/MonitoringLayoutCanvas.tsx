@@ -216,9 +216,16 @@ function intersects(a: LayoutItem, b: LayoutItem) {
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
 }
 
-function resolveLayout(items: LayoutItem[]) {
+// priorityId: 드래그 중인 위젯 ID — 같은 y 위치에서 이 위젯이 항상 먼저 배치됨
+// → 기존 위젯들이 드래그된 위젯에게 자리를 양보하는 "자연스러운 배치" 구현
+function resolveLayout(items: LayoutItem[], priorityId?: string) {
   const placed: LayoutItem[] = [];
   const sorted = [...items].sort((a, b) => {
+    // 드래그 중인 위젯은 같은 y에서 무조건 먼저 배치
+    if (priorityId) {
+      if (a.id === priorityId && b.id !== priorityId) return -1;
+      if (b.id === priorityId && a.id !== priorityId) return 1;
+    }
     if (a.y !== b.y) return a.y - b.y;
     if (a.x !== b.x) return a.x - b.x;
     if (a.source !== b.source) return a.source === "widget-library" ? -1 : 1;
@@ -571,7 +578,8 @@ export default function MonitoringLayoutCanvas({
 
     // Custom-to-custom collision만 해소. Default items는 제외.
     // → 에디터 시각이 런타임 오버레이와 동일해짐 (커스텀 위젯이 default 항목 위에 올려짐)
-    const resolvedCustom = resolveLayout(customItems);
+    // selectedWidgetId(드래그 중인 위젯)를 priorityId로 전달 → 드래그한 위젯이 자리를 확보하고 기존 위젯이 밀려남
+    const resolvedCustom = resolveLayout(customItems, selectedWidgetId ?? undefined);
     // Default 항목 먼저(하단 레이어), custom 항목 나중에(상단 레이어)
     return [...defaultItems, ...resolvedCustom];
   }, [customWidgets, defaultItems, selectedWidgetId, widgetById, widgetLiveData]);

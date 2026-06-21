@@ -749,12 +749,17 @@ function canvasWidgetsIntersect(
 }
 
 // Custom 위젯끼리만 충돌 해소 (에디터 렌더 결과와 동일한 로직)
-// → 스냅샷/런타임이 에디터 시각과 일치하도록 보장
-function resolveCustomWidgetLayout(widgets: CanvasWidgetInstance[]): CanvasWidgetInstance[] {
+// priorityId: 드래그 완료된 위젯 — 이 위젯이 원하는 자리를 확보하고 나머지가 밀려남
+function resolveCustomWidgetLayout(widgets: CanvasWidgetInstance[], priorityId?: string): CanvasWidgetInstance[] {
   const placed: { x: number; y: number; w: number; h: number }[] = [];
-  const sorted = [...widgets].sort((a, b) =>
-    a.y !== b.y ? a.y - b.y : a.x !== b.x ? a.x - b.x : a.instanceId.localeCompare(b.instanceId)
-  );
+  const sorted = [...widgets].sort((a, b) => {
+    // 드래그된 위젯 최우선 배치
+    if (priorityId) {
+      if (a.instanceId === priorityId && b.instanceId !== priorityId) return -1;
+      if (b.instanceId === priorityId && a.instanceId !== priorityId) return 1;
+    }
+    return a.y !== b.y ? a.y - b.y : a.x !== b.x ? a.x - b.x : a.instanceId.localeCompare(b.instanceId);
+  });
   const result: CanvasWidgetInstance[] = [];
   sorted.forEach((w) => {
     const r = { x: Math.max(0, Math.min(w.x, GRID_COLS - w.w)), y: w.y, w: w.w, h: w.h };
@@ -1553,11 +1558,11 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       );
     };
 
+    const draggedId = interaction.instanceId;
     const handlePointerUp = () => {
       setInteraction(null);
-      // 드래그 완료 시점에 저장 위치를 resolvedCustomWidgetLayout으로 갱신
-      // → 다음 드래그 시작 위치가 에디터 시각과 일치
-      setCanvasWidgets((current) => resolveCustomWidgetLayout(current));
+      // 드래그된 위젯이 원하는 자리를 확보하고 기존 위젯이 밀려나도록 priorityId 전달
+      setCanvasWidgets((current) => resolveCustomWidgetLayout(current, draggedId));
     };
 
     window.addEventListener("pointermove", handlePointerMove);
