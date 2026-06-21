@@ -12,3 +12,5 @@
 - AIM Monitoring 확대·실행 화면의 좌측 페이지 추가 버튼 숨김
 - 좌측 메뉴 접기 전·후에도 상단 로고 영역을 220px로 고정
 - 검증: `npx tsc --noEmit`, `npm run build`, editor/monitoring HTTP 200
+- 데모 로그인의 브라우저 이메일 형식 검사를 제거하고 `/home` 전체 페이지 이동으로 진입 안정화
+- 검증: `npx tsc --noEmit`, `npm run build`

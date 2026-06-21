@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,8 +12,8 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 900));
-    router.push("/home");
+    await new Promise((r) => setTimeout(r, 300));
+    window.location.assign("/home");
   };
 
   return (
@@ -112,10 +110,10 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <form noValidate onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "var(--t3)", marginBottom: 8 }}>이메일</label>
-                  <FormInput type="email" placeholder="admin@aimnis.ai" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <FormInput type="text" inputMode="email" placeholder="admin@aimnis.ai" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "var(--t3)", marginBottom: 8 }}>비밀번호</label>
@@ -157,12 +155,12 @@ export default function LoginPage() {
   );
 }
 
-function FormInput({ type, placeholder, value, onChange }: { type: string; placeholder: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+function FormInput({ type, inputMode, placeholder, value, onChange }: { type: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]; placeholder: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
   const [focused, setFocused] = useState(false);
   return (
     <div style={{ border: `1px solid ${focused ? "oklch(60% 0.20 285 / .6)" : "var(--border2)"}`, borderRadius: 10, background: focused ? "oklch(100% 0 0 / .04)" : "oklch(100% 0 0 / .025)", transition: "all .2s", boxShadow: focused ? "0 0 0 3px oklch(60% 0.20 285 / .12), inset 0 1px 0 oklch(100% 0 0 / .05)" : "inset 0 1px 0 oklch(100% 0 0 / .04)" }}>
       <input
-        type={type} placeholder={placeholder} value={value} onChange={onChange}
+        type={type} inputMode={inputMode} placeholder={placeholder} value={value} onChange={onChange}
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         style={{ width: "100%", padding: "13px 14px", background: "transparent", border: "none", outline: "none", color: "var(--t1)", fontSize: 14, fontFamily: "var(--font)", letterSpacing: "0.01em" }}
       />

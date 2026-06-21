@@ -324,5 +324,20 @@
     "passes": true,
     "completedAt": "2026-06-22",
     "notes": "페이지 관리 UI 표시 여부를 캔버스 prop으로 분리하고 헤더 로고 크기를 사이드바 열림 상태와 분리함"
+  },
+  {
+    "id": "F-020",
+    "category": "auth",
+    "priority": 21,
+    "description": "데모 로그인 홈 진입 차단 회귀 수정",
+    "steps": [
+      "이메일 형식과 관계없이 데모 로그인 허용",
+      "폼 기본 유효성 검사가 제출을 차단하지 않도록 수정",
+      "로그인 후 /home을 전체 페이지 이동으로 로드",
+      "TypeScript 검사 및 production build 확인"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-22",
+    "notes": "데모 안내와 다르게 브라우저 email 검증에 막히던 흐름을 제거하고 window.location.assign으로 안정적인 홈 진입을 보장함"
   }
 ]
