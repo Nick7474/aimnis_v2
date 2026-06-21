@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Activity, ArrowLeft, Edit2 } from "lucide-react";
 import type { SolutionWidget } from "@/lib/solutionLoader";
+import type { BrandSettings } from "@/lib/brandPresets";
 import { useProjectStore } from "@/store/projectStore";
-import { useMonitoringRuntimeStore } from "@/store/monitoringRuntimeStore";
-import MonitoringApp from "@/monitoring-app/MonitoringApp";
+import MonitoringLayoutCanvas, {
+  DEFAULT_MONITORING_ELEMENT_CONFIGS,
+  type MonitoringElementConfigs,
+} from "./MonitoringLayoutCanvas";
+import { useMonitoringPagesStore } from "@/store/monitoringPagesStore";
 
 interface MonitoringRuntimeViewProps {
   widgets: SolutionWidget[];
@@ -29,6 +33,8 @@ interface RuntimeWidgetInstance {
 
 interface MonitoringSnapshot {
   schemaVersion: "monitoring.snapshot.v1";
+  elements?: MonitoringElementConfigs;
+  brand?: { settings?: BrandSettings };
   widgets: {
     grid: { columns: number; rowHeight: number };
     items: RuntimeWidgetInstance[];
@@ -41,7 +47,8 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
   const projectId = searchParams.get("project");
   const projects = useProjectStore((state) => state.projects);
   const [draftSnapshot, setDraftSnapshot] = useState<MonitoringSnapshot | null>(null);
-  const { setRuntime, clearRuntime } = useMonitoringRuntimeStore();
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const { addedPages } = useMonitoringPagesStore();
 
   // widgetId → SolutionWidget 맵
   const widgetById = useMemo(
@@ -68,13 +75,9 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
     return projectId ? list.find((p) => p.id === projectId) ?? null : list[0] ?? null;
   }, [projectId, projects]);
 
-  // snapshot → 런타임 스토어에 주입 (mount) / 정리 (unmount)
-  useEffect(() => {
-    const snapshot = (activeProject?.monitoringSnapshot as MonitoringSnapshot | undefined) ?? draftSnapshot;
-    const items = snapshot?.widgets.items ?? [];
-    setRuntime(items, widgetById);
-    return () => clearRuntime();
-  }, [activeProject, draftSnapshot, widgetById, setRuntime, clearRuntime]);
+  const snapshot = (activeProject?.monitoringSnapshot as MonitoringSnapshot | undefined) ?? draftSnapshot;
+  const elementConfigs = snapshot?.elements ?? DEFAULT_MONITORING_ELEMENT_CONFIGS;
+  const runtimeWidgets = snapshot?.widgets.items ?? [];
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#050814] text-white">
@@ -101,9 +104,26 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
         </Link>
       </header>
 
-      {/* MonitoringApp — 커스텀 위젯은 Dashboard 안에서 렌더링됨 */}
+      {/* 저장된 12-grid 스냅샷을 에디터/풀스크린과 동일한 캔버스로 렌더 */}
       <main className="absolute inset-0 pt-12">
-        <MonitoringApp runtimeMode={true} />
+        <MonitoringLayoutCanvas
+          canvasRef={canvasRef}
+          customWidgets={runtimeWidgets}
+          widgetById={widgetById}
+          elementConfigs={elementConfigs}
+          brand={snapshot?.brand?.settings}
+          selectedWidgetId={null}
+          selectedElementId={null}
+          isDraggingWidget={false}
+          interactionActive={false}
+          layoutPriorityId={null}
+          onDragOver={() => {}}
+          onDrop={() => {}}
+          onSelectWidget={() => {}}
+          onSelectElement={() => {}}
+          onStartWidgetInteraction={() => {}}
+          addedPages={addedPages}
+        />
       </main>
     </div>
   );

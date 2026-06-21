@@ -87,6 +87,7 @@ interface MonitoringLayoutCanvasProps {
   selectedElementId: string | null;
   isDraggingWidget: boolean;
   interactionActive: boolean;
+  layoutPriorityId?: string | null;
   onDragOver: (event: DragEvent<HTMLDivElement>) => void;
   onDrop: (event: DragEvent<HTMLDivElement>) => void;
   onSelectWidget: (instanceId: string) => void;
@@ -393,6 +394,7 @@ export default function MonitoringLayoutCanvas({
   selectedElementId,
   isDraggingWidget,
   interactionActive,
+  layoutPriorityId = null,
   onDragOver,
   onDrop,
   onSelectWidget,
@@ -577,13 +579,9 @@ export default function MonitoringLayoutCanvas({
       };
     });
 
-    // Custom-to-custom collision만 해소. Default items는 제외.
-    // → 에디터 시각이 런타임 오버레이와 동일해짐 (커스텀 위젯이 default 항목 위에 올려짐)
-    // selectedWidgetId(드래그 중인 위젯)를 priorityId로 전달 → 드래그한 위젯이 자리를 확보하고 기존 위젯이 밀려남
-    const resolvedCustom = resolveLayout(customItems, selectedWidgetId ?? undefined);
-    // Default 항목 먼저(하단 레이어), custom 항목 나중에(상단 레이어)
-    return [...defaultItems, ...resolvedCustom];
-  }, [customWidgets, defaultItems, selectedWidgetId, widgetById, widgetLiveData]);
+    // 기본/신규 위젯을 하나의 12-column 배치 엔진에서 해석한다.
+    return resolveLayout([...defaultItems, ...customItems], layoutPriorityId ?? undefined);
+  }, [customWidgets, defaultItems, layoutPriorityId, selectedWidgetId, widgetById, widgetLiveData]);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden font-sans" style={rootStyle}>
@@ -781,8 +779,7 @@ export default function MonitoringLayoutCanvas({
                       style={{
                         gridColumn: `${item.x + 1} / span ${item.w}`,
                         gridRow: `${item.y + 1} / span ${item.h}`,
-                        // Custom 위젯은 default 항목 위에 표시
-                        ...(isCustom ? { position: "relative", zIndex: 20 } : {}),
+                        ...(isCustom ? { position: "relative" } : {}),
                       }}
                     >
                       {isCustom && item.widgetInstance ? (

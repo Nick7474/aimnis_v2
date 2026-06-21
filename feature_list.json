@@ -293,5 +293,21 @@
     "passes": true,
     "completedAt": "2026-04-12",
     "notes": "전체 라우트 200 확인(/,/home,/editor,/projects,/guard), eco→/home 307, AIM ECO coming-soon 칩 확인"
+  },
+  {
+    "id": "F-018",
+    "category": "monitoring",
+    "priority": 19,
+    "description": "AIM Monitoring 12그리드 배치·풀스크린·런타임 일관성 회귀 수정",
+    "steps": [
+      "기본 위젯과 신규 위젯을 동일한 12그리드 충돌 엔진으로 배치",
+      "드래그·리사이즈 종료 시 확정 좌표를 editor state에 반영",
+      "상단 확대 화면에서 동일한 스냅샷 배치 유지",
+      "저장·퍼블리시 후 /monitoring에서 동일한 캔버스 렌더",
+      "TypeScript 검사, production build, editor/monitoring route 200 확인"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-21",
+    "notes": "레이아웃 기준을 editor state/snapshot 하나로 통합하고 기본·커스텀 위젯 오버레이 회귀를 제거함"
   }
 ]

@@ -748,28 +748,72 @@ function canvasWidgetsIntersect(
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
 }
 
-// Custom 위젯끼리만 충돌 해소 (에디터 렌더 결과와 동일한 로직)
-// priorityId: 드래그 완료된 위젯 — 이 위젯이 원하는 자리를 확보하고 나머지가 밀려남
-function resolveCustomWidgetLayout(widgets: CanvasWidgetInstance[], priorityId?: string): CanvasWidgetInstance[] {
-  const placed: { x: number; y: number; w: number; h: number }[] = [];
-  const sorted = [...widgets].sort((a, b) => {
-    // 드래그된 위젯 최우선 배치
+interface ResolvedMonitoringLayout {
+  widgets: CanvasWidgetInstance[];
+  elements: MonitoringElementConfigs;
+}
+
+/** 기본 위젯과 라이브러리 위젯을 동일한 12-column 좌표계에서 확정한다. */
+function resolveMonitoringLayout(
+  widgets: CanvasWidgetInstance[],
+  elements: MonitoringElementConfigs,
+  priorityId?: string
+): ResolvedMonitoringLayout {
+  const defaults = Object.entries(elements.defaultWidgets)
+    .filter(([, config]) => config.visible !== false)
+    .map(([id, config]) => {
+      const fallback = DEFAULT_WIDGET_POSITIONS[id] ?? { x: 0, y: 0, w: 1, h: 1 };
+      return {
+        id,
+        source: "default" as const,
+        x: config.x ?? fallback.x,
+        y: config.y ?? fallback.y,
+        w: config.w ?? fallback.w,
+        h: config.h ?? fallback.h,
+      };
+    });
+  const customs = widgets.map((widget) => ({
+    id: widget.instanceId,
+    source: "custom" as const,
+    x: widget.x,
+    y: widget.y,
+    w: widget.w,
+    h: widget.h,
+  }));
+  const placed: Array<{ id: string; source: "default" | "custom"; x: number; y: number; w: number; h: number }> = [];
+  const sorted = [...defaults, ...customs].sort((a, b) => {
     if (priorityId) {
-      if (a.instanceId === priorityId && b.instanceId !== priorityId) return -1;
-      if (b.instanceId === priorityId && a.instanceId !== priorityId) return 1;
+      if (a.id === priorityId && b.id !== priorityId) return -1;
+      if (b.id === priorityId && a.id !== priorityId) return 1;
     }
-    return a.y !== b.y ? a.y - b.y : a.x !== b.x ? a.x - b.x : a.instanceId.localeCompare(b.instanceId);
+    if (a.y !== b.y) return a.y - b.y;
+    if (a.x !== b.x) return a.x - b.x;
+    if (a.source !== b.source) return a.source === "default" ? -1 : 1;
+    return a.id.localeCompare(b.id);
   });
-  const result: CanvasWidgetInstance[] = [];
-  sorted.forEach((w) => {
-    const r = { x: Math.max(0, Math.min(w.x, GRID_COLS - w.w)), y: w.y, w: w.w, h: w.h };
-    while (placed.some((p) => !(r.x + r.w <= p.x || p.x + p.w <= r.x || r.y + r.h <= p.y || p.y + p.h <= r.y))) {
-      r.y += 1;
-    }
-    placed.push(r);
-    result.push({ ...w, x: r.x, y: r.y });
+
+  sorted.forEach((item) => {
+    const next = { ...item, x: clamp(item.x, 0, GRID_COLS - item.w), y: Math.max(0, item.y) };
+    while (placed.some((other) => canvasWidgetsIntersect(next, other))) next.y += 1;
+    placed.push(next);
   });
-  return result;
+
+  const positionById = Object.fromEntries(placed.map((item) => [item.id, item]));
+  return {
+    widgets: widgets.map((widget) => {
+      const position = positionById[widget.instanceId];
+      return position ? { ...widget, x: position.x, y: position.y, w: position.w, h: position.h } : widget;
+    }),
+    elements: {
+      ...elements,
+      defaultWidgets: Object.fromEntries(
+        Object.entries(elements.defaultWidgets).map(([id, config]) => {
+          const position = positionById[id];
+          return [id, position ? { ...config, x: position.x, y: position.y, w: position.w, h: position.h } : config];
+        })
+      ),
+    },
+  };
 }
 
 function findNextWidgetPlacement(
@@ -888,8 +932,25 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [widgetSearch, setWidgetSearch] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const fullscreenCanvasRef = useRef<HTMLDivElement>(null);
+  const canvasWidgetsRef = useRef<CanvasWidgetInstance[]>([]);
+  const elementConfigsRef = useRef<MonitoringElementConfigs>(elementConfigs);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const hydratedRef = useRef(false);
+
+  canvasWidgetsRef.current = canvasWidgets;
+  elementConfigsRef.current = elementConfigs;
+
+  const commitResolvedLayout = useCallback((priorityId?: string) => {
+    const resolved = resolveMonitoringLayout(
+      canvasWidgetsRef.current,
+      elementConfigsRef.current,
+      priorityId
+    );
+    canvasWidgetsRef.current = resolved.widgets;
+    elementConfigsRef.current = resolved.elements;
+    setCanvasWidgets(resolved.widgets);
+    setElementConfigs(resolved.elements);
+  }, []);
 
   const widgetById = useMemo(() => {
     return Object.fromEntries(widgets.map((widget) => [widget.id, widget])) as Record<string, SolutionWidget>;
@@ -938,14 +999,13 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
   const createSnapshot = (): MonitoringSnapshot => {
     const now = new Date().toISOString();
-    // 에디터 렌더와 동일하게 custom-to-custom 충돌을 해소한 위치로 저장
-    const resolvedWidgets = resolveCustomWidgetLayout(canvasWidgets);
+    const resolved = resolveMonitoringLayout(canvasWidgets, elementConfigs);
     return {
       schemaVersion: "monitoring.snapshot.v1",
       solution: "monitoring",
       app: {
         activePageId: "home",
-        dashboardMode: resolvedWidgets.length > 0 ? "custom" : "default",
+        dashboardMode: resolved.widgets.length > 0 ? "custom" : "default",
         runtimeView: "operator",
       },
       editor: {
@@ -955,7 +1015,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         selectedWidgetId,
         selectedElement,
       },
-      elements: elementConfigs,
+      elements: resolved.elements,
       brand: {
         selectedPresetId: selectedBrandPresetId,
         settings: brand,
@@ -966,7 +1026,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           columns: GRID_COLS,
           rowHeight: GRID_ROW_HEIGHT,
         },
-        items: resolvedWidgets,
+        items: resolved.widgets,
       },
       createdAt: now,
       updatedAt: now,
@@ -1212,21 +1272,35 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         };
       });
 
-    setCanvasWidgets((current) => {
-      const placement = findNextWidgetPlacement(widget, [...current, ...defaultOccupied], preferred);
-      const instance: CanvasWidgetInstance = {
-        instanceId,
-        widgetId: widget.id,
-        title: widget.name,
-        x: placement.x,
-        y: placement.y,
-        w: placement.w,
-        h: placement.h,
-        options: buildDefaultWidgetOptions(widget),
-      };
-
-      return [...current, instance];
-    });
+    const width = Math.min(widget.defaultSize.w, GRID_COLS);
+    const height = Math.max(MIN_WIDGET_H, widget.defaultSize.h);
+    const placement = preferred
+      ? {
+          x: clamp(preferred.x, 0, GRID_COLS - width),
+          y: Math.max(0, preferred.y),
+          w: width,
+          h: height,
+        }
+      : findNextWidgetPlacement(widget, [...canvasWidgetsRef.current, ...defaultOccupied]);
+    const instance: CanvasWidgetInstance = {
+      instanceId,
+      widgetId: widget.id,
+      title: widget.name,
+      x: placement.x,
+      y: placement.y,
+      w: placement.w,
+      h: placement.h,
+      options: buildDefaultWidgetOptions(widget),
+    };
+    const resolved = resolveMonitoringLayout(
+      [...canvasWidgetsRef.current, instance],
+      elementConfigsRef.current,
+      preferred ? instanceId : undefined
+    );
+    canvasWidgetsRef.current = resolved.widgets;
+    elementConfigsRef.current = resolved.elements;
+    setCanvasWidgets(resolved.widgets);
+    setElementConfigs(resolved.elements);
 
     setSelectedWidgetId(instanceId);
     setSelectedElement(null);
@@ -1347,7 +1421,11 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         updateDefaultWidgetConfig(defaultInteraction.elementId, { x: nextX, y: nextY, w: nextW, h: nextH });
       }
     };
-    const handlePointerUp = () => setDefaultInteraction(null);
+    const draggedId = defaultInteraction.elementId;
+    const handlePointerUp = () => {
+      setDefaultInteraction(null);
+      commitResolvedLayout(draggedId);
+    };
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
     return () => {
@@ -1356,8 +1434,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       document.body.style.cursor = previousCursor;
       document.body.style.userSelect = previousUserSelect;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultInteraction]);
+  }, [commitResolvedLayout, defaultInteraction]);
 
   const updateSelectedWidget = (patch: Partial<CanvasWidgetInstance>) => {
     if (!selectedWidgetId) return;
@@ -1455,7 +1532,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   ) => {
     setElementConfigs((current) => {
       const currentConfig = current.defaultWidgets[id] ?? DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id];
-      return {
+      const next = {
         ...current,
         defaultWidgets: {
           ...current.defaultWidgets,
@@ -1465,6 +1542,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           },
         },
       };
+      elementConfigsRef.current = next;
+      return next;
     });
 
     if (patch.title && selectedElement?.id === id) {
@@ -1519,8 +1598,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       const dxCols = Math.round((event.clientX - interaction.startClientX) / metrics.strideX);
       const dyRows = Math.round((event.clientY - interaction.startClientY) / metrics.strideY);
 
-      setCanvasWidgets((current) =>
-        current.map((widget) => {
+      setCanvasWidgets((current) => {
+        const next = current.map((widget) => {
           if (widget.instanceId !== interaction.instanceId) return widget;
 
           if (interaction.kind === "move") {
@@ -1555,15 +1634,16 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           }
 
           return { ...widget, x: nextX, y: nextY, w: nextW, h: nextH };
-        })
-      );
+        });
+        canvasWidgetsRef.current = next;
+        return next;
+      });
     };
 
     const draggedId = interaction.instanceId;
     const handlePointerUp = () => {
       setInteraction(null);
-      // 드래그된 위젯이 원하는 자리를 확보하고 기존 위젯이 밀려나도록 priorityId 전달
-      setCanvasWidgets((current) => resolveCustomWidgetLayout(current, draggedId));
+      commitResolvedLayout(draggedId);
     };
 
     window.addEventListener("pointermove", handlePointerMove);
@@ -1575,7 +1655,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       document.body.style.cursor = previousCursor;
       document.body.style.userSelect = previousUserSelect;
     };
-  }, [interaction]);
+  }, [commitResolvedLayout, interaction]);
 
   const selectedInspectorLabel = selectedWidget?.title ?? selectedElement?.label ?? null;
   const selectedToolbarId = selectedWidget?.instanceId ?? selectedElement?.id ?? null;
@@ -2659,6 +2739,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               selectedElementId={selectedElement?.id ?? null}
               isDraggingWidget={isDraggingWidget}
               interactionActive={Boolean(interaction) || Boolean(defaultInteraction)}
+              layoutPriorityId={interaction?.instanceId ?? defaultInteraction?.elementId ?? null}
               onDragOver={(event) => {
                 if (event.dataTransfer.types.includes("application/x-aim-monitoring-widget")) {
                   event.preventDefault();
@@ -2815,6 +2896,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               selectedElementId={null}
               isDraggingWidget={false}
               interactionActive={false}
+              layoutPriorityId={null}
               onDragOver={() => {}}
               onDrop={() => {}}
               onSelectWidget={(id) => { setSelectedWidgetId(id); setIsFullscreen(false); }}
