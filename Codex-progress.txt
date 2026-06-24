@@ -18,3 +18,10 @@
 - QA 발견 수정: AIM ECO 필수 패키지, 프로젝트 카드 ref 경고, Monitoring 사이드바 접기 hover 회귀
 - Monitoring 패널 라인·개별 패널 톤·헤더·사이드바 스타일 반영을 자동 검증
 - 검증: `npm run qa` 11/11, `npm run qa:visual` 4/4, `npm run build`
+
+## 2026-06-24
+
+- AIM Monitoring 레이아웃 엔진에 확정 시점 자동 압축(compaction) 추가
+- 드래그 중 충돌 회피(push)는 유지하고, 드롭·삭제·숨김·저장 시 빈 세로 공간을 자동 정렬
+- 렌더러/에디터의 중복 배치 로직을 공통 순수 유틸로 통합하고 단위 QA를 `npm run qa`에 포함
+- 검증: `npx tsc --noEmit`, `npm run qa`, `npm run build`

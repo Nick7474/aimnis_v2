@@ -35,6 +35,7 @@ import {
 import type { BrandDensity, BrandMapTone, BrandRadius, BrandSettings } from "@/lib/brandPresets";
 import { getBrandTextDefaults } from "@/lib/brandPresets";
 import type { SolutionManifest, SolutionTemplate, SolutionWidget } from "@/lib/solutionLoader";
+import { monitoringGridItemsIntersect, resolveMonitoringGrid, type MonitoringLayoutMode } from "@/lib/monitoringLayoutEngine";
 import { cn } from "@/lib/utils";
 import { useProjectStore } from "@/store/projectStore";
 import MonitoringLayoutCanvas, {
@@ -745,7 +746,7 @@ function canvasWidgetsIntersect(
   a: Pick<CanvasWidgetInstance, "x" | "y" | "w" | "h">,
   b: Pick<CanvasWidgetInstance, "x" | "y" | "w" | "h">
 ) {
-  return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+  return monitoringGridItemsIntersect(a, b);
 }
 
 interface ResolvedMonitoringLayout {
@@ -757,7 +758,8 @@ interface ResolvedMonitoringLayout {
 function resolveMonitoringLayout(
   widgets: CanvasWidgetInstance[],
   elements: MonitoringElementConfigs,
-  priorityId?: string
+  priorityId?: string,
+  mode: MonitoringLayoutMode = "compact"
 ): ResolvedMonitoringLayout {
   const defaults = Object.entries(elements.defaultWidgets)
     .filter(([, config]) => config.visible !== false)
@@ -780,22 +782,11 @@ function resolveMonitoringLayout(
     w: widget.w,
     h: widget.h,
   }));
-  const placed: Array<{ id: string; source: "default" | "custom"; x: number; y: number; w: number; h: number }> = [];
-  const sorted = [...defaults, ...customs].sort((a, b) => {
-    if (priorityId) {
-      if (a.id === priorityId && b.id !== priorityId) return -1;
-      if (b.id === priorityId && a.id !== priorityId) return 1;
-    }
-    if (a.y !== b.y) return a.y - b.y;
-    if (a.x !== b.x) return a.x - b.x;
-    if (a.source !== b.source) return a.source === "default" ? -1 : 1;
-    return a.id.localeCompare(b.id);
-  });
-
-  sorted.forEach((item) => {
-    const next = { ...item, x: clamp(item.x, 0, GRID_COLS - item.w), y: Math.max(0, item.y) };
-    while (placed.some((other) => canvasWidgetsIntersect(next, other))) next.y += 1;
-    placed.push(next);
+  const placed = resolveMonitoringGrid([...defaults, ...customs], {
+    columns: GRID_COLS,
+    mode,
+    priorityId,
+    sourceOrder: { default: 0, custom: 1 },
   });
 
   const positionById = Object.fromEntries(placed.map((item) => [item.id, item]));
@@ -940,11 +931,17 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   canvasWidgetsRef.current = canvasWidgets;
   elementConfigsRef.current = elementConfigs;
 
-  const commitResolvedLayout = useCallback((priorityId?: string) => {
+  const commitResolvedLayout = useCallback((
+    priorityId?: string,
+    mode: MonitoringLayoutMode = "compact",
+    widgetsOverride?: CanvasWidgetInstance[],
+    elementsOverride?: MonitoringElementConfigs
+  ) => {
     const resolved = resolveMonitoringLayout(
-      canvasWidgetsRef.current,
-      elementConfigsRef.current,
-      priorityId
+      widgetsOverride ?? canvasWidgetsRef.current,
+      elementsOverride ?? elementConfigsRef.current,
+      priorityId,
+      mode
     );
     canvasWidgetsRef.current = resolved.widgets;
     elementConfigsRef.current = resolved.elements;
@@ -1034,12 +1031,16 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   };
 
   const applySnapshot = (snapshot: MonitoringSnapshot) => {
+    const normalizedElements = normalizeElementConfigs(snapshot.elements);
+    const resolved = resolveMonitoringLayout(snapshot.widgets.items ?? [], normalizedElements);
     setCenterView(snapshot.editor.centerView);
     setShowRightPanel(snapshot.editor.showRightPanel);
-    setCanvasWidgets(snapshot.widgets.items ?? []);
+    canvasWidgetsRef.current = resolved.widgets;
+    elementConfigsRef.current = resolved.elements;
+    setCanvasWidgets(resolved.widgets);
     setSelectedWidgetId(snapshot.editor.selectedWidgetId);
     setSelectedElement(snapshot.editor.selectedElement ?? null);
-    setElementConfigs(normalizeElementConfigs(snapshot.elements));
+    setElementConfigs(resolved.elements);
     setBrand(resolveSnapshotBrand(snapshot.brand));
     setSelectedBrandPresetId(snapshot.brand?.selectedPresetId ?? "monitoring-default");
     setCustomBrandSlots(snapshot.brand?.customSlots ?? []);
@@ -1443,31 +1444,54 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
   const removeSelectedWidget = () => {
     if (!selectedWidgetId) return;
-    setCanvasWidgets((current) => current.filter((widget) => widget.instanceId !== selectedWidgetId));
+    const nextWidgets = canvasWidgetsRef.current.filter((widget) => widget.instanceId !== selectedWidgetId);
+    commitResolvedLayout(undefined, "compact", nextWidgets, elementConfigsRef.current);
     setSelectedWidgetId(null);
   };
 
   const hideSelectedDefaultWidget = () => {
     if (selectedElement?.kind !== "default-widget") return;
-    updateDefaultWidgetConfig(selectedElement.id, { visible: false });
+    const currentConfig =
+      elementConfigsRef.current.defaultWidgets[selectedElement.id] ??
+      DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[selectedElement.id];
+    const nextElements = {
+      ...elementConfigsRef.current,
+      defaultWidgets: {
+        ...elementConfigsRef.current.defaultWidgets,
+        [selectedElement.id]: {
+          ...currentConfig,
+          visible: false,
+        },
+      },
+    };
+    commitResolvedLayout(undefined, "compact", canvasWidgetsRef.current, nextElements);
     setSelectedElement(null);
   };
 
   const resetAllDefaultWidgets = () => {
-    setElementConfigs((current) => ({
-      ...current,
+    const nextElements = {
+      ...elementConfigsRef.current,
       defaultWidgets: Object.fromEntries(
-        Object.entries(current.defaultWidgets).map(([id]) => [
+        Object.entries(elementConfigsRef.current.defaultWidgets).map(([id]) => [
           id,
           { ...DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id], x: undefined, y: undefined, w: undefined, h: undefined },
         ])
       ),
-    }));
+    };
+    commitResolvedLayout(undefined, "compact", canvasWidgetsRef.current, nextElements);
   };
 
   const resetFullCanvas = () => {
-    setCanvasWidgets([]);
-    resetAllDefaultWidgets();
+    const nextElements = {
+      ...elementConfigsRef.current,
+      defaultWidgets: Object.fromEntries(
+        Object.entries(elementConfigsRef.current.defaultWidgets).map(([id]) => [
+          id,
+          { ...DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id], x: undefined, y: undefined, w: undefined, h: undefined },
+        ])
+      ),
+    };
+    commitResolvedLayout(undefined, "compact", [], nextElements);
     setSelectedWidgetId(null);
     setSelectedElement(null);
   };

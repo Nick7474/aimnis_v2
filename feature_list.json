@@ -357,5 +357,21 @@
     "passes": true,
     "completedAt": "2026-06-22",
     "notes": "Playwright 기반 재현 가능한 QA 하네스를 구축하고 첫 전수 검사에서 발견한 구조·콘솔·사이드바 회귀를 수정함"
+  },
+  {
+    "id": "F-022",
+    "category": "monitoring",
+    "priority": 23,
+    "description": "AIM Monitoring 위젯 빈공간 자동 압축 정렬",
+    "steps": [
+      "드래그 중 기존 충돌 회피 동작 유지",
+      "드롭·삭제·숨김·저장 확정 시점에 세로 빈공간 자동 압축",
+      "기본 위젯과 라이브러리 위젯을 동일한 12컬럼 엔진으로 정렬",
+      "레이아웃 압축 단위 테스트를 QA 하네스에 포함",
+      "전체 QA와 production build 통과"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-24",
+    "notes": "공통 monitoringLayoutEngine을 추가해 push/compact 모드를 분리하고, 빈 슬롯 발생 시 하단 위젯이 자연스럽게 위로 올라오도록 확정 좌표를 정규화함"
   }
 ]

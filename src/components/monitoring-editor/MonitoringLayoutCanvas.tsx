@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Activity, Bell, Info, MoreVertical, Triangle, UserCheck, Wind } from "lucide-react";
 import type { BrandSettings } from "@/lib/brandPresets";
 import type { SolutionWidget } from "@/lib/solutionLoader";
+import { resolveMonitoringGrid } from "@/lib/monitoringLayoutEngine";
 import Sidebar from "@/monitoring-app/components/Sidebar";
 import Header from "@/monitoring-app/components/Header";
 import MainChartSection from "@/monitoring-app/components/MainChartSection";
@@ -232,35 +233,15 @@ const CATEGORY_LABELS: Record<string, string> = {
   "field-validation": "실증",
 };
 
-function intersects(a: LayoutItem, b: LayoutItem) {
-  return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-}
-
 // priorityId: 드래그 중인 위젯 ID — 같은 y 위치에서 이 위젯이 항상 먼저 배치됨
 // → 기존 위젯들이 드래그된 위젯에게 자리를 양보하는 "자연스러운 배치" 구현
 function resolveLayout(items: LayoutItem[], priorityId?: string) {
-  const placed: LayoutItem[] = [];
-  const sorted = [...items].sort((a, b) => {
-    // 드래그 중인 위젯은 같은 y에서 무조건 먼저 배치
-    if (priorityId) {
-      if (a.id === priorityId && b.id !== priorityId) return -1;
-      if (b.id === priorityId && a.id !== priorityId) return 1;
-    }
-    if (a.y !== b.y) return a.y - b.y;
-    if (a.x !== b.x) return a.x - b.x;
-    if (a.source !== b.source) return a.source === "widget-library" ? -1 : 1;
-    return a.id.localeCompare(b.id);
+  return resolveMonitoringGrid(items, {
+    columns: GRID_COLUMNS,
+    mode: "push",
+    priorityId,
+    sourceOrder: { "widget-library": 0, "ai-studio-default": 1 },
   });
-
-  sorted.forEach((item) => {
-    const next = { ...item, x: Math.max(0, Math.min(item.x, GRID_COLUMNS - item.w)) };
-    while (placed.some((placedItem) => intersects(next, placedItem))) {
-      next.y += 1;
-    }
-    placed.push(next);
-  });
-
-  return placed.sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
 }
 
 function SummaryCard({
