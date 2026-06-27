@@ -80,6 +80,8 @@ function ChatInput() {
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: typeof userContent === "string" ? userContent : text }],
           solution: selectedSolution ?? "guard",
+          keepTurns: 3,
+          chatMode: "design",
         }),
       });
 

@@ -86,6 +86,26 @@
 
 ## 세션 로그
 
+### [2026-06-27] 채팅 패널 3종 고도화 — Non-blocking + 멀티턴 + 빠른 칩
+
+#### 변경 내용
+- **P1 HomeHero.tsx**: 솔루션 미선택 시 채팅 차단 완전 제거
+  - `if (!activeSolution) { triggerSolutionHint(); return; }` 삭제
+  - submit 버튼 disabled에서 `!activeSolution` 조건 제거
+  - placeholder 개선: "어떤 현장을 모니터링하고 싶으신가요?" (솔루션 미선택 시)
+- **P2 HomeV2.tsx ChatInput**: 설계 모드 멀티턴 대화 컨텍스트 적용
+  - API 호출 시 `keepTurns: 3, chatMode: "design"` 추가
+  - 이전 3턴 대화 맥락을 AI에게 제공하여 연속성 확보
+- **P3 MonitoringChatPanel.tsx (editor)**: 멀티턴 컨텍스트 + 빠른 선택 칩
+  - API 호출 전 최근 4개 메시지 히스토리 캡처하여 컨텍스트로 전달
+  - `keepTurns: 3` 파라미터 추가
+  - AI 응답 완료 후 상황별 빠른 칩 3개 표시 (위젯/브랜드/일반 모드 구분)
+- **`/api/chat/route.ts`**: 공통 인프라 고도화
+  - `buildTurnContext()` 헬퍼: 역방향 순회로 올바른 user/assistant 교대 구조 보장
+  - `keepTurns` 파라미터: >1이면 멀티턴, 기본값은 싱글턴 (에디터 위젯 중복 방지 유지)
+  - `chatMode: "design"` 지원: 설계 컨텍스트 전용 시스템 프롬프트 + max_tokens 300
+  - `buildClaudeSystem(solution, chatMode?)` 함수 시그니처 확장
+
 ### [2026-06-22] QA/QC 버그 수정 세션 — BUG 오딧 23개 중 주요 버그 수정 완료
 
 #### 완료 수정 목록

@@ -17,6 +17,17 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   streaming?: boolean;
+  chips?: string[];
+}
+
+function getContextChips(content: string): string[] {
+  if (content.includes("캔버스에 추가") || content.includes("위젯을 추가")) {
+    return ["비슷한 위젯 추가", "레이아웃 조언", "설정 안내"];
+  }
+  if (content.includes("브랜드 테마") || content.includes("컬러")) {
+    return ["다른 브랜드 적용", "색상 초기화", "폰트 변경"];
+  }
+  return ["위젯 더 추가", "레이아웃 최적화", "AI 진단 추가"];
 }
 
 const LOGS = [
@@ -114,17 +125,19 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
     if (presetMatch) {
       const result = onPresetCommand?.(presetMatch.presetId);
       const isReset = presetMatch.presetId === "monitoring-default";
+      const assistantContent = result?.applied
+        ? isReset
+          ? `✓ 컬러를 AIM Monitoring 기본 테마로 초기화했습니다.\n모든 색상과 서비스명이 최초 기본값으로 돌아갑니다.`
+          : `✓ ${presetMatch.presetLabel} 브랜드 테마를 적용했습니다.\n모니터링 화면의 색상·서비스명이 변경됩니다.`
+        : `${presetMatch.presetLabel} 테마 적용에 실패했습니다.`;
       setMessages((current) => [
         ...current,
         { id: `user-${Date.now()}`, role: "user", content: text },
         {
           id: `assistant-${Date.now() + 1}`,
           role: "assistant",
-          content: result?.applied
-            ? isReset
-              ? `✓ 컬러를 AIM Monitoring 기본 테마로 초기화했습니다.\n모든 색상과 서비스명이 최초 기본값으로 돌아갑니다.`
-              : `✓ ${presetMatch.presetLabel} 브랜드 테마를 적용했습니다.\n모니터링 화면의 색상·서비스명이 변경됩니다.`
-            : `${presetMatch.presetLabel} 테마 적용에 실패했습니다.`,
+          content: assistantContent,
+          chips: getContextChips(assistantContent),
         },
       ]);
       return;
@@ -132,17 +145,25 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
 
     const widgetCommand = onWidgetCommand?.(text);
     if (widgetCommand?.added) {
+      const assistantContent = `✓ ${widgetCommand.widgetName ?? "AIM Monitoring 위젯"}을 캔버스에 추가했습니다.`;
       setMessages((current) => [
         ...current,
         { id: `user-${Date.now()}`, role: "user", content: text },
         {
           id: `assistant-${Date.now() + 1}`,
           role: "assistant",
-          content: `✓ ${widgetCommand.widgetName ?? "AIM Monitoring 위젯"}을 캔버스에 추가했습니다.`,
+          content: assistantContent,
+          chips: getContextChips(assistantContent),
         },
       ]);
       return;
     }
+
+    // 멀티턴 컨텍스트: API 호출 전 현재 메시지 히스토리 캡처
+    const contextHistory = messages
+      .filter((m) => !m.streaming && m.content.trim() && m.id !== "monitoring-welcome")
+      .slice(-4)
+      .map((m) => ({ role: m.role, content: m.content }));
 
     setMessages((current) => [
       ...current,
@@ -161,8 +182,9 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: text }],
+          messages: [...contextHistory, { role: "user", content: text }],
           solution: solutionId,
+          keepTurns: 3,
         }),
       });
 
@@ -183,12 +205,22 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
         updateLastAssistant(full);
       }
 
-      updateLastAssistant(full || "응답을 받았지만 표시할 내용이 없습니다.");
+      const finalContent = full || "응답을 받았지만 표시할 내용이 없습니다.";
+      setMessages((current) =>
+        current.map((m, idx) =>
+          idx === current.length - 1 && m.role === "assistant"
+            ? { ...m, content: finalContent, streaming: false, chips: getContextChips(finalContent) }
+            : m
+        )
+      );
     } catch {
-      updateLastAssistant(
-        widgetCommand?.added
-          ? `요청하신 ${widgetCommand.widgetName ?? "AIM Monitoring 위젯"}을 컨텐츠에 추가했습니다.\n\nAPI 답변은 연결 오류로 표시하지 못했습니다.`
-          : "API 연결 오류가 발생했습니다. ANTHROPIC_API_KEY 또는 /api/chat 상태를 확인해야 합니다."
+      const errContent = "API 연결 오류가 발생했습니다. ANTHROPIC_API_KEY 또는 /api/chat 상태를 확인해야 합니다.";
+      setMessages((current) =>
+        current.map((m, idx) =>
+          idx === current.length - 1 && m.role === "assistant"
+            ? { ...m, content: errContent, streaming: false }
+            : m
+        )
       );
     } finally {
       setIsStreaming(false);
@@ -199,38 +231,61 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
     <div className="flex h-full flex-col">
       <div ref={messageScrollRef} className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         <AnimatePresence initial={false}>
-          {messages.map((message) => {
+          {messages.map((message, msgIdx) => {
             const displayText = extractDisplayText(message.content);
+            const isLastAssistant = message.role === "assistant" && msgIdx === messages.length - 1 && !message.streaming;
             return (
               <motion.div
                 key={message.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
-                className={cn("flex gap-2", message.role === "user" ? "justify-end" : "items-start justify-start")}
+                className={cn("flex flex-col gap-1.5", message.role === "user" ? "items-end" : "items-start")}
               >
-                {message.role === "assistant" && (
-                  <img src="/img/ch6.png" alt="에임이" className="mt-1 h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20" />
-                )}
-                <div
-                  className={cn(
-                    "max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-xs leading-relaxed",
-                    message.role === "user"
-                      ? "bg-purple-500/20 text-purple-100"
-                      : "bg-white/5 text-white/80"
+                <div className={cn("flex gap-2", message.role === "user" ? "justify-end" : "items-start justify-start")}>
+                  {message.role === "assistant" && (
+                    <img src="/img/ch6.png" alt="에임이" className="mt-1 h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20" />
                   )}
-                >
-                  {displayText ? (
-                    displayText
-                  ) : (
-                    <span className="flex items-center gap-1.5 text-white/30">
-                      <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2 }}>
-                        ●
-                      </motion.span>
-                      생각 중…
-                    </span>
-                  )}
+                  <div
+                    className={cn(
+                      "max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-xs leading-relaxed",
+                      message.role === "user"
+                        ? "bg-purple-500/20 text-purple-100"
+                        : "bg-white/5 text-white/80"
+                    )}
+                  >
+                    {displayText ? (
+                      displayText
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-white/30">
+                        <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2 }}>
+                          ●
+                        </motion.span>
+                        생각 중…
+                      </span>
+                    )}
+                  </div>
                 </div>
+                {/* 빠른 선택 칩 — 마지막 AI 메시지에만 표시 */}
+                {isLastAssistant && message.chips && message.chips.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.2 }}
+                    className="ml-8 flex flex-wrap gap-1"
+                  >
+                    {message.chips.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => sendText(chip)}
+                        className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-white/30 transition-all hover:border-violet-400/30 hover:bg-violet-400/10 hover:text-violet-300"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
               </motion.div>
             );
           })}
