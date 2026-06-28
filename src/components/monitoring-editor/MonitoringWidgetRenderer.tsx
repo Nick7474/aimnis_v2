@@ -136,7 +136,8 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const arcVal = (liveData?.value as number) ?? (liveData?.anomalyScore as number) ?? 73;
       const liveSeries2 = liveData?.timeSeries as Array<{ time: string; value: number }> | undefined;
       const d = liveSeries2 ? liveSeries2.map((p) => p.value) : [18,21,20,24,22,28,26,38,30,52,36,30,44,40,46,34,42];
-      const arcColor = arcVal >= 80 ? wc.danger : arcVal >= 60 ? wc.warning : wc.accent;
+      /* 정상 상태 기본색 = success(green), 임계 초과 시 warning/danger — 게이지·차트 동일 색 */
+      const arcColor = arcVal >= 80 ? wc.danger : arcVal >= 60 ? wc.warning : wc.success;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Zap className="h-4 w-4" />} accent="red" selected={selected} brandColor={iconBrandColor} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 18, minHeight: 0, alignItems: "stretch" }}>
@@ -337,25 +338,24 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const liveSeries = liveData?.timeSeries as Array<{ time: string; value: number }> | undefined;
       const d = liveSeries ? liveSeries.map((p) => p.value) : series(24, 30, 30, 42).map((v, i) => i > 18 ? v * 1.5 : v);
       const isLive = !!liveData?.value;
-      /* 게이지: 임계값 기반 상태색 (안전 의미 보존) */
-      const gaugeColor = gaugeVal >= 80 ? wc.danger : gaugeVal >= 60 ? wc.warning : wc.accent;
-      /* 차트/배너: 사용자 지정 accent 색상 연동 */
-      const chartColor = wc.accent;
+      /* 게이지·차트 동일 accent 색상으로 연동 — 상태 배지에서만 threshold 텍스트 표시 */
+      const acColor = wc.accent;
+      const statusColor = gaugeVal >= 80 ? wc.danger : gaugeVal >= 60 ? wc.warning : wc.success;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="violet" selected={selected} brandColor={iconBrandColor} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <AIMGauge value={gaugeVal} max={100} color={gaugeColor} size={96} label={`${gaugeVal}%`} sub="ERROR" track={th.gaugeTrack} isLight={isLight} />
-              <div style={{ marginTop: 6, fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", padding: "2px 8px", borderRadius: 4, background: `${gaugeColor}22`, color: gaugeColor, border: `1px solid ${gaugeColor}44` }}>
+              <AIMGauge value={gaugeVal} max={100} color={acColor} size={96} label={`${gaugeVal}%`} sub="ERROR" track={th.gaugeTrack} isLight={isLight} />
+              <div style={{ marginTop: 6, fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", padding: "2px 8px", borderRadius: 4, background: `${statusColor}22`, color: statusColor, border: `1px solid ${statusColor}44` }}>
                 {gaugeVal >= 80 ? "위험" : gaugeVal >= 60 ? "경고" : "정상"}
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ flex: 1, minHeight: 80 }}>
-                <AIMLineChart data={d} color={chartColor} yTicks={3} xLabels={liveSeries ? ["시작", "중간", "현재"] : ["-24h", "-12h", "now"]} isLight={isLight} />
+                <AIMLineChart data={d} color={acColor} yTicks={3} xLabels={liveSeries ? ["시작", "중간", "현재"] : ["-24h", "-12h", "now"]} isLight={isLight} />
               </div>
-              <div style={{ fontSize: 10, color: chartColor, marginTop: 6, display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", borderRadius: 6, background: `${chartColor}12`, border: `1px solid ${chartColor}30` }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: chartColor, flexShrink: 0 }} />
+              <div style={{ fontSize: 10, color: acColor, marginTop: 6, display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", borderRadius: 6, background: `${acColor}12`, border: `1px solid ${acColor}30` }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: acColor, flexShrink: 0 }} />
                 {isLive ? `실시간 이상 점수 ${gaugeVal}% — 즉각 점검 필요` : "재구성 오차 급증 감지"}
               </div>
             </div>
@@ -368,23 +368,27 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     case "rul-lstm-forecast": {
       const rulVal = (liveData?.rul as number) ?? 46;
       const d = [20,24,22,28,26,32,30,35,33,38,36,42,40,45,43,48,46,52,50,55,53,58,56,60];
-      const rulColor = rulVal <= 30 ? wc.danger : rulVal <= 60 ? wc.warning : wc.accent;
+      /* 차트·값 카드: accent 색상으로 연동 — 상태 배지에서만 threshold 텍스트 */
+      const rulAccent = wc.accent;
+      const rulStatus = rulVal <= 30 ? wc.danger : rulVal <= 60 ? wc.warning : wc.success;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="cyan" selected={selected} brandColor={iconBrandColor} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flex: 1, minHeight: 130 }}>
-              <AIMLineChart data={d} color={rulColor} yTicks={4} xLabels={["D-30","D-20","D-10","오늘","D+10"]} isLight={isLight} />
+              <AIMLineChart data={d} color={rulAccent} yTicks={4} xLabels={["D-30","D-20","D-10","오늘","D+10"]} isLight={isLight} />
             </div>
             <div style={{ width: 88, flexShrink: 0, display: "flex", flexDirection: "column", gap: 9 }}>
-              <div style={{ background: `${rulColor}12`, border: `1px solid ${rulColor}33`, borderRadius: 10, padding: "10px 11px" }}>
+              <div style={{ background: `${rulAccent}12`, border: `1px solid ${rulAccent}33`, borderRadius: 10, padding: "10px 11px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>RUL</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: rulColor, fontFamily: "'DM Mono'" }}>{rulVal}일</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: rulAccent, fontFamily: "'DM Mono'" }}>{rulVal}일</div>
               </div>
               <div style={{ background: th.cardBg, border: `1px solid ${th.cardBd}`, borderRadius: 10, padding: "10px 11px" }}>
                 <div style={{ fontSize: 9, color: C.t3 }}>Next PM</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: th.textStrong, fontFamily: "'DM Mono'" }}>06.22</div>
               </div>
-              <div style={{ fontSize: 9, color: C.t4, lineHeight: 1.5 }}>신뢰구간<br /><span style={{ color: wc.success, fontFamily: "'DM Mono'" }}>±3.2일</span></div>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", padding: "3px 8px", borderRadius: 4, background: `${rulStatus}20`, color: rulStatus, border: `1px solid ${rulStatus}40`, textAlign: "center" }}>
+                {rulVal <= 30 ? "긴급 점검" : rulVal <= 60 ? "점검 권고" : "정상"}
+              </div>
             </div>
           </div>
         </WidgetFrame>
@@ -700,9 +704,9 @@ export function MonitoringWidgetThumbnail({ widget }: { widget: SolutionWidget }
     const d = [3,4,3,5,4,7,5,4]; const m = Math.max(...d), mn = Math.min(...d);
     const pts = d.map((v,i) => `${i/(d.length-1)*100},${100-(v-mn)/(m-mn)*60-20}`).join(" ");
     return (
-      <div className={cn(base, "bg-[#0e0609] flex items-center justify-center")}>
+      <div className={cn(base, "bg-[#050f09] flex items-center justify-center")}>
         <svg width="86%" height="38" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <polyline points={pts} fill="none" stroke={C.red} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+          <polyline points={pts} fill="none" stroke={C.green} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
         </svg>
       </div>
     );
