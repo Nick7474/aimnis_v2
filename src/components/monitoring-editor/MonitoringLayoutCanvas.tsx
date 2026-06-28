@@ -601,6 +601,11 @@ export default function MonitoringLayoutCanvas({
             brandBorderColor={(instance.options.borderColor as string | undefined) ?? brandTokens.borderColor}
             brandTextStrongColor={(instance.options.textStrongColor as string | undefined) ?? brandTokens.textStrongColor}
             brandTextSoftColor={(instance.options.textSoftColor as string | undefined) ?? brandTokens.textSoftColor}
+            brandAccentColor={(instance.options.accentColor as string | undefined) ?? brandTokens.accentColor}
+            brandAccentSecondaryColor={(instance.options.accentSecondaryColor as string | undefined) ?? brandTokens.secondaryColor}
+            brandSuccessColor={(instance.options.successColor as string | undefined) ?? brandTokens.successColor}
+            brandWarningColor={(instance.options.warningColor as string | undefined) ?? brandTokens.warningColor}
+            brandDangerColor={(instance.options.dangerColor as string | undefined) ?? brandTokens.dangerColor}
             isLight={isLightTheme}
             liveData={widgetLiveData[instance.instanceId]}
           />

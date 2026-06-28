@@ -62,6 +62,7 @@ import MonitoringDBCanvas from "./MonitoringDBCanvas";
 import MonitoringPageBuilder from "@/monitoring-app/components/MonitoringPageBuilder";
 import { useMonitoringPagesStore, type MonitoringPageConfig } from "@/store/monitoringPagesStore";
 import type { MappingEdge } from "@/store/editorStore";
+import { DEFAULT_WIDGET_GROUPS, WIDGET_COLOR_GROUPS } from "@/solutions/monitoring/widgets/colorSchema";
 
 interface MonitoringEditorShellProps {
   solution: SolutionManifest;
@@ -1524,6 +1525,19 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     );
   };
 
+  const resetSelectedWidgetColors = () => {
+    if (!selectedWidgetId) return;
+    const colorOptionIds = ["bgColor", "borderColor", "textStrongColor", "textSoftColor", "accentColor", "accentSecondaryColor", "successColor", "warningColor", "dangerColor"];
+    setCanvasWidgets((current) =>
+      current.map((widget) => {
+        if (widget.instanceId !== selectedWidgetId) return widget;
+        const nextOptions = { ...widget.options };
+        for (const key of colorOptionIds) delete nextOptions[key];
+        return { ...widget, options: nextOptions };
+      })
+    );
+  };
+
   const updateHeaderConfig = <Key extends keyof MonitoringElementConfigs["header"]>(
     key: Key,
     value: MonitoringElementConfigs["header"][Key]
@@ -2132,11 +2146,33 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           </MonitoringInspectorSection>
 
           <MonitoringInspectorSection icon={Palette} title="Panel Style">
-            <MonitoringColorControl label="패널 배경" value={(selectedWidget?.options.bgColor as string | undefined) ?? brand.surfaceColor} onChange={(bgColor) => updateSelectedWidgetOption("bgColor", bgColor)} />
-            <MonitoringColorControl label="패널 라인" value={(selectedWidget?.options.borderColor as string | undefined) ?? brand.borderColor} onChange={(borderColor) => updateSelectedWidgetOption("borderColor", borderColor)} />
-            <MonitoringColorControl label="주요 텍스트" value={(selectedWidget?.options.textStrongColor as string | undefined) ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateSelectedWidgetOption("textStrongColor", textStrongColor)} />
-            <MonitoringColorControl label="보조 텍스트" value={(selectedWidget?.options.textSoftColor as string | undefined) ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateSelectedWidgetOption("textSoftColor", textSoftColor)} />
+            <MonitoringColorControl label="패널 배경" value={(selectedWidget?.options.bgColor as string | undefined) ?? brand.surfaceColor} onChange={(v) => updateSelectedWidgetOption("bgColor", v)} />
+            <MonitoringColorControl label="패널 라인" value={(selectedWidget?.options.borderColor as string | undefined) ?? brand.borderColor} onChange={(v) => updateSelectedWidgetOption("borderColor", v)} />
           </MonitoringInspectorSection>
+
+          <MonitoringInspectorSection icon={Type} title="텍스트 색상">
+            <MonitoringColorControl label="주요 텍스트" value={(selectedWidget?.options.textStrongColor as string | undefined) ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(v) => updateSelectedWidgetOption("textStrongColor", v)} />
+            <MonitoringColorControl label="보조 텍스트" value={(selectedWidget?.options.textSoftColor as string | undefined) ?? brand.textSoftColor ?? "#94A3B8"} onChange={(v) => updateSelectedWidgetOption("textSoftColor", v)} />
+          </MonitoringInspectorSection>
+
+          {(WIDGET_COLOR_GROUPS[selectedWidgetMeta?.id ?? ""] ?? DEFAULT_WIDGET_GROUPS).includes("accent") && (
+            <MonitoringInspectorSection icon={SlidersHorizontal} title="강조 색상">
+              <MonitoringColorControl label="강조색 (Accent)" value={(selectedWidget?.options.accentColor as string | undefined) ?? brand.accentColor} onChange={(v) => updateSelectedWidgetOption("accentColor", v)} />
+              {(WIDGET_COLOR_GROUPS[selectedWidgetMeta?.id ?? ""] ?? DEFAULT_WIDGET_GROUPS).includes("accentSecondary") && (
+                <MonitoringColorControl label="보조 강조색" value={(selectedWidget?.options.accentSecondaryColor as string | undefined) ?? brand.secondaryColor} onChange={(v) => updateSelectedWidgetOption("accentSecondaryColor", v)} />
+              )}
+            </MonitoringInspectorSection>
+          )}
+
+          {(WIDGET_COLOR_GROUPS[selectedWidgetMeta?.id ?? ""] ?? DEFAULT_WIDGET_GROUPS).includes("status") && (
+            <MonitoringInspectorSection icon={Activity} title="상태 색상">
+              <MonitoringColorControl label="정상 (Success)" value={(selectedWidget?.options.successColor as string | undefined) ?? brand.successColor} onChange={(v) => updateSelectedWidgetOption("successColor", v)} />
+              <MonitoringColorControl label="경고 (Warning)" value={(selectedWidget?.options.warningColor as string | undefined) ?? brand.warningColor} onChange={(v) => updateSelectedWidgetOption("warningColor", v)} />
+              <MonitoringColorControl label="위험 (Danger)" value={(selectedWidget?.options.dangerColor as string | undefined) ?? brand.dangerColor} onChange={(v) => updateSelectedWidgetOption("dangerColor", v)} />
+            </MonitoringInspectorSection>
+          )}
+
+          <MonitoringResetButton label="색상 초기화 (브랜드 기본값)" onClick={resetSelectedWidgetColors} />
 
           <button
             type="button"
