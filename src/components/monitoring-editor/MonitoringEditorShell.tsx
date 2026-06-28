@@ -2297,11 +2297,16 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
       if (selectedDefaultWidgetConfig) {
         const wid = selectedElement.id;
+        const isAccentCard = wid === "summary-equipment-status";
         const isStatusCard = wid === "summary-environment-risk" || wid === "summary-worker-safety";
         const isAlertCard = wid === "summary-alert-count";
         const isAnomalyChart = wid === "equipment-anomaly-chart";
-        const isAccentCard = wid === "summary-equipment-status";
-        const upd = (patch: Partial<import("./MonitoringLayoutCanvas").MonitoringDefaultWidgetConfig>) => updateDefaultWidgetConfig(wid, patch);
+        const isSystemStatus = wid === "system-status";
+        const isActionProgress = wid === "action-progress";
+        const isRealtimeAlerts = wid === "realtime-alerts";
+        const isWorkerSafety = wid === "worker-safety-overview";
+        const isEnvDiag = wid === "environment-diagnosis";
+        const upd = (patch: Partial<MonitoringElementConfigs["defaultWidgets"][string]>) => updateDefaultWidgetConfig(wid, patch);
         return (
           <MonitoringInspectorFrame
             eyebrow="Panel Inspector"
@@ -2351,6 +2356,42 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                 <MonitoringColorControl label="계열 2 — 온도" value={selectedDefaultWidgetConfig.series2Color ?? "#ef4444"} onChange={(series2Color) => upd({ series2Color })} />
                 <MonitoringColorControl label="계열 3 — 열화상" value={selectedDefaultWidgetConfig.series3Color ?? "#a855f7"} onChange={(series3Color) => upd({ series3Color })} />
                 <MonitoringColorControl label="계열 4 — 가스" value={selectedDefaultWidgetConfig.series4Color ?? "#06b6d4"} onChange={(series4Color) => upd({ series4Color })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isSystemStatus && (
+              <MonitoringInspectorSection icon={Activity} title="상태 색상">
+                <MonitoringColorControl label="정상 (Status dot + 바)" value={selectedDefaultWidgetConfig.successColor ?? brand.successColor} onChange={(successColor) => upd({ successColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isActionProgress && (
+              <MonitoringInspectorSection icon={Palette} title="차트 색상">
+                <MonitoringColorControl label="진행 바 색상" value={selectedDefaultWidgetConfig.accentColor ?? brand.accentColor} onChange={(accentColor) => upd({ accentColor })} />
+                <MonitoringColorControl label="정상 완료 색상" value={selectedDefaultWidgetConfig.successColor ?? brand.successColor} onChange={(successColor) => upd({ successColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isRealtimeAlerts && (
+              <MonitoringInspectorSection icon={Activity} title="알림 유형 색상">
+                <MonitoringColorControl label="경고 색상" value={selectedDefaultWidgetConfig.warningColor ?? brand.warningColor} onChange={(warningColor) => upd({ warningColor })} />
+                <MonitoringColorControl label="위험 색상" value={selectedDefaultWidgetConfig.dangerColor ?? brand.dangerColor} onChange={(dangerColor) => upd({ dangerColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isWorkerSafety && (
+              <MonitoringInspectorSection icon={Activity} title="상태 색상">
+                <MonitoringColorControl label="강조 (전체 수)" value={selectedDefaultWidgetConfig.accentColor ?? brand.accentColor} onChange={(accentColor) => upd({ accentColor })} />
+                <MonitoringColorControl label="정상 색상" value={selectedDefaultWidgetConfig.successColor ?? brand.successColor} onChange={(successColor) => upd({ successColor })} />
+                <MonitoringColorControl label="경고 색상" value={selectedDefaultWidgetConfig.warningColor ?? brand.warningColor} onChange={(warningColor) => upd({ warningColor })} />
+                <MonitoringColorControl label="위험 색상" value={selectedDefaultWidgetConfig.dangerColor ?? brand.dangerColor} onChange={(dangerColor) => upd({ dangerColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isEnvDiag && (
+              <MonitoringInspectorSection icon={Activity} title="지표 색상">
+                <MonitoringColorControl label="경고 지표 색상" value={selectedDefaultWidgetConfig.warningColor ?? brand.warningColor} onChange={(warningColor) => upd({ warningColor })} />
+                <MonitoringColorControl label="정상 지표 색상" value={selectedDefaultWidgetConfig.successColor ?? brand.successColor} onChange={(successColor) => upd({ successColor })} />
               </MonitoringInspectorSection>
             )}
 

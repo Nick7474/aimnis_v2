@@ -81,6 +81,7 @@ export interface MonitoringDefaultWidgetConfig {
   borderColor?: string;
   textStrongColor?: string;
   textSoftColor?: string;
+  successColor?: string;
   warningColor?: string;
   dangerColor?: string;
   series1Color?: string;
@@ -481,6 +482,7 @@ export default function MonitoringLayoutCanvas({
           borderColor: config?.borderColor,
           textStrongColor: config?.textStrongColor,
           textSoftColor: config?.textSoftColor,
+          successColor: config?.successColor,
           warningColor: config?.warningColor,
           dangerColor: config?.dangerColor,
           series1Color: config?.series1Color,
@@ -494,12 +496,14 @@ export default function MonitoringLayoutCanvas({
           h: config?.h ?? fallbackH,
         };
       };
-      const wb = (cfg: { bgColor?: string; borderColor?: string; textStrongColor?: string; textSoftColor?: string; warningColor?: string; dangerColor?: string }) => ({
+      const wb = (cfg: { bgColor?: string; borderColor?: string; textStrongColor?: string; textSoftColor?: string; accentColor?: string; successColor?: string; warningColor?: string; dangerColor?: string }) => ({
         ...brandTokens,
         ...(cfg.bgColor ? { surfaceColor: cfg.bgColor } : {}),
         ...(cfg.borderColor ? { borderColor: cfg.borderColor } : {}),
         ...(cfg.textStrongColor ? { textStrongColor: cfg.textStrongColor } : {}),
         ...(cfg.textSoftColor ? { textSoftColor: cfg.textSoftColor } : {}),
+        ...(cfg.accentColor ? { accentColor: cfg.accentColor, primaryColor: cfg.accentColor } : {}),
+        ...(cfg.successColor ? { successColor: cfg.successColor } : {}),
         ...(cfg.warningColor ? { warningColor: cfg.warningColor } : {}),
         ...(cfg.dangerColor ? { dangerColor: cfg.dangerColor } : {}),
       });
