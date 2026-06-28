@@ -337,19 +337,25 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
       const liveSeries = liveData?.timeSeries as Array<{ time: string; value: number }> | undefined;
       const d = liveSeries ? liveSeries.map((p) => p.value) : series(24, 30, 30, 42).map((v, i) => i > 18 ? v * 1.5 : v);
       const isLive = !!liveData?.value;
+      /* 게이지: 임계값 기반 상태색 (안전 의미 보존) */
       const gaugeColor = gaugeVal >= 80 ? wc.danger : gaugeVal >= 60 ? wc.warning : wc.accent;
+      /* 차트/배너: 사용자 지정 accent 색상 연동 */
+      const chartColor = wc.accent;
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<Brain className="h-4 w-4" />} accent="violet" selected={selected} brandColor={iconBrandColor} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight}>
           <div style={{ flex: 1, display: "flex", gap: 14, minHeight: 0 }}>
             <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <AIMGauge value={gaugeVal} max={100} color={gaugeColor} size={96} label={`${gaugeVal}%`} sub="ERROR" track={th.gaugeTrack} isLight={isLight} />
+              <div style={{ marginTop: 6, fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", padding: "2px 8px", borderRadius: 4, background: `${gaugeColor}22`, color: gaugeColor, border: `1px solid ${gaugeColor}44` }}>
+                {gaugeVal >= 80 ? "위험" : gaugeVal >= 60 ? "경고" : "정상"}
+              </div>
             </div>
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ flex: 1, minHeight: 80 }}>
-                <AIMLineChart data={d} color={gaugeColor} yTicks={3} xLabels={liveSeries ? ["시작", "중간", "현재"] : ["-24h", "-12h", "now"]} isLight={isLight} />
+                <AIMLineChart data={d} color={chartColor} yTicks={3} xLabels={liveSeries ? ["시작", "중간", "현재"] : ["-24h", "-12h", "now"]} isLight={isLight} />
               </div>
-              <div style={{ fontSize: 10, color: isLive ? gaugeColor : C.purple, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: isLive ? gaugeColor : C.purple, flexShrink: 0 }} />
+              <div style={{ fontSize: 10, color: chartColor, marginTop: 6, display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", borderRadius: 6, background: `${chartColor}12`, border: `1px solid ${chartColor}30` }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: chartColor, flexShrink: 0 }} />
                 {isLive ? `실시간 이상 점수 ${gaugeVal}% — 즉각 점검 필요` : "재구성 오차 급증 감지"}
               </div>
             </div>
@@ -502,32 +508,64 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
 
     /* 17. 쓰러짐 감지 플로우 */
     case "worker-fall-detection": {
-      const steps: [string, string][] = [["IMU 수신","done"],["낙하 가속 감지","done"],["자세 분석","active"],["SOP 트리거","wait"]];
+      type FallStep = { label: string; st: "done" | "active" | "wait"; detail: string; time: string; };
+      const steps: FallStep[] = [
+        { label: "IMU 수신",       st: "done",   detail: "가속도 12.4g 감지",   time: "10:24:01" },
+        { label: "낙하 가속 감지", st: "done",   detail: "RMS ΔV 8.2 m/s²",    time: "10:24:05" },
+        { label: "자세 분석",      st: "active", detail: "Pose 벡터 추론 중…",   time: "진행 중" },
+        { label: "SOP 트리거",     st: "wait",   detail: "담당자 자동 배정 대기", time: "대기" },
+      ];
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<AlertTriangle className="h-4 w-4" />} accent="orange" selected={selected} brandColor={iconBrandColor} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight}>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 0 }}>
-            {steps.map(([s, st], i) => (
-              <div key={s} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: st === "done" ? wc.success : st === "active" ? wc.accent : "rgba(255,255,255,.05)",
-                    border: `1.5px solid ${st === "done" ? wc.success : st === "active" ? wc.accent : "rgba(255,255,255,.12)"}`,
-                  }}>
-                    {st === "done"
-                      ? <CheckCircle2 className="h-3 w-3 text-white" />
-                      : <span style={{ width: 7, height: 7, borderRadius: "50%", background: st === "active" ? "#fff" : "transparent" }} />
-                    }
-                  </div>
-                  {i < steps.length - 1 && <div style={{ width: 2, height: 22, background: st === "done" ? wc.success : "rgba(255,255,255,.1)" }} />}
-                </div>
-                <div style={{ paddingTop: 2, paddingBottom: 14 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: st === "active" ? 700 : 500, color: st === "wait" ? C.t4 : th.textStrong }}>{s}</div>
-                  <div style={{ fontSize: 10, color: C.t3, marginTop: 1 }}>{st === "done" ? "완료" : st === "active" ? "진행 중" : "대기"}</div>
-                </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minHeight: 0 }}>
+            {/* 이벤트 헤더 배너 */}
+            <div style={{ padding: "7px 10px", borderRadius: 8, background: `${wc.danger}18`, border: `1px solid ${wc.danger}40`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: wc.danger, flexShrink: 0, boxShadow: `0 0 6px ${wc.danger}` }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: wc.danger }}>낙상 감지 이벤트 발생</span>
               </div>
-            ))}
+              <span style={{ fontSize: 9, fontFamily: "'DM Mono'", color: wc.danger, opacity: 0.8 }}>WK-004 · A동 3층</span>
+            </div>
+            {/* 단계 타임라인 */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-evenly" }}>
+              {steps.map(({ label, st, detail, time }, i) => (
+                <div key={label} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  {/* 노드 + 연결선 */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: st === "done" ? wc.success : st === "active" ? `${wc.accent}22` : "rgba(255,255,255,.04)",
+                      border: `2px solid ${st === "done" ? wc.success : st === "active" ? wc.accent : "rgba(255,255,255,.1)"}`,
+                      boxShadow: st === "active" ? `0 0 10px ${wc.accent}66` : "none",
+                    }}>
+                      {st === "done"
+                        ? <CheckCircle2 style={{ width: 14, height: 14, color: "#fff" }} />
+                        : st === "active"
+                          ? <span style={{ width: 8, height: 8, borderRadius: "50%", background: wc.accent }} />
+                          : <span style={{ width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,.15)" }} />
+                      }
+                    </div>
+                    {i < steps.length - 1 && (
+                      <div style={{ width: 2, flex: 1, minHeight: 14, background: st === "done" ? `${wc.success}80` : st === "active" ? `${wc.accent}40` : "rgba(255,255,255,.06)", borderRadius: 1 }} />
+                    )}
+                  </div>
+                  {/* 텍스트 영역 */}
+                  <div style={{ flex: 1, paddingTop: 2, paddingBottom: i < steps.length - 1 ? 12 : 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                      <span style={{ fontSize: 12, fontWeight: st === "active" ? 700 : 500, color: st === "wait" ? "rgba(255,255,255,.25)" : th.textStrong }}>{label}</span>
+                      <span style={{ fontSize: 9, fontFamily: "'DM Mono'", color: st === "done" ? `${wc.success}cc` : st === "active" ? wc.accent : "rgba(255,255,255,.2)" }}>{time}</span>
+                    </div>
+                    <div style={{ fontSize: 10, color: st === "wait" ? "rgba(255,255,255,.18)" : "rgba(255,255,255,.45)", marginTop: 2 }}>{detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* 하단 SOP 예상 시각 */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", borderRadius: 7, background: `${wc.accent}12`, border: `1px solid ${wc.accent}30`, flexShrink: 0 }}>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,.5)" }}>SOP 트리거 예상</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: wc.accent, fontFamily: "'DM Mono'" }}>+00:00:12</span>
+            </div>
           </div>
         </WidgetFrame>
       );
@@ -584,27 +622,58 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     }
 
     /* 20. 현장 실증 진행률 */
-    case "field-validation-progress":
+    case "field-validation-progress": {
+      type FVBar = { label: string; pct: number; color: string; };
+      const fvBars: FVBar[] = [
+        { label: "설치 완료",    pct: 100, color: wc.success },
+        { label: "데이터 수집",  pct: 84,  color: wc.accent2 },
+        { label: "검증·분석",   pct: 52,  color: wc.warning },
+        { label: "최적화 적용", pct: 28,  color: wc.accent },
+      ];
+      const fvKpi: [string, string][] = [
+        ["배포 현장", "12개"],
+        ["활성 센서", "284개"],
+        ["달성률",   "72%"],
+        ["목표 D-Day", "D-42"],
+      ];
       return (
         <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<CheckCircle2 className="h-4 w-4" />} accent="green" selected={selected} brandColor={iconBrandColor} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 16 }}>
-            <AIMGauge value={72} max={100} color={wc.success} size={104} label="72%" sub="전체" track={th.gaugeTrack} isLight={isLight} />
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-              {([["설치","100%",wc.success],["데이터 수집","84%",wc.accent2],["검증","52%",wc.warning]] as [string,string,string][]).map(([k, v, c]) => (
-                <div key={k}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, color: C.t2 }}>{k}</span>
-                    <span style={{ fontSize: 10, color: c, fontFamily: "'DM Mono'", fontWeight: 600 }}>{v}</span>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minHeight: 0 }}>
+            {/* 상단: 게이지 + 진행 바 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1 }}>
+              {/* 좌측 게이지 */}
+              <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <AIMGauge value={72} max={100} color={wc.accent} size={88} label="72%" sub="전체" track={th.gaugeTrack} isLight={isLight} />
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", padding: "2px 8px", borderRadius: 4, background: `${wc.accent}20`, color: wc.accent, border: `1px solid ${wc.accent}44` }}>PILOT</div>
+              </div>
+              {/* 우측 진행 바 목록 */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                {fvBars.map(({ label, pct, color }) => (
+                  <div key={label}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: th.textSoft }}>{label}</span>
+                      <span style={{ fontSize: 10, color, fontFamily: "'DM Mono'", fontWeight: 700 }}>{pct}%</span>
+                    </div>
+                    <div style={{ height: 5, borderRadius: 3, background: th.progTrack, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, borderRadius: 3, background: color, transition: "width 0.4s ease" }} />
+                    </div>
                   </div>
-                  <div style={{ height: 5, borderRadius: 3, background: th.progTrack }}>
-                    <div style={{ height: "100%", width: v, borderRadius: 3, background: c }} />
-                  </div>
+                ))}
+              </div>
+            </div>
+            {/* 하단: KPI 요약 4개 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, flexShrink: 0, paddingTop: 8, borderTop: `1px solid rgba(255,255,255,.06)` }}>
+              {fvKpi.map(([k, v]) => (
+                <div key={k} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: wc.accent, fontFamily: "'DM Mono'" }}>{v}</span>
+                  <span style={{ fontSize: 8.5, color: th.textSoft, textAlign: "center", lineHeight: 1.3 }}>{k}</span>
                 </div>
               ))}
             </div>
           </div>
         </WidgetFrame>
       );
+    }
 
     default:
       return (
@@ -840,15 +909,14 @@ export function MonitoringWidgetThumbnail({ widget }: { widget: SolutionWidget }
   /* 17. 쓰러짐 감지 플로우 */
   if (id === "worker-fall-detection") {
     return (
-      <div className={cn(base, "bg-[#0d0506] flex items-center justify-center")}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "70%" }}>
-          {(["done","done","active","wait"] as string[]).map((st,i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: st==="done"?C.green:st==="active"?C.orange:"rgba(255,255,255,.12)" }} />
-              <div style={{ flex: 1, height: 4, borderRadius: 2, background: st==="wait"?"rgba(255,255,255,.08)":st==="active"?C.orange:C.green }} />
-            </div>
-          ))}
-        </div>
+      <div className={cn(base, "bg-[#0d0506] flex flex-col justify-center px-3 py-2 gap-1.5")}>
+        <div style={{ height: 6, borderRadius: 3, background: `${C.red}30`, border: `1px solid ${C.red}44`, marginBottom: 2 }} />
+        {(["done","done","active","wait"] as string[]).map((st,i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", flexShrink: 0, background: st==="done"?C.green:st==="active"?`${C.orange}33`:"rgba(255,255,255,.06)", border: `1.5px solid ${st==="done"?C.green:st==="active"?C.orange:"rgba(255,255,255,.15)"}`, boxShadow: st==="active"?`0 0 5px ${C.orange}88`:"none" }} />
+            <div style={{ flex: 1, height: 4, borderRadius: 2, background: st==="wait"?"rgba(255,255,255,.06)":st==="active"?`${C.orange}55`:C.green, opacity: st==="wait"?0.5:1 }} />
+          </div>
+        ))}
       </div>
     );
   }
@@ -881,8 +949,15 @@ export function MonitoringWidgetThumbnail({ widget }: { widget: SolutionWidget }
   /* 20. 현장 실증 진행률 */
   if (id === "field-validation-progress") {
     return (
-      <div className={cn(base, "bg-[#040f08] flex items-center justify-center")}>
-        <AIMGauge value={72} max={100} color={C.green} size={48} thickness={6} label="" />
+      <div className={cn(base, "bg-[#040f08] flex items-center gap-3 px-3")}>
+        <AIMGauge value={72} max={100} color={C.blue} size={44} thickness={5} label="" />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
+          {([[C.green,100],[C.cyan,84],[C.yellow,52],[C.blue,28]] as [string,number][]).map(([c,v],i) => (
+            <div key={i} style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,.06)" }}>
+              <div style={{ height: "100%", width: `${v}%`, borderRadius: 2, background: c }} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
