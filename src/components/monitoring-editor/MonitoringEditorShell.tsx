@@ -2296,15 +2296,21 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       }
 
       if (selectedDefaultWidgetConfig) {
+        const wid = selectedElement.id;
+        const isStatusCard = wid === "summary-environment-risk" || wid === "summary-worker-safety";
+        const isAlertCard = wid === "summary-alert-count";
+        const isAnomalyChart = wid === "equipment-anomaly-chart";
+        const isAccentCard = wid === "summary-equipment-status";
+        const upd = (patch: Partial<import("./MonitoringLayoutCanvas").MonitoringDefaultWidgetConfig>) => updateDefaultWidgetConfig(wid, patch);
         return (
           <MonitoringInspectorFrame
             eyebrow="Panel Inspector"
             title="기본 대시보드 위젯 설정"
-            description="AI Studio 기본 콘텐츠의 표시명, 데이터 바인딩, 강조 색상을 조정합니다."
+            description="위젯 표시명, 데이터 바인딩, 색상을 조정합니다. 변경사항이 즉시 캔버스에 반영됩니다."
           >
             {renderSelectionScopeBanner(selectedElement.label)}
             <MonitoringInspectorSection icon={Type} title="Widget Properties">
-              <MonitoringTextControl label="표시 이름" value={selectedDefaultWidgetConfig.title} onChange={(title) => updateDefaultWidgetConfig(selectedElement.id, { title })} />
+              <MonitoringTextControl label="표시 이름" value={selectedDefaultWidgetConfig.title} onChange={(title) => upd({ title })} />
               <MonitoringSelectControl
                 label="데이터 바인딩"
                 value={selectedDefaultWidgetConfig.dataBinding}
@@ -2315,17 +2321,46 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                   { value: "environment-risk-live", label: "환경 위험 데이터" },
                   { value: "sop-event-log", label: "SOP 이벤트 로그" },
                 ]}
-                onChange={(dataBinding) => updateDefaultWidgetConfig(selectedElement.id, { dataBinding })}
+                onChange={(dataBinding) => upd({ dataBinding })}
               />
-              <MonitoringColorControl label="강조 색상" value={selectedDefaultWidgetConfig.accentColor} onChange={(accentColor) => updateDefaultWidgetConfig(selectedElement.id, { accentColor })} />
-              <MonitoringToggleControl label="위젯 표시" checked={selectedDefaultWidgetConfig.visible} onChange={(visible) => updateDefaultWidgetConfig(selectedElement.id, { visible })} />
+              <MonitoringToggleControl label="위젯 표시" checked={selectedDefaultWidgetConfig.visible} onChange={(visible) => upd({ visible })} />
             </MonitoringInspectorSection>
-            <MonitoringInspectorSection icon={Palette} title="Panel Style">
-              <MonitoringColorControl label="패널 배경" value={selectedDefaultWidgetConfig?.bgColor ?? brand.surfaceColor} onChange={(bgColor) => updateDefaultWidgetConfig(selectedElement.id, { bgColor })} />
-              <MonitoringColorControl label="패널 라인" value={selectedDefaultWidgetConfig?.borderColor ?? brand.borderColor} onChange={(borderColor) => updateDefaultWidgetConfig(selectedElement.id, { borderColor })} />
-              <MonitoringColorControl label="주요 텍스트" value={selectedDefaultWidgetConfig?.textStrongColor ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateDefaultWidgetConfig(selectedElement.id, { textStrongColor })} />
-              <MonitoringColorControl label="보조 텍스트" value={selectedDefaultWidgetConfig?.textSoftColor ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateDefaultWidgetConfig(selectedElement.id, { textSoftColor })} />
+
+            {/* ── 위젯 타입별 컬러 컨트롤 ── */}
+            {isAccentCard && (
+              <MonitoringInspectorSection icon={Palette} title="차트 색상">
+                <MonitoringColorControl label="주컬러 (스파크라인)" value={selectedDefaultWidgetConfig.accentColor} onChange={(accentColor) => upd({ accentColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isStatusCard && (
+              <MonitoringInspectorSection icon={Palette} title="상태 색상">
+                <MonitoringColorControl label="상태색 (텍스트 + 라인)" value={selectedDefaultWidgetConfig.warningColor ?? brand.warningColor} onChange={(warningColor) => upd({ warningColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isAlertCard && (
+              <MonitoringInspectorSection icon={Palette} title="차트 색상">
+                <MonitoringColorControl label="위험색 (바 차트)" value={selectedDefaultWidgetConfig.dangerColor ?? brand.dangerColor} onChange={(dangerColor) => upd({ dangerColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isAnomalyChart && (
+              <MonitoringInspectorSection icon={Palette} title="계열별 라인 색상">
+                <MonitoringColorControl label="계열 1 — 진동" value={selectedDefaultWidgetConfig.series1Color ?? "#f97316"} onChange={(series1Color) => upd({ series1Color })} />
+                <MonitoringColorControl label="계열 2 — 온도" value={selectedDefaultWidgetConfig.series2Color ?? "#ef4444"} onChange={(series2Color) => upd({ series2Color })} />
+                <MonitoringColorControl label="계열 3 — 열화상" value={selectedDefaultWidgetConfig.series3Color ?? "#a855f7"} onChange={(series3Color) => upd({ series3Color })} />
+                <MonitoringColorControl label="계열 4 — 가스" value={selectedDefaultWidgetConfig.series4Color ?? "#06b6d4"} onChange={(series4Color) => upd({ series4Color })} />
+              </MonitoringInspectorSection>
+            )}
+
+            <MonitoringInspectorSection icon={SlidersHorizontal} title="Panel Style">
+              <MonitoringColorControl label="패널 배경" value={selectedDefaultWidgetConfig?.bgColor ?? brand.surfaceColor} onChange={(bgColor) => upd({ bgColor })} />
+              <MonitoringColorControl label="패널 라인" value={selectedDefaultWidgetConfig?.borderColor ?? brand.borderColor} onChange={(borderColor) => upd({ borderColor })} />
+              <MonitoringColorControl label="주요 텍스트" value={selectedDefaultWidgetConfig?.textStrongColor ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => upd({ textStrongColor })} />
+              <MonitoringColorControl label="보조 텍스트" value={selectedDefaultWidgetConfig?.textSoftColor ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => upd({ textSoftColor })} />
             </MonitoringInspectorSection>
+
             <button
               type="button"
               onClick={handleConnectSelectedData}
@@ -2337,8 +2372,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             <MonitoringResetButton
               label="기본 위젯 설정 복원"
               onClick={() =>
-                updateDefaultWidgetConfig(selectedElement.id, {
-                  ...(DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[selectedElement.id] ?? selectedDefaultWidgetConfig),
+                updateDefaultWidgetConfig(wid, {
+                  ...(DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[wid] ?? selectedDefaultWidgetConfig),
                   x: undefined,
                   y: undefined,
                   w: undefined,

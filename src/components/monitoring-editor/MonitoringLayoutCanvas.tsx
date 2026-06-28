@@ -81,6 +81,12 @@ export interface MonitoringDefaultWidgetConfig {
   borderColor?: string;
   textStrongColor?: string;
   textSoftColor?: string;
+  warningColor?: string;
+  dangerColor?: string;
+  series1Color?: string;
+  series2Color?: string;
+  series3Color?: string;
+  series4Color?: string;
   /* 사용자가 이동/크기조절한 경우 저장 — 없으면 기본값 사용 */
   x?: number;
   y?: number;
@@ -259,11 +265,14 @@ function SummaryCard({
   value: string;
   unit?: string;
   sub: string;
-  tone?: "white" | "yellow";
+  tone?: "white" | "yellow" | "danger";
   accentColor?: string;
   brand: typeof DEFAULT_MONITORING_BRAND_TOKENS;
 }) {
-  const lineColor = tone === "yellow" ? "#eab308" : accentColor ?? "#3b82f6";
+  const lineColor =
+    tone === "yellow" ? (brand.warningColor ?? "#eab308") :
+    tone === "danger" ? (brand.dangerColor ?? "#ef4444") :
+    (accentColor ?? "#3b82f6");
 
   return (
     <div
@@ -287,7 +296,7 @@ function SummaryCard({
           <div className="flex items-baseline gap-1">
             <span
               className="text-[28px] font-bold leading-none"
-              style={{ color: tone === "yellow" ? brand.warningColor : brand.textStrongColor }}
+              style={{ color: tone === "yellow" ? brand.warningColor : tone === "danger" ? brand.dangerColor : brand.textStrongColor }}
             >
               {value}
             </span>
@@ -297,11 +306,11 @@ function SummaryCard({
             <Triangle
               size={10}
               style={{
-                color: tone === "yellow" ? brand.warningColor : brand.successColor,
-                fill: tone === "yellow" ? brand.warningColor : brand.successColor,
+                color: tone === "yellow" ? brand.warningColor : tone === "danger" ? brand.dangerColor : brand.successColor,
+                fill: tone === "yellow" ? brand.warningColor : tone === "danger" ? brand.dangerColor : brand.successColor,
               }}
             />
-            <span className="font-medium" style={{ color: tone === "yellow" ? brand.warningColor : brand.successColor }}>{sub}</span>
+            <span className="font-medium" style={{ color: tone === "yellow" ? brand.warningColor : tone === "danger" ? brand.dangerColor : brand.successColor }}>{sub}</span>
             <span>(어제 대비)</span>
           </div>
         </div>
@@ -472,6 +481,12 @@ export default function MonitoringLayoutCanvas({
           borderColor: config?.borderColor,
           textStrongColor: config?.textStrongColor,
           textSoftColor: config?.textSoftColor,
+          warningColor: config?.warningColor,
+          dangerColor: config?.dangerColor,
+          series1Color: config?.series1Color,
+          series2Color: config?.series2Color,
+          series3Color: config?.series3Color,
+          series4Color: config?.series4Color,
           visible: config?.visible ?? true,
           x: config?.x ?? fallbackX,
           y: config?.y ?? fallbackY,
@@ -479,12 +494,14 @@ export default function MonitoringLayoutCanvas({
           h: config?.h ?? fallbackH,
         };
       };
-      const wb = (cfg: { bgColor?: string; borderColor?: string; textStrongColor?: string; textSoftColor?: string }) => ({
+      const wb = (cfg: { bgColor?: string; borderColor?: string; textStrongColor?: string; textSoftColor?: string; warningColor?: string; dangerColor?: string }) => ({
         ...brandTokens,
         ...(cfg.bgColor ? { surfaceColor: cfg.bgColor } : {}),
         ...(cfg.borderColor ? { borderColor: cfg.borderColor } : {}),
         ...(cfg.textStrongColor ? { textStrongColor: cfg.textStrongColor } : {}),
         ...(cfg.textSoftColor ? { textSoftColor: cfg.textSoftColor } : {}),
+        ...(cfg.warningColor ? { warningColor: cfg.warningColor } : {}),
+        ...(cfg.dangerColor ? { dangerColor: cfg.dangerColor } : {}),
       });
       const equipment    = item("summary-equipment-status", "전체 설비 상태",  0, 0,  3, 3);
       const environment  = item("summary-environment-risk", "환경 위험 상태",   3, 0,  3, 3);
@@ -524,14 +541,14 @@ export default function MonitoringLayoutCanvas({
         source: "ai-studio-default",
         title: alerts.title,
         x: alerts.x, y: alerts.y, w: alerts.w, h: alerts.h,
-        render: () => <SummaryCard title={alerts.title} icon={Bell} value="26" unit="건" sub="10 건" accentColor={alerts.accentColor} brand={wb(alerts)} />,
+        render: () => <SummaryCard title={alerts.title} icon={Bell} value="26" unit="건" sub="10 건" tone="danger" accentColor={alerts.accentColor} brand={wb(alerts)} />,
       },
       {
         id: "equipment-anomaly-chart",
         source: "ai-studio-default",
         title: chart.title,
         x: chart.x, y: chart.y, w: chart.w, h: chart.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(chart).surfaceColor, borderColor: wb(chart).borderColor }}><MainChartSection brand={wb(chart)} title={chart.title} /></div>,
+        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(chart).surfaceColor, borderColor: wb(chart).borderColor }}><MainChartSection brand={wb(chart)} title={chart.title} seriesColors={{ vibration: chart.series1Color ?? "#f97316", temp: chart.series2Color ?? "#ef4444", thermal: chart.series3Color ?? "#a855f7", gas: chart.series4Color ?? "#06b6d4" }} /></div>,
       },
       {
         id: "worker-safety-overview",

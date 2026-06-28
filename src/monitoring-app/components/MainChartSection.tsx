@@ -37,8 +37,23 @@ const DEFAULT_BRAND: BrandColors = {
   surfaceColor: '#1e293b',
 };
 
-export default function MainChartSection({ brand, title }: { brand?: BrandColors; title?: string }) {
+interface SeriesColors {
+  vibration: string;
+  temp: string;
+  thermal: string;
+  gas: string;
+}
+
+const DEFAULT_SERIES: SeriesColors = {
+  vibration: "#f97316",
+  temp: "#ef4444",
+  thermal: "#a855f7",
+  gas: "#06b6d4",
+};
+
+export default function MainChartSection({ brand, title, seriesColors }: { brand?: BrandColors; title?: string; seriesColors?: SeriesColors }) {
   const colors = brand ?? DEFAULT_BRAND;
+  const sc = seriesColors ?? DEFAULT_SERIES;
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -62,19 +77,16 @@ export default function MainChartSection({ brand, title }: { brand?: BrandColors
               전체
             </button>
             <div className="flex items-center gap-1.5" style={{ color: colors.textColor }}>
-               <div className="w-2 h-2 rounded-full bg-blue-400" /> 측정값
+               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sc.vibration }} /> 진동
             </div>
             <div className="flex items-center gap-1.5" style={{ color: colors.textColor }}>
-               <div className="w-2 h-2 rounded-full bg-orange-400" /> 진동
+               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sc.temp }} /> 온도
             </div>
             <div className="flex items-center gap-1.5" style={{ color: colors.textColor }}>
-               <div className="w-2 h-2 rounded-full bg-red-400" /> 온도
+               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sc.thermal }} /> 열화상
             </div>
             <div className="flex items-center gap-1.5" style={{ color: colors.textColor }}>
-               <div className="w-2 h-2 rounded-full bg-purple-400" /> 열화상
-            </div>
-            <div className="flex items-center gap-1.5" style={{ color: colors.textColor }}>
-               <div className="w-2 h-2 rounded-full bg-cyan-400" /> 가스
+               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sc.gas }} /> 가스
             </div>
           </div>
           <div className="text-xs flex justify-between w-full mt-2 lg:hidden" style={{ color: colors.textSoftColor }}>
@@ -97,10 +109,10 @@ export default function MainChartSection({ brand, title }: { brand?: BrandColors
                 itemStyle={{ fontSize: '12px' }}
                 labelStyle={{ color: colors.textSoftColor, marginBottom: '4px', fontSize: '12px' }}
               />
-              <Line type="monotone" dataKey="vibration" stroke="#f97316" strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
-              <Line type="monotone" dataKey="temp" stroke="#ef4444" strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
-              <Line type="monotone" dataKey="thermal" stroke="#a855f7" strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
-              <Line type="monotone" dataKey="gas" stroke="#06b6d4" strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="vibration" stroke={sc.vibration} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="temp" stroke={sc.temp} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="thermal" stroke={sc.thermal} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="gas" stroke={sc.gas} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
