@@ -448,6 +448,7 @@ const DATA_SOURCE_CHOICES = Object.entries(WIDGET_CATEGORY_LABELS).map(([value, 
 const WIDGET_COMMAND_KEYWORDS = [
   "추가", "넣", "생성", "배치", "구성", "만들", "올려", "붙여",
   "보여줘", "보여", "열어", "넣어줘", "추가해줘", "달아줘", "설치", "띄워",
+  "주세요", "해주세요", "해줘", "싶어", "필요해", "원해", "써줘", "사용",
 ];
 
 const WIDGET_COMMAND_PATTERNS: Array<{ widgetId: string; keywords: string[] }> = [
@@ -698,8 +699,8 @@ function normalizeCommandText(prompt: string) {
 function hasWidgetCreateIntent(prompt: string) {
   const normalized = normalizeCommandText(prompt);
   if (WIDGET_COMMAND_KEYWORDS.some((keyword) => normalized.includes(keyword))) return true;
-  // single/short phrases: match direct widget keyword without action verb
-  if (normalized.split(/\s+/).filter(Boolean).length <= 3) {
+  // short phrases (≤5 words): match direct widget keyword without action verb
+  if (normalized.split(/\s+/).filter(Boolean).length <= 5) {
     return WIDGET_COMMAND_PATTERNS.some((pattern) =>
       pattern.keywords.some((kw) => normalized.includes(kw.toLowerCase()))
     );
@@ -889,6 +890,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const router = useRouter();
   const projects = useProjectStore((state) => state.projects);
   const upsertProject = useProjectStore((state) => state.upsert);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(MONITORING_LEFT_PANEL_WIDTH);
   const [leftTab, setLeftTab] = useState<LeftTab>("chat");
   const [centerView, setCenterView] = useState<CenterView>("monitor");
   const [rightInspectorMode, setRightInspectorMode] = useState<RightInspectorMode>("settings");
@@ -2581,9 +2583,9 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <motion.div
           data-monitoring-left-panel
-          animate={{ marginLeft: showRightPanel ? -(MONITORING_LEFT_PANEL_WIDTH - 70) : 0 }}
+          animate={{ marginLeft: showRightPanel ? -(leftPanelWidth - 70) : 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          style={{ position: "relative", display: "flex", flexShrink: 0, height: "100%", minHeight: 0, width: MONITORING_LEFT_PANEL_WIDTH }}
+          style={{ position: "relative", display: "flex", flexShrink: 0, height: "100%", minHeight: 0, width: leftPanelWidth }}
         >
         <aside className="flex min-h-0 w-full flex-shrink-0 flex-col overflow-hidden bg-[#0a0a14]">
           <div className="flex items-center gap-2.5 border-b border-white/5 px-3 py-2">
@@ -2718,6 +2720,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             </div>
           )}
         </aside>
+
         <AnimatePresence>
           {showRightPanel && (
             <motion.div
@@ -2736,6 +2739,32 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           )}
         </AnimatePresence>
         </motion.div>
+
+        {/* ── 좌측 패널 리사이즈 핸들 — 1px 레이아웃, ±5px 히트영역 ── */}
+        <div
+          className="group relative flex-shrink-0 cursor-col-resize"
+          style={{ width: 1, zIndex: 20 }}
+          onMouseDown={(e) => {
+            const startX = e.clientX;
+            const startW = leftPanelWidth;
+            const onMove = (ev: MouseEvent) => {
+              setLeftPanelWidth(Math.min(480, Math.max(200, startW + ev.clientX - startX)));
+            };
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+              document.body.style.cursor = "";
+              document.body.style.userSelect = "";
+            };
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }}
+        >
+          <div className="absolute inset-0 bg-white/[0.07] transition-colors duration-150 group-hover:bg-violet-500/60" />
+          <div className="absolute inset-y-0" style={{ left: -5, right: -5 }} />
+        </div>
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0b1120]">
           {/* ── 중앙 뷰 컨테이너 ── */}
