@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIM Monitoring Design System</title>
+  <!-- Google Fonts: Inter & Space Grotesk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              bg: '#0b1120',
+              panel: '#111827',
+              border: '#1f2937',
+              input: '#334155',
+              primary: '#3b82f6',
+              primaryHover: '#2563eb',
+              success: '#10b981',
+              warning: '#f59e0b',
+              danger: '#ef4444',
+              purple: '#a855f7',
+              cyan: '#06b6d4',
+            },
+            slate: {
+              950: '#030712',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar for modern feel */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b1120;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1f2937;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    .code-container {
+      position: relative;
+    }
+    .code-container:hover .copy-btn {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="bg-brand-bg text-slate-300 font-sans min-h-screen flex flex-col antialiased">
+
+  <!-- Header Banner -->
+  <header class="bg-brand-panel border-b border-brand-border shrink-0 sticky top-0 z-50">
+    <div class="max-w-[1600px] mx-auto px-6 h-[76px] flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center">
+          <i data-lucide="layers" class="text-blue-400 w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-100 font-display tracking-tight flex items-center gap-2">
+            AIM Monitoring <span class="text-blue-400 font-mono text-xs px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">v1.0.0</span>
+          </h1>
+          <p class="text-xs text-slate-500">KOWEPO 통합 안전 관제 플랫폼 표준 디자인 가이드라인</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <!-- Download Action -->
+        <button id="downloadBtn" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2 rounded-xl transition-all shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-[0.98]">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>디자인 가이드 HTML 다운로드</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-[1600px] mx-auto w-full px-6 flex-1 flex flex-col lg:flex-row gap-8 py-8 min-h-0">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-full lg:w-[280px] shrink-0 space-y-6">
+      <div class="bg-brand-panel border border-brand-border rounded-2xl p-4 sticky top-[108px] max-h-[calc(100vh-140px)] overflow-y-auto">
+        <div class="px-3 mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">목차</div>
+        <nav class="space-y-1">
+          <a href="#overview" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="info" class="w-4 h-4 shrink-0"></i> 개요 및 설계 원칙
+          </a>
+          <a href="#colors" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="palette" class="w-4 h-4 shrink-0"></i> 색상 표준 (Color Palette)
+          </a>
+          <a href="#typography" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="type" class="w-4 h-4 shrink-0"></i> 타이포그래피 (Typography)
+          </a>
+          <a href="#buttons" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="mouse-pointer" class="w-4 h-4 shrink-0"></i> 버튼 및 배지 (Buttons & Badges)
+          </a>
+          <a href="#kpi" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="layout-grid" class="w-4 h-4 shrink-0"></i> KPI 카드 표준 (KPI Cards)
+          </a>
+          <a href="#tabs" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="columns" class="w-4 h-4 shrink-0"></i> 네비게이션 및 탭 (Tabs)
+          </a>
+          <a href="#tables" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="table" class="w-4 h-4 shrink-0"></i> 표 및 리스트 (Tables)
+          </a>
+          <a href="#forms" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="check-square" class="w-4 h-4 shrink-0"></i> 입력 폼 (Form Controls)
+          </a>
+          <a href="#charts" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-slate-100 transition-colors text-slate-400">
+            <i data-lucide="trending-up" class="w-4 h-4 shrink-0"></i> 시각화 및 컴포넌트
+          </a>
+        </nav>
+        
+        <hr class="border-brand-border my-4" />
+        
+        <div class="px-3 py-2">
+          <div class="p-3.5 bg-slate-900 border border-brand-border rounded-xl">
+            <div class="text-xs font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
+              <i data-lucide="info" class="w-3.5 h-3.5 text-blue-400"></i>
+              디자인 시스템 요약
+            </div>
+            <p class="text-[11px] text-slate-500 leading-relaxed">
+              본 시스템은 <b>화면 간 일관된 사용자 경험</b>을 보장하기 위해 <b>KPI 카드의 높이(100px) 고정</b>, <b>아이콘 배치 표준화</b> 및 <b>통합 탭 위치 디자인</b>을 수립하였습니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 space-y-12 min-w-0">
+
+      <!-- 1. Overview Section -->
+      <section id="overview" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">1. 개요 및 핵심 설계 원칙</h2>
+          <p class="text-sm text-slate-400 mt-1">AIM Monitoring 플랫폼이 추구하는 고수준 UI 디자인의 정밀성 규격</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="p-5 bg-slate-900 border border-brand-border rounded-xl flex flex-col gap-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+              <i data-lucide="maximize-2" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-200">일관성 (Consistency)</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              모든 화면에서 KPI 카드의 디자인, 높이(100px 고정), 아이콘 왼쪽 고정 및 탭 규격을 완벽하게 동기화하여 인지 혼선을 제거합니다.
+            </p>
+          </div>
+          
+          <div class="p-5 bg-slate-900 border border-brand-border rounded-xl flex flex-col gap-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+              <i data-lucide="activity" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-200">시각 정보 위계 (Hierarchy)</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              발생 건수 및 측정치 등의 핵심 지표는 압도적인 크기의 볼드 서체로 표현하고, 단위와 기준 레이블은 채도를 낮춰 가독성을 극대화합니다.
+            </p>
+          </div>
+
+          <div class="p-5 bg-slate-900 border border-brand-border rounded-xl flex flex-col gap-3">
+            <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400 shrink-0">
+              <i data-lucide="shield" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-200">안전 중심 대비 (Safety Contrast)</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              정상(Emerald), 주의(Yellow), 위험(Red) 등 가동 현장 상황에 직결되는 핵심 안전 상태 코드를 고대비 컬러로 직관적으로 제공합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Colors Section -->
+      <section id="colors" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">2. 색상 표준 (Color Palette)</h2>
+          <p class="text-sm text-slate-400 mt-1">발전소 통합 관제 최적의 대비율을 충족하는 다크 인더스트리얼 테마 색상계</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Background -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-brand-bg border border-brand-border shadow-inner shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">기본 배경색</div>
+              <div class="font-mono text-xs text-slate-500">#0b1120</div>
+              <div class="text-[10px] text-blue-400 font-mono">bg-[#0b1120]</div>
+            </div>
+          </div>
+          <!-- Panel -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-brand-panel border border-brand-border shadow-inner shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">패널 및 카드 배경</div>
+              <div class="font-mono text-xs text-slate-500">#111827</div>
+              <div class="text-[10px] text-blue-400 font-mono">bg-[#111827]</div>
+            </div>
+          </div>
+          <!-- Border -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-brand-border border border-brand-border shadow-inner shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">보더 선 (Borders)</div>
+              <div class="font-mono text-xs text-slate-500">#1f2937</div>
+              <div class="text-[10px] text-blue-400 font-mono">border-[#1f2937]</div>
+            </div>
+          </div>
+          <!-- Primary Blue -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-blue-500 shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">기본 포인트색</div>
+              <div class="font-mono text-xs text-slate-500">#3b82f6</div>
+              <div class="text-[10px] text-blue-400 font-mono">text-blue-500</div>
+            </div>
+          </div>
+          <!-- Success Emerald -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-emerald-500 shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">정상 (Success)</div>
+              <div class="font-mono text-xs text-slate-500">#10b981</div>
+              <div class="text-[10px] text-emerald-400 font-mono">text-emerald-500</div>
+            </div>
+          </div>
+          <!-- Warning Yellow -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-amber-500 shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">주의 (Caution)</div>
+              <div class="font-mono text-xs text-slate-500">#f59e0b</div>
+              <div class="text-[10px] text-amber-400 font-mono">text-yellow-500</div>
+            </div>
+          </div>
+          <!-- Danger Red -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-red-500 shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">위험 (Danger)</div>
+              <div class="font-mono text-xs text-slate-500">#ef4444</div>
+              <div class="text-[10px] text-red-400 font-mono">text-red-500</div>
+            </div>
+          </div>
+          <!-- Purple Accent -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-purple-500 shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">특화 액센트</div>
+              <div class="font-mono text-xs text-slate-500">#a855f7</div>
+              <div class="text-[10px] text-purple-400 font-mono">text-purple-500</div>
+            </div>
+          </div>
+          <!-- Cyan Accent -->
+          <div class="p-4 bg-slate-900 border border-brand-border rounded-xl flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-cyan-500 shrink-0"></div>
+            <div>
+              <div class="text-sm font-bold text-slate-200">계측 피드백</div>
+              <div class="font-mono text-xs text-slate-500">#06b6d4</div>
+              <div class="text-[10px] text-cyan-400 font-mono">text-cyan-500</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Typography Section -->
+      <section id="typography" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">3. 타이포그래피 (Typography)</h2>
+          <p class="text-sm text-slate-400 mt-1">다양한 해상도 기기에서 명확한 텍스트 가시성을 확보하기 위한 다이어그램 구성</p>
+        </div>
+
+        <div class="p-6 bg-slate-900 border border-brand-border rounded-xl space-y-6">
+          <div class="space-y-2">
+            <div class="text-xs font-bold text-slate-500 font-mono">DISPLAY HEADINGS (Space Grotesk)</div>
+            <div class="space-y-1">
+              <div class="text-4xl font-bold text-slate-100 font-display tracking-tight">AIM Monitoring 4XL</div>
+              <div class="text-2xl font-semibold text-slate-200 font-display">통합 대시보드 타이틀 2XL</div>
+              <div class="text-xl font-medium text-slate-300 font-display">대시보드 서브 타이틀 XL</div>
+            </div>
+          </div>
+          
+          <hr class="border-brand-border"/>
+
+          <div class="space-y-2">
+            <div class="text-xs font-bold text-slate-500 font-mono">UI CONTROLS & PARAGRAPHS (Inter)</div>
+            <div class="space-y-2">
+              <p class="text-base font-semibold text-slate-100">Inter SemiBold 16px - 주요 버튼 및 가동구역 헤더</p>
+              <p class="text-sm font-medium text-slate-300">Inter Medium 14px - 폼 인풋값, 필터 토글 버튼, 테이블 본문 주요 데이터</p>
+              <p class="text-xs font-normal text-slate-400">Inter Regular 12px - 서브 텍스트, 설명글, 등록 내역 및 타임라인 부가정보</p>
+            </div>
+          </div>
+
+          <hr class="border-brand-border"/>
+
+          <div class="space-y-2">
+            <div class="text-xs font-bold text-slate-500 font-mono">TELEMETRY & CODE DATA (JetBrains Mono)</div>
+            <div class="space-y-2">
+              <div class="text-3xl font-bold text-slate-100 font-mono">156 <span class="text-sm font-normal text-slate-500">대</span> (Numeric Display)</div>
+              <div class="text-sm font-mono text-emerald-400 bg-slate-950 p-2.5 rounded-lg border border-brand-border inline-block">EQ-A-001 (Device ID Type)</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Buttons & Badges -->
+      <section id="buttons" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">4. 버튼 및 배지 (Buttons & Badges)</h2>
+          <p class="text-sm text-slate-400 mt-1">상호작용 피드백을 전달하는 핵심 제어 및 상태 마커 규격</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Button Samples -->
+          <div class="p-6 bg-slate-900 border border-brand-border rounded-xl space-y-4">
+            <div class="text-sm font-bold text-slate-200 mb-2">기본 제어 버튼</div>
+            <div class="flex flex-wrap gap-2">
+              <button class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2 rounded-xl transition-all shadow-lg shadow-blue-500/10">
+                Primary Button
+              </button>
+              <button class="bg-[#1e293b] hover:bg-[#334155] border border-[#334155] text-slate-200 font-medium text-sm px-4 py-2 rounded-xl transition-all">
+                Secondary Button
+              </button>
+              <button class="bg-red-600 hover:bg-red-700 text-white font-medium text-sm px-4 py-2 rounded-xl transition-all shadow-lg shadow-red-500/10">
+                Warning Action
+              </button>
+            </div>
+            
+            <div class="code-container bg-slate-950 p-4 rounded-xl border border-brand-border text-xs font-mono mt-4 relative">
+              <button class="copy-btn absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-md opacity-0 transition-opacity" onclick="copyCode(this)">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+              <pre class="text-blue-400 overflow-x-auto"><code>&lt;button class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2 rounded-xl transition-all"&gt;
+  Primary Button
+&lt;/button&gt;</code></pre>
+            </div>
+          </div>
+
+          <!-- Badge Samples -->
+          <div class="p-6 bg-slate-900 border border-brand-border rounded-xl space-y-4">
+            <div class="text-sm font-bold text-slate-200 mb-2">가동 상태 식별 배지</div>
+            <div class="flex flex-wrap gap-3">
+              <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>정상 가동
+              </span>
+              <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>주의 경보
+              </span>
+              <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-400 border border-red-500/20 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>위험 발생
+              </span>
+            </div>
+
+            <div class="code-container bg-slate-950 p-4 rounded-xl border border-brand-border text-xs font-mono mt-4 relative">
+              <button class="copy-btn absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-md opacity-0 transition-opacity" onclick="copyCode(this)">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+              <pre class="text-blue-400 overflow-x-auto"><code>&lt;span class="px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5"&gt;
+  &lt;span class="w-1.5 h-1.5 rounded-full bg-emerald-500"&gt;&lt;/span&gt;정상 가동
+&lt;/span&gt;</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Unified KPI Cards -->
+      <section id="kpi" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">5. KPI 카드 표준 규격 (KPI Cards)</h2>
+          <p class="text-sm text-slate-400 mt-1">모든 진단 탭의 최상단에서 통합 사용되는 높이 100px 일관성 고정형 KPI 카드 레이아웃</p>
+        </div>
+
+        <div class="p-6 bg-slate-900 border border-brand-border rounded-xl space-y-6">
+          <div class="text-sm font-bold text-slate-200">실제 프리뷰 예시 (100px 높이 완벽 통일)</div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Card 1 -->
+            <div class="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 w-full hover:border-blue-500/40 transition-all">
+              <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                <i data-lucide="cpu" class="text-blue-400 w-6 h-6"></i>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-slate-400 text-sm font-medium">전체 가동 설비</span>
+                <span class="text-3xl font-bold text-slate-100 mt-0.5">156 <span class="text-sm font-normal text-slate-500">대</span></span>
+              </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 w-full hover:border-emerald-500/40 transition-all">
+              <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <i data-lucide="check-circle" class="text-emerald-500 w-6 h-6"></i>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-slate-400 text-sm font-medium">정상 상태 판정</span>
+                <span class="text-3xl font-bold text-slate-100 mt-0.5">112 <span class="text-sm font-normal text-slate-500">대</span></span>
+              </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 w-full hover:border-yellow-500/40 transition-all">
+              <div class="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
+                <i data-lucide="alert-triangle" class="text-yellow-500 w-6 h-6"></i>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-slate-400 text-sm font-medium">주의 경보 설비</span>
+                <span class="text-3xl font-bold text-slate-100 mt-0.5">28 <span class="text-sm font-normal text-slate-500">대</span></span>
+              </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="bg-[#111827] border border-red-500/30 rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 w-full hover:border-red-500/50 transition-all shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+              <div class="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                <i data-lucide="alert-octagon" class="text-red-500 w-6 h-6"></i>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-red-400 text-sm font-bold">즉각 긴급 조치</span>
+                <span class="text-3xl font-bold text-slate-100 mt-0.5">16 <span class="text-sm font-normal text-slate-500">대</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="code-container bg-slate-950 p-4 rounded-xl border border-brand-border text-xs font-mono relative">
+            <button class="copy-btn absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-md opacity-0 transition-opacity" onclick="copyCode(this)">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+            <pre class="text-blue-400 overflow-x-auto"><code>&lt;!-- 100px 고정형 디자인 시스템 KPI 카드 표준 코드 (아이콘 좌측 정렬) --&gt;
+&lt;div class="bg-[#111827] border border-[#1f2937] rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 w-full"&gt;
+  &lt;div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0"&gt;
+    &lt;i data-lucide="cpu" class="text-blue-400 w-6 h-6"&gt;&lt;/i&gt;
+  &lt;/div&gt;
+  &lt;div class="flex flex-col"&gt;
+    &lt;span class="text-slate-400 text-sm font-medium"&gt;전체 가동 설비&lt;/span&gt;
+    &lt;span class="text-3xl font-bold text-slate-100 mt-0.5"&gt;156 &lt;span class="text-sm font-normal text-slate-500"&gt;대&lt;/span&gt;&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Navigation & Tabs -->
+      <section id="tabs" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">6. 네비게이션 및 탭 (Tabs)</h2>
+          <p class="text-sm text-slate-400 mt-1">서브 메뉴 전환 및 필터 인터페이스의 통일된 규격</p>
+        </div>
+
+        <div class="p-6 bg-slate-900 border border-brand-border rounded-xl space-y-6">
+          <div class="text-sm font-bold text-slate-200">서브 하위 탭 (Bottom-border Line Tab)</div>
+          
+          <div class="flex items-center gap-6 border-b border-[#1f2937] pb-0">
+            <button class="pb-3 text-sm font-medium border-b-2 text-blue-400 border-blue-500">
+              전체 현황보기 (Active)
+            </button>
+            <button class="pb-3 text-sm font-medium border-b-2 text-slate-400 border-transparent hover:text-slate-300 transition-colors">
+              미조치 알림 관리
+            </button>
+            <button class="pb-3 text-sm font-medium border-b-2 text-slate-400 border-transparent hover:text-slate-300 transition-colors">
+              조치 완료 통계
+            </button>
+          </div>
+
+          <div class="code-container bg-slate-950 p-4 rounded-xl border border-brand-border text-xs font-mono relative">
+            <button class="copy-btn absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-md opacity-0 transition-opacity" onclick="copyCode(this)">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+            <pre class="text-blue-400 overflow-x-auto"><code>&lt;!-- 탭의 하단 보더라인을 정밀 일치시키는 컴포넌트 --&gt;
+&lt;div class="flex items-center gap-6 border-b border-[#1f2937]"&gt;
+  &lt;button class="pb-3 text-sm font-medium border-b-2 text-blue-400 border-blue-500"&gt;전체 현황보기&lt;/button&gt;
+  &lt;button class="pb-3 text-sm font-medium border-b-2 text-slate-400 border-transparent hover:text-slate-300"&gt;미조치 알림 관리&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Tables & Lists -->
+      <section id="tables" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">7. 표 및 리스트 디자인 (Tables)</h2>
+          <p class="text-sm text-slate-400 mt-1">대량의 계측 센서 정보 및 상태 이력을 일목요연하게 전달하는 정보 조밀형 그리드 표</p>
+        </div>
+
+        <div class="p-6 bg-slate-900 border border-brand-border rounded-xl space-y-6">
+          <div class="overflow-hidden border border-brand-border rounded-xl">
+            <table class="w-full text-sm text-left whitespace-nowrap bg-[#111827]">
+              <thead class="text-xs text-slate-500 uppercase bg-slate-900/50 border-b border-brand-border">
+                <tr>
+                  <th class="px-6 py-4.5 font-semibold text-slate-400">설비 ID</th>
+                  <th class="px-6 py-4.5 font-semibold text-slate-400">설비 분류</th>
+                  <th class="px-6 py-4.5 font-semibold text-slate-400">최근 점검 일시</th>
+                  <th class="px-6 py-4.5 font-semibold text-slate-400 text-center">안전 상태</th>
+                  <th class="px-6 py-4.5 font-semibold text-slate-400 text-right">제어</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#1f2937]/50 text-slate-300">
+                <tr class="hover:bg-slate-800/30 transition-colors">
+                  <td class="px-6 py-4 font-mono text-xs text-slate-400">EQ-A-102</td>
+                  <td class="px-6 py-4 font-medium text-slate-200">고압 진공 펌프 #2</td>
+                  <td class="px-6 py-4 text-slate-400 text-xs">2026-06-24 10:14</td>
+                  <td class="px-6 py-4 text-center">
+                    <span class="px-2 py-0.5 text-xs rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400">정상</span>
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <button class="text-xs text-blue-400 hover:text-blue-300 font-medium">상세보기</button>
+                  </td>
+                </tr>
+                <tr class="hover:bg-slate-800/30 transition-colors">
+                  <td class="px-6 py-4 font-mono text-xs text-slate-400">EQ-B-205</td>
+                  <td class="px-6 py-4 font-medium text-slate-200">배기가스 밸브 제어기</td>
+                  <td class="px-6 py-4 text-slate-400 text-xs">2026-06-24 09:30</td>
+                  <td class="px-6 py-4 text-center">
+                    <span class="px-2 py-0.5 text-xs rounded border border-yellow-500/20 bg-yellow-500/5 text-yellow-400">주의</span>
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <button class="text-xs text-blue-400 hover:text-blue-300 font-medium">상세보기</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="code-container bg-slate-950 p-4 rounded-xl border border-brand-border text-xs font-mono relative">
+            <button class="copy-btn absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-md opacity-0 transition-opacity" onclick="copyCode(this)">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+            <pre class="text-blue-400 overflow-x-auto"><code>&lt;!-- 호버 효과 및 테두리 정밀 가이드 테이블 레이아웃 --&gt;
+&lt;div class="overflow-hidden border border-[#1f2937] rounded-xl"&gt;
+  &lt;table class="w-full text-sm text-left bg-[#111827]"&gt;
+    &lt;thead class="text-xs text-slate-500 bg-slate-900/50 border-b border-[#1f2937]"&gt;
+      &lt;tr&gt;
+        &lt;th class="px-6 py-3"&gt;설비 분류&lt;/th&gt;
+        &lt;th class="px-6 py-3 text-center"&gt;안전 상태&lt;/th&gt;
+      &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody class="divide-y divide-[#1f2937]/50"&gt;
+      &lt;tr class="hover:bg-slate-800/30 transition-colors"&gt;
+        &lt;td class="px-6 py-4 text-slate-200"&gt;고압 진공 펌프&lt;/td&gt;
+        &lt;td class="px-6 py-4 text-center"&gt;
+          &lt;span class="px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400"&gt;정상&lt;/span&gt;
+        &lt;/td&gt;
+      &lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+&lt;/div&gt;</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. Form Controls -->
+      <section id="forms" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">8. 입력 폼 디자인 (Form Controls)</h2>
+          <p class="text-sm text-slate-400 mt-1">시스템 상호작용 및 파라미터 설정을 위한 다크-인클루시브 인풋 가이드</p>
+        </div>
+
+        <div class="p-6 bg-slate-900 border border-brand-border rounded-xl space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex flex-col gap-2">
+              <label class="text-slate-300 font-bold text-sm">설비명 입력 필드</label>
+              <input type="text" placeholder="예: 고압 펌프 #1" class="w-full bg-[#111827] border border-[#334155] rounded-xl p-3 text-slate-300 outline-none focus:border-blue-500 transition-all text-sm" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-slate-300 font-bold text-sm">진단 구역 선택 셀렉트</label>
+              <div class="relative">
+                <select class="w-full bg-[#111827] border border-[#334155] rounded-xl p-3 text-slate-300 outline-none focus:border-blue-500 transition-all text-sm appearance-none cursor-pointer">
+                  <option>A-1 가스 처리 구역</option>
+                  <option>B-3 고압 터빈실</option>
+                  <option>C-2 화재 안전 지구</option>
+                </select>
+                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-slate-500"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="code-container bg-slate-950 p-4 rounded-xl border border-brand-border text-xs font-mono relative">
+            <button class="copy-btn absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-md opacity-0 transition-opacity" onclick="copyCode(this)">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+            <pre class="text-blue-400 overflow-x-auto"><code>&lt;!-- 입력 제어 컴포넌트 마크업 --&gt;
+&lt;input type="text" class="w-full bg-[#111827] border border-[#334155] rounded-xl p-3 text-slate-300 outline-none focus:border-blue-500 transition-all text-sm" /&gt;</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. Charts & Visualizers -->
+      <section id="charts" class="bg-brand-panel border border-brand-border rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="border-b border-brand-border pb-4">
+          <h2 class="text-2xl font-bold text-slate-100 font-display">9. 시각화 및 컴포넌트 프레임 (Visualizations)</h2>
+          <p class="text-sm text-slate-400 mt-1">실시간 시계열 데이터 차트 및 모니터링 컴포넌트 표준 구성 가이드</p>
+        </div>
+
+        <div class="p-6 bg-slate-900 border border-brand-border rounded-xl space-y-6">
+          <!-- Mock Chart Container -->
+          <div class="bg-[#111827] border border-[#1f2937] rounded-2xl p-6 flex flex-col gap-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 class="text-sm font-bold text-slate-200">설비 진동 및 가동 온도 트렌드</h3>
+                <p class="text-xs text-slate-500">24시간 계측 실시간 데이터</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                <span class="text-xs text-slate-400 mr-4">온도 (도)</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span class="text-xs text-slate-400">진동 (mm/s)</span>
+              </div>
+            </div>
+            
+            <!-- Beautiful representation of a chart track -->
+            <div class="h-44 w-full bg-[#0b1120] border border-brand-border rounded-xl p-4 flex flex-col justify-between relative overflow-hidden">
+              <div class="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:4rem_2rem] opacity-30"></div>
+              
+              <!-- Sparkline simulation using SVG -->
+              <svg class="absolute inset-x-0 bottom-8 h-24 w-full" preserveAspectRatio="none">
+                <path d="M 0 50 Q 80 10, 160 80 T 320 30 T 480 70 T 640 20 T 800 40 T 960 10 T 1120 60 T 1280 30 T 1600 50" fill="none" stroke="#3b82f6" stroke-width="2.5"></path>
+                <path d="M 0 70 Q 120 40, 240 90 T 480 50 T 720 80 T 960 40 T 1200 60 T 1440 30 T 1600 70" fill="none" stroke="#10b981" stroke-width="2"></path>
+              </svg>
+              
+              <div class="flex justify-between text-[10px] text-slate-600 z-10">
+                <span>80 (위험치)</span>
+                <span>40 (정상치)</span>
+                <span>0 (오프라인)</span>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-600 z-10 border-t border-brand-border pt-1">
+                <span>00:00</span>
+                <span>06:00</span>
+                <span>12:00</span>
+                <span>18:00</span>
+                <span>24:00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="code-container bg-slate-950 p-4 rounded-xl border border-brand-border text-xs font-mono relative">
+            <button class="copy-btn absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-md opacity-0 transition-opacity" onclick="copyCode(this)">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+            <pre class="text-blue-400 overflow-x-auto"><code>&lt;!-- 차트 캔버스 컨테이너 표준 구성 (그리드 정렬) --&gt;
+&lt;div class="bg-[#111827] border border-[#1f2937] rounded-xl p-5 flex flex-col"&gt;
+  &lt;div class="flex justify-between items-center mb-4"&gt;
+    &lt;h3 class="text-sm font-bold text-slate-200"&gt;지표 타임라인&lt;/h3&gt;
+  &lt;/div&gt;
+  &lt;div class="h-[200px] w-full bg-[#0b1120] rounded-lg border border-[#1f2937]"&gt;
+     &lt;!-- Recharts 또는 D3.js 렌더링 프레임 마운트 --&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer Info -->
+  <footer class="bg-brand-panel border-t border-brand-border py-6 shrink-0 text-center text-xs text-slate-600 font-mono">
+    <div class="max-w-[1600px] mx-auto px-6">
+      © 2026 KOWEPO WESTERN POWER CO. ALL RIGHTS RESERVED. POWERED BY AIM SYSTEM DESIGN DIVISION.
+    </div>
+  </footer>
+
+  <!-- Notification Toast for interactive copy -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 border border-emerald-500/30 text-emerald-400 text-sm font-medium px-4 py-3 rounded-xl shadow-2xl transition-all translate-y-20 opacity-0 pointer-events-none flex items-center gap-2 z-50">
+    <i data-lucide="check" class="w-4 h-4 bg-emerald-500/10 p-0.5 rounded-full"></i>
+    <span>코드 조각이 성공적으로 복사되었습니다!</span>
+  </div>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Copy to clipboard engine
+    function copyCode(btn) {
+      const code = btn.nextElementSibling.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast();
+      });
+    }
+
+    // Show Toast
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    // Self Download Engine
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      // Get the entire HTML document text
+      const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'AIM_Monitoring_Design_System.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
