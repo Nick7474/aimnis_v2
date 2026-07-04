@@ -134,12 +134,13 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     gaugeTrack: isLight ? "rgba(0,0,0,.08)" : "rgba(255,255,255,.07)",
   };
 
-  /* ── 미연결 상태 — NoneSummaryCard와 동일한 스타일 ── */
+  /* ── 미연결 상태 ── */
   if (!isConnected) {
     const accentCol = brandAccentColor ?? brandPrimaryColor ?? "#3B82F6";
     const bgCol     = brandSurfaceColor ?? "#111827";
     const bdCol     = brandBorderColor  ?? "#1F2937";
     const textSoft  = brandTextSoftColor ?? "#94A3B8";
+    const desc      = widget?.description;
 
     return (
       <WidgetFrame
@@ -151,21 +152,26 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
         brandTextStrong={brandTextStrongColor} brandTextSoft={textSoft}
         isLight={isLight} isConnected={false}
       >
-        {/* NoneSummaryCard 레이아웃 그대로 */}
-        <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, minHeight: 0 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: "monospace", fontSize: 28, fontWeight: 700, lineHeight: 1, color: textSoft }}>
-              None
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10, minHeight: 0 }}>
+          {/* 위젯 설명 */}
+          {desc && (
+            <p style={{ fontSize: 11.5, color: textSoft, lineHeight: 1.6, opacity: 0.75 }}>
+              {desc}
+            </p>
+          )}
+          {/* 하단: ghost 바 + 안내 */}
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: textSoft, opacity: 0.5 }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: accentCol, display: "inline-block", opacity: 0.6 }} />
+                DB 수집 연결 전
+              </div>
             </div>
-            <div style={{ marginTop: 8, fontSize: 12, color: textSoft }}>
-              DB 수집 연결 전
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 2.5, height: 32, flexShrink: 0, opacity: 0.25 }}>
+              {[34, 22, 29, 18, 26, 14, 21].map((h, i) => (
+                <span key={i} style={{ width: 8, borderRadius: "2px 2px 0 0", height: (h / 34) * 32, backgroundColor: i % 3 === 0 ? accentCol : bdCol, display: "block" }} />
+              ))}
             </div>
-          </div>
-          {/* ghost bar chart — NoneSummaryCard 동일 */}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 40, width: 112, flexShrink: 0, opacity: 0.35 }}>
-            {[34, 22, 29, 18, 26, 14, 21].map((h, i) => (
-              <span key={i} style={{ flex: 1, borderRadius: "2px 2px 0 0", height: h, backgroundColor: i % 3 === 0 ? accentCol : bdCol }} />
-            ))}
           </div>
         </div>
       </WidgetFrame>

@@ -17,6 +17,7 @@ import {
   Grip,
   ImagePlus,
   LayoutDashboard,
+  List,
   Maximize2,
   Minimize2,
   MessageSquareText,
@@ -943,6 +944,9 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [interaction, setInteraction] = useState<WidgetInteraction | null>(null);
   const [defaultInteraction, setDefaultInteraction] = useState<DefaultWidgetInteraction | null>(null);
   const [widgetSearch, setWidgetSearch] = useState("");
+  const [hoveredLibraryWidgetId, setHoveredLibraryWidgetId] = useState<string | null>(null);
+  const [hoverCardY, setHoverCardY] = useState(0);
+  const [widgetViewMode, setWidgetViewMode] = useState<"grid" | "list">("grid");
   const canvasRef = useRef<HTMLDivElement>(null);
   const fullscreenCanvasRef = useRef<HTMLDivElement>(null);
   const canvasWidgetsRef = useRef<CanvasWidgetInstance[]>([]);
@@ -2894,6 +2898,53 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         )}
       </AnimatePresence>
 
+      {/* ── 위젯 라이브러리 호버 프리뷰 플라이아웃 ── */}
+      {hoveredLibraryWidgetId && (() => {
+        const hw = widgets.find((w) => w.id === hoveredLibraryWidgetId);
+        if (!hw) return null;
+        const catLabel = WIDGET_CATEGORY_LABELS[hw.dataSource ?? ""] ?? (hw.dataSource ?? "기타");
+        const clampedY = Math.min(Math.max(hoverCardY, 70), (typeof window !== "undefined" ? window.innerHeight : 900) - 320);
+        return (
+          <div
+            style={{
+              position: "fixed",
+              left: leftPanelWidth + 14,
+              top: clampedY,
+              zIndex: 9998,
+              width: 232,
+              background: "#0d1220",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 14,
+              overflow: "hidden",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
+              pointerEvents: "none",
+            }}
+          >
+            {/* 썸네일 */}
+            <div style={{ background: "#0a0f1c", padding: "12px 12px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <MonitoringWidgetThumbnail widget={hw} />
+            </div>
+            {/* 정보 */}
+            <div style={{ padding: "12px 14px 14px" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 5, lineHeight: 1.3 }}>{hw.name}</p>
+              <p style={{ fontSize: 11, color: "#64748b", lineHeight: 1.55, marginBottom: 10 }}>{hw.description ?? "위젯 설명 없음"}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
+                  {catLabel}
+                </span>
+                <span style={{ fontSize: 10, color: "#334155", fontFamily: "monospace" }}>
+                  {hw.defaultSize.w}×{hw.defaultSize.h} grid
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#475569" }}>
+                <span style={{ opacity: 0.7 }}>←</span>
+                드래그하여 캔버스에 추가
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <motion.div
           data-monitoring-left-panel
@@ -2962,9 +3013,31 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                     </button>
                   )}
                 </div>
-                <p className="mt-2 text-[10px] leading-relaxed text-white/30">
-                  드래그하면 12그리드에 배치됩니다.
-                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-[10px] text-white/30">드래그하여 추가</p>
+                  <div className="flex items-center gap-0.5 rounded-md border border-white/[0.07] bg-black/20 p-[3px]">
+                    <button
+                      type="button"
+                      onClick={() => setWidgetViewMode("grid")}
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded transition-colors",
+                        widgetViewMode === "grid" ? "bg-white/10 text-white/80" : "text-white/30 hover:text-white/60"
+                      )}
+                    >
+                      <Grip className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWidgetViewMode("list")}
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded transition-colors",
+                        widgetViewMode === "list" ? "bg-white/10 text-white/80" : "text-white/30 hover:text-white/60"
+                      )}
+                    >
+                      <List className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-4 px-3 pb-3">
@@ -2978,55 +3051,110 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/30">
                         {WIDGET_CATEGORY_LABELS[group] ?? group}
                       </p>
-                      <div className="grid grid-cols-2 gap-[7px]">
-                        {groupWidgets.map((widget) => {
-                          const used = usedWidgetIds.has(widget.id);
-                          return (
-                            <button
-                              key={widget.id}
-                              type="button"
-                              draggable
-                              onDragStart={(event) => {
-                                event.dataTransfer.setData("application/x-aim-monitoring-widget", widget.id);
-                                event.dataTransfer.effectAllowed = "copy";
-                                setIsDraggingWidget(true);
-                              }}
-                              onDragEnd={() => setIsDraggingWidget(false)}
-                              title={widget.name}
-                              className={cn(
-                                "group relative flex flex-col rounded-[9px] p-[7px] text-left transition-all duration-150 hover:border-[#3b82f6]",
-                                used
-                                  ? "border border-[rgba(59,130,246,.3)] bg-[rgba(59,130,246,.06)]"
-                                  : "border border-white/[0.07] bg-[#0f1623]"
-                              )}
-                            >
-                              <MonitoringWidgetThumbnail widget={widget} />
-                              <span
-                                className="mt-2 line-clamp-2 text-[11px] font-semibold leading-snug text-[#e2e8f0]"
-                                style={{ minHeight: "2.6em" }}
+                      {widgetViewMode === "grid" ? (
+                        <div className="grid grid-cols-2 gap-[7px]">
+                          {groupWidgets.map((widget) => {
+                            const used = usedWidgetIds.has(widget.id);
+                            return (
+                              <button
+                                key={widget.id}
+                                type="button"
+                                draggable
+                                onDragStart={(event) => {
+                                  event.dataTransfer.setData("application/x-aim-monitoring-widget", widget.id);
+                                  event.dataTransfer.effectAllowed = "copy";
+                                  setIsDraggingWidget(true);
+                                }}
+                                onDragEnd={() => { setIsDraggingWidget(false); setHoveredLibraryWidgetId(null); }}
+                                onMouseEnter={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setHoveredLibraryWidgetId(widget.id);
+                                  setHoverCardY(rect.top);
+                                }}
+                                onMouseLeave={() => setHoveredLibraryWidgetId(null)}
+                                className={cn(
+                                  "group relative flex flex-col rounded-[9px] p-[7px] text-left transition-all duration-150 hover:border-[#3b82f6]",
+                                  used
+                                    ? "border border-[rgba(59,130,246,.3)] bg-[rgba(59,130,246,.06)]"
+                                    : "border border-white/[0.07] bg-[#0f1623]"
+                                )}
                               >
-                                {widget.name}
-                              </span>
-                              <div className="mt-[5px] flex items-center justify-between">
-                                <span className="font-mono text-[9px] text-white/[0.28]">
-                                  {widget.defaultSize.w}x{widget.defaultSize.h}
-                                </span>
+                                <MonitoringWidgetThumbnail widget={widget} />
                                 <span
-                                  className={cn(
-                                    "flex h-4 w-4 items-center justify-center rounded-[4px]",
-                                    used ? "bg-[rgba(91,143,214,.18)]" : "bg-white/[0.04]"
-                                  )}
+                                  className="mt-2 line-clamp-2 text-[11px] font-semibold leading-snug text-[#e2e8f0]"
+                                  style={{ minHeight: "2.6em" }}
                                 >
-                                  {used
-                                    ? <Edit3 className="h-[9px] w-[9px] text-[#3b82f6]" strokeWidth={2.2} />
-                                    : <Plus  className="h-[9px] w-[9px] text-white/[0.4]" strokeWidth={2.2} />
-                                  }
+                                  {widget.name}
                                 </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                                <div className="mt-[5px] flex items-center justify-between">
+                                  <span className="font-mono text-[9px] text-white/[0.28]">
+                                    {widget.defaultSize.w}x{widget.defaultSize.h}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "flex h-4 w-4 items-center justify-center rounded-[4px]",
+                                      used ? "bg-[rgba(91,143,214,.18)]" : "bg-white/[0.04]"
+                                    )}
+                                  >
+                                    {used
+                                      ? <Edit3 className="h-[9px] w-[9px] text-[#3b82f6]" strokeWidth={2.2} />
+                                      : <Plus  className="h-[9px] w-[9px] text-white/[0.4]" strokeWidth={2.2} />
+                                    }
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {groupWidgets.map((widget) => {
+                            const used = usedWidgetIds.has(widget.id);
+                            const catLabel = WIDGET_CATEGORY_LABELS[widget.dataSource ?? ""] ?? (widget.dataSource ?? "기타");
+                            return (
+                              <button
+                                key={widget.id}
+                                type="button"
+                                draggable
+                                onDragStart={(event) => {
+                                  event.dataTransfer.setData("application/x-aim-monitoring-widget", widget.id);
+                                  event.dataTransfer.effectAllowed = "copy";
+                                  setIsDraggingWidget(true);
+                                }}
+                                onDragEnd={() => setIsDraggingWidget(false)}
+                                className={cn(
+                                  "group flex w-full gap-2.5 rounded-[9px] p-2 text-left transition-all duration-150 hover:border-[#3b82f6]",
+                                  used
+                                    ? "border border-[rgba(59,130,246,.3)] bg-[rgba(59,130,246,.06)]"
+                                    : "border border-white/[0.07] bg-[#0f1623]"
+                                )}
+                              >
+                                <div className="h-[52px] w-[64px] shrink-0 overflow-hidden rounded-lg">
+                                  <MonitoringWidgetThumbnail widget={widget} />
+                                </div>
+                                <div className="min-w-0 flex-1 py-0.5">
+                                  <p className="truncate text-[11px] font-semibold text-[#e2e8f0]">{widget.name}</p>
+                                  <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-white/35">{widget.description}</p>
+                                  <div className="mt-1.5 flex items-center gap-1.5">
+                                    <span className="rounded px-1.5 py-px text-[9px] font-medium text-[#3b82f6]" style={{ background: "rgba(59,130,246,0.08)" }}>
+                                      {catLabel}
+                                    </span>
+                                    <span className="font-mono text-[9px] text-white/20">{widget.defaultSize.w}×{widget.defaultSize.h}</span>
+                                  </div>
+                                </div>
+                                <div className="flex shrink-0 items-center self-center pr-0.5">
+                                  <span className={cn("flex h-5 w-5 items-center justify-center rounded-[4px]", used ? "bg-[rgba(91,143,214,.18)]" : "bg-white/[0.04]")}>
+                                    {used
+                                      ? <Edit3 className="h-[9px] w-[9px] text-[#3b82f6]" strokeWidth={2.2} />
+                                      : <Plus  className="h-[9px] w-[9px] text-white/[0.4]" strokeWidth={2.2} />
+                                    }
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </section>
                   ))
                 )}
