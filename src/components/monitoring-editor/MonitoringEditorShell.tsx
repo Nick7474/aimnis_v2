@@ -65,6 +65,7 @@ import MonitoringPageBuilder from "@/monitoring-app/components/MonitoringPageBui
 import { useMonitoringPagesStore, type MonitoringPageConfig } from "@/store/monitoringPagesStore";
 import type { MappingEdge } from "@/store/editorStore";
 import { DEFAULT_WIDGET_GROUPS, WIDGET_COLOR_GROUPS } from "@/solutions/monitoring/widgets/colorSchema";
+import { MonitoringInitLoader } from "@/components/shared/AIMILoader";
 
 interface MonitoringEditorShellProps {
   solution: SolutionManifest;
@@ -931,6 +932,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [customBrandSlots, setCustomBrandSlots] = useState<MonitoringBrandSlot[]>([]);
   const [brandSlotName, setBrandSlotName] = useState("AIM Monitoring Default");
   const [customBrandName, setCustomBrandName] = useState("");
+  const [isEditorReady, setIsEditorReady] = useState(false);
   const [interaction, setInteraction] = useState<WidgetInteraction | null>(null);
   const [defaultInteraction, setDefaultInteraction] = useState<DefaultWidgetInteraction | null>(null);
   const [widgetSearch, setWidgetSearch] = useState("");
@@ -1234,6 +1236,11 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1600);
   };
+
+  useEffect(() => {
+    const t = setTimeout(() => setIsEditorReady(true), 1500);
+    return () => clearTimeout(t);
+  }, []);
 
   /* 세션 중 마지막 에디터 = monitoring → Navbar가 올바른 에디터로 링크 */
   useEffect(() => {
@@ -2475,6 +2482,9 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#080810] text-white">
+      {/* 에디터 초기 로딩 오버레이 */}
+      <MonitoringInitLoader show={!isEditorReady} />
+
       <input ref={logoInputRef} type="file" accept=".png,.svg,.jpg,.jpeg" className="hidden" onChange={handleMonitoringLogoUpload} />
       <MonitoringFloatingToolbar
         selectedId={selectedToolbarId}

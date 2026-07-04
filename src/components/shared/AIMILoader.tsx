@@ -286,3 +286,70 @@ export function GuardLoader({ show }: { show: boolean }) {
     />
   );
 }
+
+export function HomeTransitionLoader({ show }: { show: boolean }) {
+  return (
+    <AIMILoader
+      character="ch3"
+      title="플랫폼 초기화 중"
+      subtitles={[
+        "AI 엔터프라이즈 환경 구성 중",
+        "대시보드 데이터 준비 중",
+        "솔루션 패키지 로드 중",
+        "AI 엔진 웜업 중",
+      ]}
+      variant="overlay"
+      show={show}
+    />
+  );
+}
+
+export function MonitoringInitLoader({ show }: { show: boolean }) {
+  return (
+    <AIMILoader
+      character="ch4"
+      title="모니터링 로드 중"
+      subtitles={[
+        "AIoT 센서 상태 확인 중",
+        "실시간 데이터 스트림 연결 중",
+        "대시보드 레이아웃 복원 중",
+        "위젯 바인딩 초기화 중",
+      ]}
+      variant="overlay"
+      show={show}
+    />
+  );
+}
+
+export function MonitoringMappingLoader({ show }: { show: boolean }) {
+  return (
+    <AIMILoader
+      character="ch5"
+      title="자동 매핑 중"
+      subtitles={[
+        "소스 필드 분석 중",
+        "위젯 바인딩 생성 중",
+        "데이터 연결 최적화 중",
+      ]}
+      variant="overlay"
+      show={show}
+    />
+  );
+}
+
+export function MonitoringDBLoader({ show }: { show: boolean }) {
+  return (
+    <AIMILoader
+      character="ch1"
+      title="데이터 수집 중"
+      subtitles={[
+        "DB 소스 연결 확인 중",
+        "실시간 스트림 초기화 중",
+        "필드 스키마 파싱 중",
+        "수집 파이프라인 준비 중",
+      ]}
+      variant="overlay"
+      show={show}
+    />
+  );
+}

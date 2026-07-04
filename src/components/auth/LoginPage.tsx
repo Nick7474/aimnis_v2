@@ -3,16 +3,22 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, SkipForward } from "lucide-react";
+import { HomeTransitionLoader } from "@/components/shared/AIMILoader";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [showHomeLoader, setShowHomeLoader] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const goHome = useCallback(() => {
-    window.location.assign("/home");
+    setShowIntro(false);
+    setShowHomeLoader(true);
+    window.setTimeout(() => {
+      window.location.assign("/home");
+    }, 1800);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -79,6 +85,9 @@ export default function LoginPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── 홈 전환 로딩 오버레이 ── */}
+      <HomeTransitionLoader show={showHomeLoader} />
 
       <MeshBg />
 

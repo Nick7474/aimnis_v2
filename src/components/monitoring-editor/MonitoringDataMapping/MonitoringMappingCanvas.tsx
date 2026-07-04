@@ -5,7 +5,8 @@ import ReactFlow, { Background, BackgroundVariant, Controls, addEdge, applyNodeC
 import "reactflow/dist/style.css";
 import ProjectLineEdge from "./nodes/ProjectLineEdge";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Database, Link2, Network, Sparkles, Unlink } from "lucide-react";
+import { CheckCircle2, Database, Link2, Loader2, Network, Sparkles, Unlink } from "lucide-react";
+import { MonitoringMappingLoader } from "@/components/shared/AIMILoader";
 import type { MappingEdge, MappingField, MappingSource } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import MonitoringSourceNode from "./nodes/MonitoringSourceNode";
@@ -58,6 +59,7 @@ export default function MonitoringMappingCanvas({
 }: MonitoringMappingCanvasProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [latestManualEdgeId, setLatestManualEdgeId] = useState<string | null>(null);
+  const [isMappingLoading, setIsMappingLoading] = useState(false);
 
   const sources = useMemo<MappingSource[]>(() => {
     if (!connectedSourceIds || connectedSourceIds.size === 0) return [];
@@ -221,12 +223,14 @@ export default function MonitoringMappingCanvas({
 
   useEffect(() => setEdges(initialEdges), [initialEdges, setEdges]);
 
-  const handleAutoMap = useCallback(() => {
+  const handleAutoMap = useCallback(async () => {
     if (!connectedSourceIds || connectedSourceIds.size === 0) {
       setNotice("DB 수집 탭에서 소스를 먼저 연결하세요");
       window.setTimeout(() => setNotice(null), 2200);
       return;
     }
+    setIsMappingLoading(true);
+    await new Promise((r) => setTimeout(r, 1000));
     let count = 0;
     MONITORING_CORE_BINDINGS.forEach((b) => {
       if (!connectedSourceIds.has(b.source)) return;
@@ -244,6 +248,7 @@ export default function MonitoringMappingCanvas({
       addMappingEdge({ id: edgeId, sourceConnector: binding.source, sourceField: binding.field, targetWidgetId: widget.instanceId, targetProperty: binding.property });
       count++;
     });
+    setIsMappingLoading(false);
     setNotice(count > 0 ? `${count}개 연결을 자동으로 매핑했습니다` : "이미 모든 소스가 매핑되어 있습니다");
     window.setTimeout(() => setNotice(null), 2400);
   }, [addMappingEdge, canvasWidgets, connectedSourceIds, mappingEdges]);
@@ -281,6 +286,9 @@ export default function MonitoringMappingCanvas({
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#050711]">
+      {/* 자동 매핑 로딩 오버레이 */}
+      <MonitoringMappingLoader show={isMappingLoading} />
+
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(20,184,166,0.12),transparent_26%),radial-gradient(circle_at_75%_20%,rgba(139,92,246,0.13),transparent_24%)]" />
 
       <ReactFlow
@@ -361,9 +369,13 @@ export default function MonitoringMappingCanvas({
               <Sparkles className="h-3 w-3 text-emerald-300/70" />
               <span className="text-[10px] text-emerald-200/70">연결된 소스를 위젯에 자동 매핑</span>
             </div>
-            <button type="button" onClick={handleAutoMap}
-              className="flex items-center gap-1 rounded-md bg-emerald-500/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-300 ring-1 ring-emerald-400/25 hover:bg-emerald-500/30 transition-colors">
-              자동 매핑
+            <button type="button" onClick={handleAutoMap} disabled={isMappingLoading}
+              className="flex items-center gap-1 rounded-md bg-emerald-500/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-300 ring-1 ring-emerald-400/25 hover:bg-emerald-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
+              {isMappingLoading ? (
+                <><Loader2 className="h-3 w-3 animate-spin" />매핑 중...</>
+              ) : (
+                "자동 매핑"
+              )}
             </button>
           </div>
         </motion.div>
