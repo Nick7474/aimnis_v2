@@ -286,7 +286,7 @@ export default function MonitoringMappingCanvas({
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#050711]">
-      {/* 자동 매핑 인라인 오버레이 — 캔버스가 보이면서 로딩 표시 */}
+      {/* 자동 매핑 인라인 오버레이 — 캔버스 노드가 보이면서 로딩 카드 표시 */}
       <AnimatePresence>
         {isMappingLoading && (
           <motion.div
@@ -299,9 +299,7 @@ export default function MonitoringMappingCanvas({
               position: "absolute",
               inset: 0,
               zIndex: 50,
-              background: "rgba(5,7,17,0.72)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              background: "rgba(5,7,17,0.45)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

@@ -6,8 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
+  AlertTriangle,
   BookmarkPlus,
   Check,
+  CheckCircle2,
   ChevronLeft,
   Database,
   Edit3,
@@ -65,6 +67,7 @@ import MonitoringPageBuilder from "@/monitoring-app/components/MonitoringPageBui
 import { useMonitoringPagesStore, type MonitoringPageConfig } from "@/store/monitoringPagesStore";
 import type { MappingEdge } from "@/store/editorStore";
 import { DEFAULT_WIDGET_GROUPS, WIDGET_COLOR_GROUPS } from "@/solutions/monitoring/widgets/colorSchema";
+import { MONITORING_WIDGET_PROPERTIES } from "./MonitoringDataMapping/monitoringMappingData";
 import { MonitoringInitLoader } from "@/components/shared/AIMILoader";
 
 interface MonitoringEditorShellProps {
@@ -1799,48 +1802,91 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   };
 
   const renderMappingInspectorContent = () => {
+    const targetId = selectedWidget?.instanceId;
+    const widgetEdges = targetId
+      ? monitoringMappingEdges.filter((e) => e.targetWidgetId === targetId)
+      : [];
+
+    const bySource = widgetEdges.reduce<Record<string, typeof widgetEdges>>((acc, e) => {
+      if (!acc[e.sourceConnector]) acc[e.sourceConnector] = [];
+      acc[e.sourceConnector].push(e);
+      return acc;
+    }, {});
+
+    const widgetId = selectedWidget?.widgetId ?? "";
+    const knownProps = MONITORING_WIDGET_PROPERTIES[widgetId] ?? [];
+    const mappedPropSet = new Set(widgetEdges.map((e) => e.targetProperty));
+    const unmappedProps = knownProps.filter((p) => !mappedPropSet.has(p));
+
     return (
       <MonitoringInspectorFrame
         eyebrow="Connection"
-        title="데이터 연결"
-        description="AIM Monitoring 위젯과 복합 계측 데이터 소스를 연결합니다."
+        title="연결 상태"
+        description={`${selectedWidget?.title ?? "위젯"}에 연결된 데이터 소스와 필드 매핑을 확인합니다.`}
       >
-        <MonitoringInspectorSection icon={Network} title="Data Connectors">
-          {(solution.dataConnectors ?? []).map((connector) => (
-            <div
-              key={connector}
-              className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2"
-            >
-              <div>
-                <p className="text-xs font-medium text-white/65">{connector}</p>
-                <p className="mt-0.5 text-[10px] text-white/25">AIM Monitoring source</p>
+        {widgetEdges.length > 0 ? (
+          <>
+            <MonitoringInspectorSection icon={CheckCircle2} title={`연결된 필드 ${widgetEdges.length}개`}>
+              {Object.entries(bySource).map(([sourceId, edges]) => (
+                <div key={sourceId} className="space-y-1.5">
+                  <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-300/50">
+                    {connectedSourceMeta[sourceId]?.name ?? sourceId}
+                  </p>
+                  {edges.map((edge) => (
+                    <div
+                      key={edge.id}
+                      className="flex items-center gap-2 rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-emerald-300/80">
+                        {edge.sourceField}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-white/15">→</span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-white/50">
+                        {edge.targetProperty}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </MonitoringInspectorSection>
+
+            {unmappedProps.length > 0 && (
+              <MonitoringInspectorSection icon={AlertTriangle} title={`미연결 속성 ${unmappedProps.length}개`}>
+                <div className="flex flex-wrap gap-1.5">
+                  {unmappedProps.map((p) => (
+                    <span
+                      key={p}
+                      className="rounded-md bg-amber-400/[0.08] px-2 py-1 font-mono text-[10px] text-amber-300/50 ring-1 ring-amber-400/15"
+                    >
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </MonitoringInspectorSection>
+            )}
+          </>
+        ) : (
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 text-center">
+            <div className="mb-3 flex justify-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05] ring-1 ring-white/[0.08]">
+                <Network className="h-4 w-4 text-white/25" />
               </div>
-              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[9px] text-emerald-300">
-                연결 가능
-              </span>
             </div>
-          ))}
-        </MonitoringInspectorSection>
-        <MonitoringInspectorSection icon={Database} title="API Mapping">
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[10px] text-white/35">
-              <span>Widget field</span>
-              <span className="text-white/15">→</span>
-              <span>Data field</span>
-            </div>
-            {["riskScore", "sensorStatus", "eventLevel", "lastUpdated"].map((field, index) => (
-              <div key={field} className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                <span className="rounded-lg border border-white/[0.06] bg-black/20 px-2 py-1.5 text-[10px] text-white/55">
-                  {field}
-                </span>
-                <span className="text-white/20">→</span>
-                <span className="rounded-lg border border-cyan-400/15 bg-cyan-400/10 px-2 py-1.5 text-[10px] text-cyan-200">
-                  data.track{index + 1}
-                </span>
-              </div>
-            ))}
+            <p className="text-xs font-medium text-white/40">연결된 소스 없음</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-white/20">
+              자동 매핑을 실행하거나<br />매핑 탭에서 직접 연결하세요
+            </p>
           </div>
-        </MonitoringInspectorSection>
+        )}
+
+        <button
+          type="button"
+          onClick={() => { setCenterView("mapping"); setShowRightPanel(false); }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/15"
+        >
+          <Network className="h-3.5 w-3.5" />
+          매핑 탭에서 편집하기
+        </button>
       </MonitoringInspectorFrame>
     );
   };
@@ -2218,7 +2264,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/15"
           >
             <Network className="h-3.5 w-3.5" />
-            데이터 매핑 스튜디오 열기
+            연결 상태 확인
           </button>
 
           <button
