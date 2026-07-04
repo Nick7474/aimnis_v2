@@ -364,7 +364,8 @@ function NoneSummaryCard({
           <span className="truncate">{title}</span>
           <Info size={14} className="ml-1 shrink-0" style={{ color: brand.textSoftColor }} />
         </div>
-        <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold" style={{ borderColor: `${color}40`, color }}>
+        <span className="flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold" style={{ borderColor: `${color}40`, color }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: color, display: "inline-block", opacity: 0.7, flexShrink: 0 }} />
           {copy.badge}
         </span>
       </div>
@@ -415,7 +416,8 @@ function NonePanel({
           <Database className="h-4 w-4 shrink-0" style={{ color: brand.textSoftColor }} />
           <span className="truncate text-sm font-semibold" style={{ color: brand.textStrongColor }}>{title}</span>
         </div>
-        <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: `${color}40`, color }}>
+        <span className="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: `${color}40`, color }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: color, display: "inline-block", opacity: 0.7, flexShrink: 0 }} />
           {copy.badge}
         </span>
       </div>
