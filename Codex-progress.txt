@@ -25,3 +25,11 @@
 - 드래그 중 충돌 회피(push)는 유지하고, 드롭·삭제·숨김·저장 시 빈 세로 공간을 자동 정렬
 - 렌더러/에디터의 중복 배치 로직을 공통 순수 유틸로 통합하고 단위 QA를 `npm run qa`에 포함
 - 검증: `npx tsc --noEmit`, `npm run qa`, `npm run build`
+
+## 2026-07-04
+
+- AIM Monitoring 에디터 최초 모니터 탭을 DB 수집·데이터 매핑 전 `None` 데이터 상태로 전환
+- 기본 대시보드 위젯과 커스텀 위젯을 유지한 채 개별 매핑 완료 타겟만 현재 데모 값으로 표시
+- 데이터 연결/매핑 상태를 스냅샷에 저장하고 `/monitoring` 런타임도 저장된 상태를 존중하도록 확장
+- 검증: `npx tsc --noEmit`, `npm run build`, `QA_PORT=3001 npm run qa:visual:update` 4/4
+- 참고: `QA_PORT=3001 npm run qa:smoke`는 Monitoring 관련 3개 포함 10/11 통과, 인트로 영상 오버레이로 기존 데모 로그인 빈값 진입 테스트 1개 실패

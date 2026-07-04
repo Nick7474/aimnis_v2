@@ -10,6 +10,7 @@ import type { BrandSettings } from "@/lib/brandPresets";
 import { useProjectStore } from "@/store/projectStore";
 import MonitoringLayoutCanvas, {
   DEFAULT_MONITORING_ELEMENT_CONFIGS,
+  type MonitoringDataReadiness,
   type MonitoringElementConfigs,
 } from "./MonitoringLayoutCanvas";
 import { useMonitoringPagesStore } from "@/store/monitoringPagesStore";
@@ -38,6 +39,10 @@ interface MonitoringSnapshot {
   widgets: {
     grid: { columns: number; rowHeight: number };
     items: RuntimeWidgetInstance[];
+  };
+  data?: {
+    connectedSourceIds: string[];
+    mappingEdges: Array<{ targetWidgetId: string }>;
   };
 }
 
@@ -78,6 +83,17 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
   const snapshot = (activeProject?.monitoringSnapshot as MonitoringSnapshot | undefined) ?? draftSnapshot;
   const elementConfigs = snapshot?.elements ?? DEFAULT_MONITORING_ELEMENT_CONFIGS;
   const runtimeWidgets = snapshot?.widgets.items ?? [];
+  const hasSnapshotDataState = Boolean(snapshot?.data);
+  const runtimeMappedTargetIds = useMemo(
+    () => new Set((snapshot?.data?.mappingEdges ?? []).map((edge) => edge.targetWidgetId)),
+    [snapshot?.data?.mappingEdges]
+  );
+  const runtimeDataReadiness = useMemo<MonitoringDataReadiness>(() => {
+    if (!hasSnapshotDataState) return "mapped";
+    if ((snapshot?.data?.connectedSourceIds.length ?? 0) === 0) return "none";
+    if (runtimeMappedTargetIds.size === 0) return "source-connected";
+    return "mapped";
+  }, [hasSnapshotDataState, runtimeMappedTargetIds, snapshot?.data?.connectedSourceIds.length]);
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#050814] text-white">
@@ -112,6 +128,9 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
           widgetById={widgetById}
           elementConfigs={elementConfigs}
           brand={snapshot?.brand?.settings}
+          isConnected={!hasSnapshotDataState || (snapshot?.data?.connectedSourceIds.length ?? 0) > 0}
+          dataReadiness={runtimeDataReadiness}
+          mappedTargetIds={hasSnapshotDataState ? runtimeMappedTargetIds : undefined}
           selectedWidgetId={null}
           selectedElementId={null}
           isDraggingWidget={false}

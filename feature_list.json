@@ -373,5 +373,21 @@
     "passes": true,
     "completedAt": "2026-06-24",
     "notes": "공통 monitoringLayoutEngine을 추가해 push/compact 모드를 분리하고, 빈 슬롯 발생 시 하단 위젯이 자연스럽게 위로 올라오도록 확정 좌표를 정규화함"
+  },
+  {
+    "id": "F-023",
+    "category": "monitoring",
+    "priority": 24,
+    "description": "AIM Monitoring DB 수집·데이터 매핑 전 None 데이터 연출",
+    "steps": [
+      "최초 모니터 탭에서 기본/커스텀 위젯을 제거하지 않고 None 데이터 상태로 표시",
+      "DB 소스 연결과 데이터 매핑 상태를 분리해 상단 안내와 위젯 표시를 전환",
+      "매핑된 타겟 위젯만 현재 데모 값으로 렌더링",
+      "연결/매핑 상태를 Monitoring 스냅샷에 저장하고 런타임에서도 반영",
+      "의도된 모니터링 에디터 화면 변화에 맞춰 비주얼 기준선 갱신"
+    ],
+    "passes": true,
+    "completedAt": "2026-07-04",
+    "notes": "DB 수집 전은 미연결, DB 연결 후 매핑 전은 매핑 대기, 매핑 완료 타겟은 Live 상태로 개별 전환되도록 구현함"
   }
 ]

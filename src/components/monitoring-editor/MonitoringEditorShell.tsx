@@ -42,6 +42,7 @@ import { useProjectStore } from "@/store/projectStore";
 import MonitoringLayoutCanvas, {
   DEFAULT_MONITORING_ELEMENT_CONFIGS,
   type MonitoringEditableElement,
+  type MonitoringDataReadiness,
   type MonitoringElementConfigs,
 } from "./MonitoringLayoutCanvas";
 import {
@@ -113,6 +114,8 @@ interface CanvasWidgetInstance {
   options: Record<string, WidgetOptionValue>;
 }
 
+type MonitoringConnectedSourceMeta = Record<string, { name: string; endpoint: string; fields?: string[] }>;
+
 interface MonitoringSnapshot {
   schemaVersion: "monitoring.snapshot.v1";
   solution: "monitoring";
@@ -140,6 +143,12 @@ interface MonitoringSnapshot {
       rowHeight: number;
     };
     items: CanvasWidgetInstance[];
+  };
+  data?: {
+    connectedSourceIds: string[];
+    connectedSourceMeta: MonitoringConnectedSourceMeta;
+    mappingEdges: MappingEdge[];
+    mappingNodePositions: Record<string, { x: number; y: number }>;
   };
   createdAt: string;
   updatedAt: string;
@@ -910,7 +919,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [widgetLiveData, setWidgetLiveData] = useState<Record<string, Record<string, unknown>>>({});
   const [mappingNodePositions, setMappingNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   const [connectedSourceIds, setConnectedSourceIds] = useState<Set<string>>(new Set());
-  const [connectedSourceMeta, setConnectedSourceMeta] = useState<Record<string, { name: string; endpoint: string; fields?: string[] }>>({});
+  const [connectedSourceMeta, setConnectedSourceMeta] = useState<MonitoringConnectedSourceMeta>({});
   const [isPageBuilderOpen, setIsPageBuilderOpen] = useState(false);
   const [pendingNavPage, setPendingNavPage] = useState<string | null>(null);
   const { addedPages, addPage, removePage } = useMonitoringPagesStore();
@@ -998,6 +1007,17 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     [canvasWidgets]
   );
 
+  const mappedTargetIds = useMemo(
+    () => new Set(monitoringMappingEdges.map((edge) => edge.targetWidgetId)),
+    [monitoringMappingEdges]
+  );
+
+  const dataReadiness = useMemo<MonitoringDataReadiness>(() => {
+    if (connectedSourceIds.size === 0) return "none";
+    if (mappedTargetIds.size === 0) return "source-connected";
+    return "mapped";
+  }, [connectedSourceIds, mappedTargetIds]);
+
   const createSnapshot = (): MonitoringSnapshot => {
     const now = new Date().toISOString();
     const resolved = resolveMonitoringLayout(canvasWidgets, elementConfigs);
@@ -1029,6 +1049,12 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         },
         items: resolved.widgets,
       },
+      data: {
+        connectedSourceIds: Array.from(connectedSourceIds),
+        connectedSourceMeta,
+        mappingEdges: monitoringMappingEdges,
+        mappingNodePositions,
+      },
       createdAt: now,
       updatedAt: now,
     };
@@ -1049,6 +1075,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     setSelectedBrandPresetId(snapshot.brand?.selectedPresetId ?? "monitoring-default");
     setCustomBrandSlots(snapshot.brand?.customSlots ?? []);
     setBrandSlotName(snapshot.brand?.settings?.productName ? `${snapshot.brand.settings.productName} Theme` : "AIM Monitoring Default");
+    setConnectedSourceIds(new Set(snapshot.data?.connectedSourceIds ?? []));
+    setConnectedSourceMeta(snapshot.data?.connectedSourceMeta ?? {});
+    setMonitoringMappingEdges(snapshot.data?.mappingEdges ?? []);
+    setMappingNodePositions(snapshot.data?.mappingNodePositions ?? {});
   };
 
   const handleSave = () => {
@@ -2880,9 +2910,9 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         </div>
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0b1120]">
-          {/* ── DB 미연결 배너 ── */}
+          {/* ── 데이터 준비 상태 배너 ── */}
           <AnimatePresence>
-            {centerView === "monitor" && connectedSourceIds.size === 0 && (
+            {centerView === "monitor" && dataReadiness !== "mapped" && (
               <motion.div
                 key="no-data-banner"
                 initial={{ opacity: 0, y: -8 }}
@@ -2898,15 +2928,17 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                     style={{ width: 7, height: 7, borderRadius: "50%", background: "oklch(65% 0.18 285)", display: "inline-block", flexShrink: 0, boxShadow: "0 0 8px oklch(65% 0.18 285 / .7)" }}
                   />
                   <span style={{ fontSize: 12, color: "oklch(75% 0.12 285)", fontWeight: 500 }}>
-                    데이터 소스가 연결되지 않았습니다. DB 수집을 먼저 설정해 주세요.
+                    {dataReadiness === "none"
+                      ? "데이터 소스가 연결되지 않았습니다. DB 수집을 먼저 설정해 주세요."
+                      : "DB 소스가 연결되었습니다. 데이터 매핑을 완료하면 위젯 값이 표시됩니다."}
                   </span>
                 </div>
                 <button
-                  onClick={() => setCenterView("db")}
+                  onClick={() => setCenterView(dataReadiness === "none" ? "db" : "mapping")}
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, background: "oklch(55% 0.22 285)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
-                  <Database style={{ width: 12, height: 12 }} />
-                  DB 수집 연결하기
+                  {dataReadiness === "none" ? <Database style={{ width: 12, height: 12 }} /> : <Network style={{ width: 12, height: 12 }} />}
+                  {dataReadiness === "none" ? "DB 수집 연결하기" : "데이터 매핑하기"}
                 </button>
               </motion.div>
             )}
@@ -2925,12 +2957,14 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           ) : centerView === "monitor" ? (
             <MonitoringLayoutCanvas
               canvasRef={canvasRef}
-              customWidgets={connectedSourceIds.size > 0 ? canvasWidgets : []}
+              customWidgets={canvasWidgets}
               widgetById={widgetById}
               widgetLiveData={widgetLiveData}
               elementConfigs={elementConfigs}
               brand={brand}
               isConnected={connectedSourceIds.size > 0}
+              dataReadiness={dataReadiness}
+              mappedTargetIds={mappedTargetIds}
               selectedWidgetId={selectedWidgetId}
               selectedElementId={selectedElement?.id ?? null}
               isDraggingWidget={isDraggingWidget}
@@ -3089,6 +3123,9 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               widgetLiveData={widgetLiveData}
               elementConfigs={elementConfigs}
               brand={brand}
+              isConnected={connectedSourceIds.size > 0}
+              dataReadiness={dataReadiness}
+              mappedTargetIds={mappedTargetIds}
               selectedWidgetId={selectedWidgetId}
               selectedElementId={null}
               isDraggingWidget={false}

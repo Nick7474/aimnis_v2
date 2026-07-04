@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { motion } from "framer-motion";
-import { Activity, Bell, Info, MoreVertical, Triangle, UserCheck, Wind } from "lucide-react";
+import { Activity, Bell, Database, Info, MoreVertical, Triangle, UserCheck, Wind } from "lucide-react";
 import type { BrandSettings } from "@/lib/brandPresets";
 import type { SolutionWidget } from "@/lib/solutionLoader";
 import { resolveMonitoringGrid } from "@/lib/monitoringLayoutEngine";
@@ -24,6 +24,7 @@ import Report from "@/monitoring-app/pages/Report";
 import SettingsPage from "@/monitoring-app/pages/Settings";
 
 type WidgetOptionValue = string | number | boolean;
+export type MonitoringDataReadiness = "none" | "source-connected" | "mapped";
 
 export interface MonitoringCanvasWidgetInstance {
   instanceId: string;
@@ -109,6 +110,8 @@ interface MonitoringLayoutCanvasProps {
   elementConfigs: MonitoringElementConfigs;
   brand?: BrandSettings;
   isConnected?: boolean;
+  dataReadiness?: MonitoringDataReadiness;
+  mappedTargetIds?: Set<string>;
   selectedWidgetId: string | null;
   selectedElementId: string | null;
   isDraggingWidget: boolean;
@@ -324,6 +327,109 @@ function SummaryCard({
   );
 }
 
+function dataReadinessCopy(readiness: MonitoringDataReadiness) {
+  if (readiness === "none") {
+    return { badge: "미연결", title: "None", caption: "DB 수집 연결 전" };
+  }
+  if (readiness === "source-connected") {
+    return { badge: "매핑 대기", title: "None", caption: "데이터 매핑 후 표시" };
+  }
+  return { badge: "Live", title: "Live", caption: "연결됨" };
+}
+
+function NoneSummaryCard({
+  title,
+  icon: Icon,
+  brand,
+  accentColor,
+  readiness,
+}: {
+  title: string;
+  icon: typeof Activity;
+  brand: typeof DEFAULT_MONITORING_BRAND_TOKENS;
+  accentColor?: string;
+  readiness: MonitoringDataReadiness;
+}) {
+  const copy = dataReadinessCopy(readiness);
+  const color = accentColor ?? brand.accentColor;
+
+  return (
+    <div
+      className="flex h-full flex-col justify-between rounded-lg border p-5 shadow-sm"
+      style={{ backgroundColor: brand.surfaceColor, borderColor: brand.borderColor, color: brand.textColor }}
+    >
+      <div className="mb-2 flex shrink-0 items-center justify-between">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium" style={{ color: brand.textColor }}>
+          <Icon size={16} style={{ color: brand.textSoftColor }} strokeWidth={1.5} />
+          <span className="truncate">{title}</span>
+          <Info size={14} className="ml-1 shrink-0" style={{ color: brand.textSoftColor }} />
+        </div>
+        <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold" style={{ borderColor: `${color}40`, color }}>
+          {copy.badge}
+        </span>
+      </div>
+      <div className="flex flex-1 items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-mono text-[28px] font-bold leading-none" style={{ color: brand.textSoftColor }}>
+            {copy.title}
+          </div>
+          <div className="mt-2 text-xs" style={{ color: brand.textSoftColor }}>
+            {copy.caption}
+          </div>
+        </div>
+        <div className="flex h-10 w-28 shrink-0 items-end gap-1 opacity-35">
+          {[34, 22, 29, 18, 26, 14, 21].map((height, index) => (
+            <span
+              key={index}
+              className="flex-1 rounded-t"
+              style={{ height, backgroundColor: index % 3 === 0 ? color : brand.borderColor }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NonePanel({
+  title,
+  brand,
+  accentColor,
+  readiness,
+}: {
+  title: string;
+  brand: typeof DEFAULT_MONITORING_BRAND_TOKENS;
+  accentColor?: string;
+  readiness: MonitoringDataReadiness;
+}) {
+  const copy = dataReadinessCopy(readiness);
+  const color = accentColor ?? brand.accentColor;
+
+  return (
+    <div
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border p-5 shadow-sm"
+      style={{ backgroundColor: brand.surfaceColor, borderColor: brand.borderColor, color: brand.textColor }}
+    >
+      <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Database className="h-4 w-4 shrink-0" style={{ color: brand.textSoftColor }} />
+          <span className="truncate text-sm font-semibold" style={{ color: brand.textStrongColor }}>{title}</span>
+        </div>
+        <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: `${color}40`, color }}>
+          {copy.badge}
+        </span>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-lg border border-dashed" style={{ borderColor: brand.borderColor }}>
+        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}14`, border: `1px solid ${color}28` }}>
+          <Database className="h-4 w-4" style={{ color }} />
+        </div>
+        <div className="font-mono text-xl font-bold" style={{ color: brand.textSoftColor }}>None</div>
+        <div className="mt-1 text-xs" style={{ color: brand.textSoftColor }}>{copy.caption}</div>
+      </div>
+    </div>
+  );
+}
+
 function DefaultItemFrame({
   selected,
   children,
@@ -419,6 +525,8 @@ export default function MonitoringLayoutCanvas({
   navigateToPage,
   onNavigated,
   isConnected = true,
+  dataReadiness = isConnected ? "mapped" : "none",
+  mappedTargetIds,
 }: MonitoringLayoutCanvasProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState("홈");
@@ -471,6 +579,7 @@ export default function MonitoringLayoutCanvas({
     fontFamily: `${brandTokens.fontFamily}, var(--font), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`,
   };
   const getDefaultConfig = (id: string) => elementConfigs.defaultWidgets[id] ?? DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id];
+  const isTargetLive = (targetId: string) => dataReadiness === "mapped" && (!mappedTargetIds || mappedTargetIds.has(targetId));
 
   const defaultItems = useMemo<LayoutItem[]>(
     () => {
@@ -519,6 +628,20 @@ export default function MonitoringLayoutCanvas({
       const realtime     = item("realtime-alerts",          "실시간 알림",      3, 13, 3, 5);
       const action       = item("action-progress",          "점검·조치 현황",   6, 13, 3, 5);
       const system       = item("system-status",            "시스템 상태",      9, 13, 3, 5);
+      const renderSummary = (
+        id: string,
+        cfg: typeof equipment,
+        icon: typeof Activity,
+        value: string,
+        unit: string | undefined,
+        sub: string,
+        tone?: "white" | "yellow" | "danger"
+      ) => isTargetLive(id)
+        ? <SummaryCard title={cfg.title} icon={icon} value={value} unit={unit} sub={sub} tone={tone} accentColor={cfg.accentColor} brand={wb(cfg)} />
+        : <NoneSummaryCard title={cfg.title} icon={icon} accentColor={cfg.accentColor} brand={wb(cfg)} readiness={dataReadiness} />;
+      const renderPanel = (id: string, cfg: typeof chart, node: React.ReactNode) => isTargetLive(id)
+        ? node
+        : <NonePanel title={cfg.title} accentColor={cfg.accentColor} brand={wb(cfg)} readiness={dataReadiness} />;
 
       const items: LayoutItem[] = [
         {
@@ -526,76 +649,76 @@ export default function MonitoringLayoutCanvas({
         source: "ai-studio-default",
         title: equipment.title,
         x: equipment.x, y: equipment.y, w: equipment.w, h: equipment.h,
-        render: () => <SummaryCard title={equipment.title} icon={Activity} value="128" unit="/ 154 대" sub="6 대" accentColor={equipment.accentColor} brand={wb(equipment)} />,
+        render: () => renderSummary("summary-equipment-status", equipment, Activity, "128", "/ 154 대", "6 대"),
       },
       {
         id: "summary-environment-risk",
         source: "ai-studio-default",
         title: environment.title,
         x: environment.x, y: environment.y, w: environment.w, h: environment.h,
-        render: () => <SummaryCard title={environment.title} icon={Wind} value="주의" unit="(Yellow)" sub="1 단계" tone="yellow" accentColor={environment.accentColor} brand={wb(environment)} />,
+        render: () => renderSummary("summary-environment-risk", environment, Wind, "주의", "(Yellow)", "1 단계", "yellow"),
       },
       {
         id: "summary-worker-safety",
         source: "ai-studio-default",
         title: worker.title,
         x: worker.x, y: worker.y, w: worker.w, h: worker.h,
-        render: () => <SummaryCard title={worker.title} icon={UserCheck} value="주의" unit="(Yellow)" sub="2 명" tone="yellow" accentColor={worker.accentColor} brand={wb(worker)} />,
+        render: () => renderSummary("summary-worker-safety", worker, UserCheck, "주의", "(Yellow)", "2 명", "yellow"),
       },
       {
         id: "summary-alert-count",
         source: "ai-studio-default",
         title: alerts.title,
         x: alerts.x, y: alerts.y, w: alerts.w, h: alerts.h,
-        render: () => <SummaryCard title={alerts.title} icon={Bell} value="26" unit="건" sub="10 건" tone="danger" accentColor={alerts.accentColor} brand={wb(alerts)} />,
+        render: () => renderSummary("summary-alert-count", alerts, Bell, "26", "건", "10 건", "danger"),
       },
       {
         id: "equipment-anomaly-chart",
         source: "ai-studio-default",
         title: chart.title,
         x: chart.x, y: chart.y, w: chart.w, h: chart.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(chart).surfaceColor, borderColor: wb(chart).borderColor }}><MainChartSection brand={wb(chart)} title={chart.title} seriesColors={{ vibration: chart.series1Color ?? "#f97316", temp: chart.series2Color ?? "#ef4444", thermal: chart.series3Color ?? "#a855f7", gas: chart.series4Color ?? "#06b6d4" }} /></div>,
+        render: () => renderPanel("equipment-anomaly-chart", chart, <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(chart).surfaceColor, borderColor: wb(chart).borderColor }}><MainChartSection brand={wb(chart)} title={chart.title} seriesColors={{ vibration: chart.series1Color ?? "#f97316", temp: chart.series2Color ?? "#ef4444", thermal: chart.series3Color ?? "#a855f7", gas: chart.series4Color ?? "#06b6d4" }} /></div>),
       },
       {
         id: "worker-safety-overview",
         source: "ai-studio-default",
         title: safety.title,
         x: safety.x, y: safety.y, w: safety.w, h: safety.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(safety).surfaceColor, borderColor: wb(safety).borderColor }}><WorkerSafetySection brand={wb(safety)} title={safety.title} /></div>,
+        render: () => renderPanel("worker-safety-overview", safety, <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(safety).surfaceColor, borderColor: wb(safety).borderColor }}><WorkerSafetySection brand={wb(safety)} title={safety.title} /></div>),
       },
       {
         id: "environment-diagnosis",
         source: "ai-studio-default",
         title: envDiagnosis.title,
         x: envDiagnosis.x, y: envDiagnosis.y, w: envDiagnosis.w, h: envDiagnosis.h,
-        render: () => <EnvironmentStatusWidget setCurrentPage={setCurrentPage} brand={wb(envDiagnosis)} />,
+        render: () => renderPanel("environment-diagnosis", envDiagnosis, <EnvironmentStatusWidget setCurrentPage={setCurrentPage} brand={wb(envDiagnosis)} />),
       },
       {
         id: "realtime-alerts",
         source: "ai-studio-default",
         title: realtime.title,
         x: realtime.x, y: realtime.y, w: realtime.w, h: realtime.h,
-        render: () => <RealtimeAlertList brand={wb(realtime)} />,
+        render: () => renderPanel("realtime-alerts", realtime, <RealtimeAlertList brand={wb(realtime)} />),
       },
       {
         id: "action-progress",
         source: "ai-studio-default",
         title: action.title,
         x: action.x, y: action.y, w: action.w, h: action.h,
-        render: () => <ActionProgressWidget brand={wb(action)} />,
+        render: () => renderPanel("action-progress", action, <ActionProgressWidget brand={wb(action)} />),
       },
       {
         id: "system-status",
         source: "ai-studio-default",
         title: system.title,
         x: system.x, y: system.y, w: system.w, h: system.h,
-        render: () => <SystemStatusWidget brand={wb(system)} />,
+        render: () => renderPanel("system-status", system, <SystemStatusWidget brand={wb(system)} />),
       },
       ];
 
       return items.filter((layoutItem) => getDefaultConfig(layoutItem.id)?.visible ?? true);
     },
-    [brandTokens, elementConfigs.defaultWidgets]
+    [brandTokens, dataReadiness, elementConfigs.defaultWidgets, mappedTargetIds]
   );
 
   const layoutItems = useMemo<LayoutItem[]>(() => {
@@ -631,7 +754,7 @@ export default function MonitoringLayoutCanvas({
             brandDangerColor={(instance.options.dangerColor as string | undefined) ?? brandTokens.dangerColor}
             isLight={isLightTheme}
             liveData={widgetLiveData[instance.instanceId]}
-            isConnected={isConnected}
+            isConnected={isTargetLive(instance.instanceId)}
           />
         ),
       };
@@ -639,7 +762,7 @@ export default function MonitoringLayoutCanvas({
 
     // 기본/신규 위젯을 하나의 12-column 배치 엔진에서 해석한다.
     return resolveLayout([...defaultItems, ...customItems], layoutPriorityId ?? undefined);
-  }, [customWidgets, defaultItems, layoutPriorityId, selectedWidgetId, widgetById, widgetLiveData]);
+  }, [customWidgets, dataReadiness, defaultItems, layoutPriorityId, mappedTargetIds, selectedWidgetId, widgetById, widgetLiveData]);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden font-sans" style={rootStyle}>
