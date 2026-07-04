@@ -936,6 +936,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [brandSlotName, setBrandSlotName] = useState("AIM Monitoring Default");
   const [customBrandName, setCustomBrandName] = useState("");
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [autoSaveAt, setAutoSaveAt] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showResetModal, setShowResetModal] = useState<null | "draft" | "data">(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [interaction, setInteraction] = useState<WidgetInteraction | null>(null);
   const [defaultInteraction, setDefaultInteraction] = useState<DefaultWidgetInteraction | null>(null);
   const [widgetSearch, setWidgetSearch] = useState("");
@@ -1128,7 +1132,6 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   };
 
   const handleGoHome = () => {
-    window.localStorage.removeItem(MONITORING_DRAFT_STORAGE_KEY);
     router.push("/home");
   };
 
@@ -1278,6 +1281,23 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     hydratedRef.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projects]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    setIsSaving(true);
+    autoSaveTimerRef.current = setTimeout(() => {
+      const snapshot = createSnapshot();
+      window.localStorage.setItem(MONITORING_DRAFT_STORAGE_KEY, JSON.stringify(snapshot));
+      setAutoSaveAt(new Date());
+      setIsSaving(false);
+      autoSaveTimerRef.current = null;
+    }, 1500);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasWidgets, elementConfigs, brand, connectedSourceIds, monitoringMappingEdges]);
 
   const getCanvasMetrics = () => {
     const canvas = canvasRef.current;
@@ -2141,6 +2161,28 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             전체 초기화 (기본값으로)
           </button>
         </MonitoringInspectorSection>
+
+        <MonitoringInspectorSection icon={AlertTriangle} title="데이터 초기화">
+          <p className="text-[10px] leading-relaxed text-white/30">
+            초기화 후 자동 저장되므로 복구가 불가합니다. 신중하게 진행하세요.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowResetModal("draft")}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-500/15"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            편집 내용 초기화
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowResetModal("data")}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2.5 text-xs font-medium text-red-200 transition-colors hover:bg-red-500/15"
+          >
+            <X className="h-3.5 w-3.5" />
+            데이터 연결 초기화
+          </button>
+        </MonitoringInspectorSection>
       </MonitoringInspectorFrame>
     );
   };
@@ -2672,14 +2714,23 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             <TopIcon><Edit3 className="h-3 w-3" /></TopIcon>
             <span className="block">편집</span>
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="flex h-8 w-[64px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-xs leading-none text-white/50 transition-colors hover:text-white/80"
-          >
-            <TopIcon><Save className="h-3 w-3" /></TopIcon>
-            <span className="block">저장</span>
-          </button>
+          <div className="flex h-8 min-w-[80px] items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3">
+            {isSaving ? (
+              <>
+                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-white/30" />
+                <span className="text-[10px] text-white/35">저장 중...</span>
+              </>
+            ) : autoSaveAt ? (
+              <>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                <span className="text-[10px] text-white/40">
+                  자동 저장됨 {autoSaveAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </>
+            ) : (
+              <span className="text-[10px] text-white/20">자동 저장</span>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setIsFullscreen((v) => !v)}
@@ -2774,6 +2825,70 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                   </button>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 초기화 확인 모달 ── */}
+      <AnimatePresence>
+        {showResetModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 12 }}
+              className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f0f1a] p-6 shadow-2xl"
+            >
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/15 ring-1 ring-red-400/20">
+                  <AlertTriangle className="h-4 w-4 text-red-300" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">
+                    {showResetModal === "draft" ? "편집 내용 초기화" : "데이터 연결 초기화"}
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-white/45">
+                    {showResetModal === "draft"
+                      ? "캔버스 위젯, 레이아웃, 브랜드 설정이 모두 기본값으로 되돌아갑니다. 이 작업은 자동 저장되므로 되돌릴 수 없습니다."
+                      : "연결된 데이터 소스와 모든 매핑 설정이 삭제됩니다. 이 작업은 자동 저장되므로 되돌릴 수 없습니다."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(null)}
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-medium text-white/60 transition-colors hover:text-white/90"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (showResetModal === "draft") {
+                      resetFullCanvas();
+                      resetMonitoringBrand();
+                      window.localStorage.removeItem(MONITORING_DRAFT_STORAGE_KEY);
+                      setAutoSaveAt(null);
+                    } else {
+                      setConnectedSourceIds(new Set());
+                      setConnectedSourceMeta({});
+                      setMonitoringMappingEdges([]);
+                      setMappingNodePositions({});
+                    }
+                    setShowResetModal(null);
+                  }}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 py-2.5 text-xs font-bold text-white shadow-lg shadow-red-500/20 transition-all hover:from-red-500 hover:to-rose-500"
+                >
+                  초기화
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
