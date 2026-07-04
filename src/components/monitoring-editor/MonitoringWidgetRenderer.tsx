@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { motion } from "framer-motion";
 import {
   Activity, AlertTriangle, Battery, Brain, CheckCircle2, Database,
   FileText, Flame, Gauge, HeartPulse, Map, RadioTower,
@@ -92,11 +93,16 @@ function WidgetFrame({
         </div>
         <div style={{
           display: "flex", alignItems: "center", gap: 5, padding: "3px 11px", borderRadius: 20, flexShrink: 0,
-          background: !isConnected ? "rgba(255,255,255,.04)" : selected ? "rgba(0,200,255,.1)" : `${iconColor}14`,
-          border: !isConnected ? "1px solid rgba(255,255,255,.1)" : selected ? "1px solid rgba(0,200,255,.4)" : `1px solid ${iconColor}40`,
+          background: !isConnected ? "oklch(72% 0.16 80 / .12)" : selected ? "rgba(0,200,255,.1)" : `${iconColor}14`,
+          border: !isConnected ? "1px solid oklch(72% 0.16 80 / .3)" : selected ? "1px solid rgba(0,200,255,.4)" : `1px solid ${iconColor}40`,
         }}>
-          {isConnected && <span style={{ width: 5, height: 5, borderRadius: "50%", background: selected ? "#00C8FF" : iconColor, display: "inline-block", flexShrink: 0 }} />}
-          <span style={{ fontSize: 10.5, fontWeight: 600, color: !isConnected ? "rgba(255,255,255,.3)" : selected ? "#00C8FF" : iconColor, letterSpacing: "0.02em" }}>
+          {!isConnected ? (
+            <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.6, repeat: Infinity }}
+              style={{ width: 5, height: 5, borderRadius: "50%", background: "oklch(75% 0.16 80)", display: "inline-block", flexShrink: 0 }} />
+          ) : (
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: selected ? "#00C8FF" : iconColor, display: "inline-block", flexShrink: 0 }} />
+          )}
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: !isConnected ? "oklch(75% 0.14 80)" : selected ? "#00C8FF" : iconColor, letterSpacing: "0.02em" }}>
             {isConnected ? "Live" : "미연결"}
           </span>
         </div>
@@ -133,19 +139,123 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     gaugeTrack: isLight ? "rgba(0,0,0,.08)" : "rgba(255,255,255,.07)",
   };
 
-  /* ── 미연결 플레이스홀더 ── */
+  /* ── 미연결 Ghost Preview ── */
   if (!isConnected) {
+    const GAUGE_IDS = ["ultrasonic-arc-risk", "autoencoder-anomaly", "rul-lstm-forecast", "device-power-battery", "worker-spo2-status"];
+    const CHART_IDS = ["vibration-fft-spectrum", "thermal-delta-map", "cnn-lstm-spectrogram", "gas-decomposition-panel", "fault-progression-stage", "fscore-model-tuning", "multi-sensor-health"];
+    const STATUS_IDS = ["worker-fall-detection", "field-validation-progress", "worker-context-fusion", "sop-auto-execution", "hazard-zone-map", "predictive-report", "fleet-device-inventory", "gateway-communication"];
+
+    const ghostType = GAUGE_IDS.includes(id) ? "gauge" : CHART_IDS.includes(id) ? "chart" : STATUS_IDS.includes(id) ? "status" : "chart";
+
+    const G = "rgba(255,255,255,";
+    const shimmerAnim = { x: ["-110%", "110%"] };
+    const shimmerTrans = { duration: 2.4, repeat: Infinity, repeatDelay: 4.5, ease: "easeInOut" as const };
+    const breatheAnim = { opacity: [0.45, 0.75, 0.45] };
+    const breatheTrans = { duration: 3.8, repeat: Infinity, ease: "easeInOut" as const };
+
+    const GaugeGhost = () => (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, overflow: "hidden", position: "relative" }}>
+        {/* shimmer sweep */}
+        <motion.div animate={shimmerAnim} transition={shimmerTrans}
+          style={{ position: "absolute", inset: 0, background: "linear-gradient(105deg, transparent 35%, rgba(255,255,255,.05) 50%, transparent 65%)", pointerEvents: "none" }} />
+        {/* arc ghost */}
+        <motion.div animate={breatheAnim} transition={breatheTrans} style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
+          <svg viewBox="0 0 96 96" width={96} height={96}>
+            <circle cx="48" cy="48" r="38" fill="none" stroke={G + ".07)"} strokeWidth="10" />
+            <circle cx="48" cy="48" r="38" fill="none" stroke={G + ".15)"} strokeWidth="10"
+              strokeDasharray="160 80" strokeDashoffset="40" strokeLinecap="round" />
+            <circle cx="48" cy="48" r="22" fill="none" stroke={G + ".06)"} strokeWidth="1.5" strokeDasharray="4 4" />
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 2 }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: G + ".2)", letterSpacing: "-0.02em" }}>—</span>
+            <span style={{ fontSize: 9, color: G + ".12)", letterSpacing: "0.06em" }}>NO DATA</span>
+          </div>
+        </motion.div>
+        {/* bar ghost */}
+        <motion.div animate={breatheAnim} transition={{ ...breatheTrans, delay: 0.6 }} style={{ display: "flex", flexDirection: "column", gap: 5, width: "72%", alignSelf: "center" }}>
+          {[62, 45, 78].map((w, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 28, height: 5, borderRadius: 3, background: G + ".07)" }} />
+              <div style={{ flex: 1, height: 5, borderRadius: 3, background: G + ".04)", overflow: "hidden", position: "relative" }}>
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${w}%`, borderRadius: 3, background: G + ".09)" }} />
+              </div>
+            </div>
+          ))}
+        </motion.div>
+        <span style={{ fontSize: 9.5, color: G + ".12)", letterSpacing: "0.05em", marginTop: 2 }}>연결 후 활성화</span>
+      </div>
+    );
+
+    const ChartGhost = () => (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 6, overflow: "hidden", position: "relative", paddingBottom: 8 }}>
+        <motion.div animate={shimmerAnim} transition={shimmerTrans}
+          style={{ position: "absolute", inset: 0, background: "linear-gradient(105deg, transparent 35%, rgba(255,255,255,.05) 50%, transparent 65%)", pointerEvents: "none" }} />
+        {/* ghost wave lines */}
+        <motion.svg animate={breatheAnim} transition={breatheTrans}
+          viewBox="0 0 200 70" preserveAspectRatio="none" style={{ width: "100%", height: 64, flexShrink: 0 }}>
+          <polyline points="0,55 20,48 40,50 60,38 80,42 100,28 120,34 140,22 160,30 180,18 200,24"
+            fill="none" stroke={G + ".13)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points="0,62 20,57 40,60 60,50 80,54 100,42 120,46 140,36 160,42 180,32 200,38"
+            fill="none" stroke={G + ".08)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points="0,66 20,63 40,65 60,58 80,61 100,54 120,57 140,50 160,55 180,46 200,51"
+            fill="none" stroke={G + ".05)"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          <line x1="0" y1="69" x2="200" y2="69" stroke={G + ".06)"} strokeWidth="1" />
+        </motion.svg>
+        {/* x-axis ticks */}
+        <motion.div animate={breatheAnim} transition={{ ...breatheTrans, delay: 0.4 }}
+          style={{ display: "flex", justifyContent: "space-between", padding: "0 4px" }}>
+          {[0,1,2,3,4].map(i => <div key={i} style={{ width: 24, height: 5, borderRadius: 2, background: G + ".07)" }} />)}
+        </motion.div>
+        {/* legend ghost */}
+        <motion.div animate={breatheAnim} transition={{ ...breatheTrans, delay: 0.2 }}
+          style={{ display: "flex", gap: 10, alignItems: "center", paddingLeft: 4 }}>
+          {[G + ".12)", G + ".07)", G + ".05)"].map((c, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ width: 10, height: 2.5, borderRadius: 2, background: c }} />
+              <div style={{ width: 28, height: 5, borderRadius: 2, background: G + ".06)" }} />
+            </div>
+          ))}
+        </motion.div>
+        <span style={{ fontSize: 9.5, color: G + ".12)", letterSpacing: "0.05em", textAlign: "center", marginTop: 2 }}>연결 후 활성화</span>
+      </div>
+    );
+
+    const StatusGhost = () => (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden", position: "relative", paddingTop: 4 }}>
+        <motion.div animate={shimmerAnim} transition={shimmerTrans}
+          style={{ position: "absolute", inset: 0, background: "linear-gradient(105deg, transparent 35%, rgba(255,255,255,.05) 50%, transparent 65%)", pointerEvents: "none" }} />
+        {/* top stat row */}
+        <motion.div animate={breatheAnim} transition={breatheTrans} style={{ display: "flex", gap: 8 }}>
+          {[1, 1, 1].map((_, i) => (
+            <div key={i} style={{ flex: 1, borderRadius: 10, padding: "10px 10px", background: G + ".04)", border: `1px solid ${G + ".06)"}`, display: "flex", flexDirection: "column", gap: 5 }}>
+              <div style={{ width: "60%", height: 5, borderRadius: 2, background: G + ".08)" }} />
+              <div style={{ width: "40%", height: 14, borderRadius: 4, background: G + ".06)" }} />
+            </div>
+          ))}
+        </motion.div>
+        {/* row items */}
+        {[75, 55, 85].map((w, i) => (
+          <motion.div key={i} animate={breatheAnim} transition={{ ...breatheTrans, delay: i * 0.15 }}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 9, background: G + ".03)", border: `1px solid ${G + ".05)"}` }}>
+            <div style={{ width: 22, height: 22, borderRadius: 7, background: G + ".06)", flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ width: `${w}%`, height: 5, borderRadius: 2, background: G + ".09)" }} />
+              <div style={{ width: `${w - 20}%`, height: 4, borderRadius: 2, background: G + ".05)" }} />
+            </div>
+            <div style={{ width: 30, height: 16, borderRadius: 6, background: G + ".06)", flexShrink: 0 }} />
+          </motion.div>
+        ))}
+        <span style={{ fontSize: 9.5, color: G + ".12)", letterSpacing: "0.05em", textAlign: "center", marginTop: "auto", paddingTop: 4 }}>연결 후 활성화</span>
+      </div>
+    );
+
     return (
-      <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<SparkIcon />} accent="blue" selected={selected} brandColor={iconBrandColor} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight} isConnected={false}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Database className="h-4 w-4" style={{ color: "rgba(255,255,255,.25)" }} />
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.25)", letterSpacing: "0.04em", marginBottom: 3 }}>데이터 없음</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,.15)" }}>DB 수집 연결 후 표시됩니다</div>
-          </div>
-        </div>
+      <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<SparkIcon />} accent="blue" selected={selected}
+        brandColor={iconBrandColor} brandSurface="oklch(10% 0.03 275)" brandBorder="rgba(255,255,255,.06)"
+        brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight} isConnected={false}>
+        {ghostType === "gauge" && <GaugeGhost />}
+        {ghostType === "chart" && <ChartGhost />}
+        {ghostType === "status" && <StatusGhost />}
       </WidgetFrame>
     );
   }
