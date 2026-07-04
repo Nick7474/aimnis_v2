@@ -2892,83 +2892,6 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               onNavigateToMapping={() => setCenterView("mapping")}
             />
           ) : centerView === "monitor" ? (
-            connectedSourceIds.size === 0 ? (
-              /* ── 데이터 미연결 초기화 상태 ── */
-              <motion.div
-                key="monitor-empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0b1120", overflow: "hidden" }}
-              >
-                {/* 배경 격자 */}
-                <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(oklch(100% 0 0 / .03) 1px, transparent 1px), linear-gradient(90deg, oklch(100% 0 0 / .03) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
-                {/* 배경 앰비언트 */}
-                <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 55% at 50% 50%, oklch(35% 0.16 285 / .12) 0%, transparent 70%)" }} />
-
-                {/* 중앙 콘텐츠 */}
-                <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
-
-                  {/* 아이콘 — 동심원 펄스 */}
-                  <div style={{ position: "relative", width: 100, height: 100, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 32 }}>
-                    <motion.div
-                      animate={{ scale: [1, 1.5, 1], opacity: [0.18, 0, 0.18] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeOut" }}
-                      style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1px solid oklch(60% 0.20 285 / .5)" }}
-                    />
-                    <motion.div
-                      animate={{ scale: [1, 1.35, 1], opacity: [0.25, 0, 0.25] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
-                      style={{ position: "absolute", inset: 8, borderRadius: "50%", border: "1px solid oklch(60% 0.20 285 / .45)" }}
-                    />
-                    <div style={{ width: 64, height: 64, borderRadius: "50%", background: "oklch(20% 0.08 285)", border: "1px solid oklch(55% 0.22 285 / .4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 32px oklch(55% 0.22 285 / .2), inset 0 1px 0 oklch(100% 0 0 / .08)" }}>
-                      <Database style={{ width: 26, height: 26, color: "oklch(70% 0.18 285)" }} />
-                    </div>
-                  </div>
-
-                  {/* 텍스트 */}
-                  <h2 style={{ fontSize: 20, fontWeight: 600, color: "oklch(92% 0.04 275)", letterSpacing: "-0.01em", marginBottom: 10, textAlign: "center" }}>
-                    데이터 소스가 연결되지 않았습니다
-                  </h2>
-                  <p style={{ fontSize: 13, color: "oklch(55% 0.06 275)", textAlign: "center", lineHeight: 1.7, maxWidth: 360, marginBottom: 36 }}>
-                    DB 수집 탭에서 데이터 소스를 연결하고<br />
-                    데이터 매핑을 완료하면 실시간 모니터링이 시작됩니다.
-                  </p>
-
-                  {/* 3단계 가이드 */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 36 }}>
-                    {[
-                      { icon: <Database style={{ width: 13, height: 13 }} />, label: "DB 수집", done: false, active: true },
-                      { icon: <Network style={{ width: 13, height: 13 }} />, label: "데이터 매핑", done: false, active: false },
-                      { icon: <Activity style={{ width: 13, height: 13 }} />, label: "모니터링", done: false, active: false },
-                    ].map((step, i) => (
-                      <React.Fragment key={step.label}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 8, background: step.active ? "oklch(45% 0.22 285 / .16)" : "oklch(100% 0 0 / .04)", border: `1px solid ${step.active ? "oklch(60% 0.20 285 / .35)" : "oklch(100% 0 0 / .08)"}`, color: step.active ? "oklch(78% 0.14 285)" : "oklch(40% 0.04 275)" }}>
-                          {step.icon}
-                          <span style={{ fontSize: 11, fontWeight: step.active ? 600 : 400, whiteSpace: "nowrap" }}>{step.label}</span>
-                        </div>
-                        {i < 2 && (
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: "oklch(35% 0.04 275)", flexShrink: 0 }}>
-                            <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </div>
-
-                  {/* CTA 버튼 */}
-                  <button
-                    onClick={() => setCenterView("db")}
-                    style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 28px", borderRadius: 10, background: "linear-gradient(135deg, oklch(55% 0.22 285), oklch(48% 0.20 295))", border: "none", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 20px oklch(55% 0.22 285 / .3), inset 0 1px 0 oklch(100% 0 0 / .15)", letterSpacing: "0.01em", transition: "opacity 0.15s, transform 0.15s" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.88"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
-                  >
-                    <Zap style={{ width: 15, height: 15 }} />
-                    DB 수집 연결하기
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
             <MonitoringLayoutCanvas
               canvasRef={canvasRef}
               customWidgets={canvasWidgets}
@@ -3011,7 +2934,6 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               onNavigated={() => setPendingNavPage(null)}
               onRemovePage={removePage}
             />
-            )
           ) : (
             <MonitoringMappingCanvas
               mappingEdges={monitoringMappingEdges}
