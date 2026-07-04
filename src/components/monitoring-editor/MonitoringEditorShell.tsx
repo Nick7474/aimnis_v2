@@ -2925,7 +2925,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           ) : centerView === "monitor" ? (
             <MonitoringLayoutCanvas
               canvasRef={canvasRef}
-              customWidgets={canvasWidgets}
+              customWidgets={connectedSourceIds.size > 0 ? canvasWidgets : []}
               widgetById={widgetById}
               widgetLiveData={widgetLiveData}
               elementConfigs={elementConfigs}
