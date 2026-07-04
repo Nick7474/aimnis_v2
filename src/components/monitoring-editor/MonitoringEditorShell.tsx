@@ -31,6 +31,7 @@ import {
   Trash2,
   Type,
   X,
+  Zap,
 } from "lucide-react";
 import type { BrandDensity, BrandMapTone, BrandRadius, BrandSettings } from "@/lib/brandPresets";
 import { getBrandTextDefaults } from "@/lib/brandPresets";
@@ -910,6 +911,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [mappingNodePositions, setMappingNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   const [connectedSourceIds, setConnectedSourceIds] = useState<Set<string>>(new Set());
   const [connectedSourceMeta, setConnectedSourceMeta] = useState<Record<string, { name: string; endpoint: string; fields?: string[] }>>({});
+  const [demoChipDismissed, setDemoChipDismissed] = useState(false);
   const [isPageBuilderOpen, setIsPageBuilderOpen] = useState(false);
   const [pendingNavPage, setPendingNavPage] = useState<string | null>(null);
   const { addedPages, addPage, removePage } = useMonitoringPagesStore();
@@ -2951,7 +2953,114 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               activePageLabel="홈 대시보드"
             />
           )}
+
+          {/* ── DEMO PREVIEW 오버레이 (DB 미연결 시) ── */}
+          <AnimatePresence>
+            {centerView === "monitor" && connectedSourceIds.size === 0 && (
+              <motion.div
+                key="demo-overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8 }}
+                style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 20, overflow: "hidden" }}
+              >
+                {/* 앰비언트 그라디언트 — 퍼플/인디고 상단 + 시안 하단 */}
+                <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 50% at 50% -10%, oklch(45% 0.22 285 / .22) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 110%, oklch(40% 0.18 210 / .16) 0%, transparent 60%)" }} />
+
+                {/* 격자 오버레이 — 미세 그리드 */}
+                <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(oklch(100% 0 0 / .025) 1px, transparent 1px), linear-gradient(90deg, oklch(100% 0 0 / .025) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+
+                {/* 스캔라인 — 위에서 아래로 천천히 흐르는 빛줄기 */}
+                <motion.div
+                  animate={{ y: ["-8%", "108%"] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "linear", repeatDelay: 2 }}
+                  style={{ position: "absolute", left: 0, right: 0, height: "6%", background: "linear-gradient(transparent, oklch(60% 0.20 285 / .06), transparent)", filter: "blur(8px)" }}
+                />
+
+                {/* 부유 오브 1 — 퍼플 */}
+                <motion.div
+                  animate={{ x: [0, 40, -20, 0], y: [0, -30, 20, 0], opacity: [0.35, 0.6, 0.35] }}
+                  transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ position: "absolute", top: "15%", left: "12%", width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle, oklch(50% 0.24 285 / .18) 0%, transparent 65%)", filter: "blur(30px)" }}
+                />
+                {/* 부유 오브 2 — 인디고 */}
+                <motion.div
+                  animate={{ x: [0, -50, 30, 0], y: [0, 40, -25, 0], opacity: [0.25, 0.5, 0.25] }}
+                  transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                  style={{ position: "absolute", top: "40%", right: "8%", width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle, oklch(44% 0.20 260 / .18) 0%, transparent 65%)", filter: "blur(28px)" }}
+                />
+                {/* 부유 오브 3 — 시안 */}
+                <motion.div
+                  animate={{ x: [0, 30, -40, 0], y: [0, -20, 35, 0], opacity: [0.2, 0.45, 0.2] }}
+                  transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+                  style={{ position: "absolute", bottom: "10%", left: "35%", width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, oklch(70% 0.16 210 / .14) 0%, transparent 65%)", filter: "blur(24px)" }}
+                />
+
+                {/* 상단 중앙 DEMO PREVIEW 배지 */}
+                <div style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 20, background: "oklch(45% 0.22 285 / .18)", border: "1px solid oklch(60% 0.20 285 / .35)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+                  <motion.span
+                    animate={{ opacity: [1, 0.4, 1] }}
+                    transition={{ duration: 1.8, repeat: Infinity }}
+                    style={{ width: 6, height: 6, borderRadius: "50%", background: "oklch(65% 0.20 285)", display: "inline-block", boxShadow: "0 0 8px oklch(65% 0.20 285 / .8)" }}
+                  />
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "oklch(80% 0.14 285)", textTransform: "uppercase" as const }}>Demo Preview</span>
+                  <span style={{ fontSize: 10, color: "oklch(60% 0.08 285)", letterSpacing: "0.04em" }}>— DB 연결 전 미리보기</span>
+                </div>
+
+                {/* 위젯 shimmer 레이어 — 전체 패널에 은은한 광택 */}
+                <motion.div
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", repeatDelay: 5 }}
+                  style={{ position: "absolute", top: 0, bottom: 0, width: "35%", background: "linear-gradient(105deg, transparent 40%, oklch(100% 0 0 / .04) 50%, transparent 60%)", pointerEvents: "none" }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
           </div>
+
+          {/* ── 미니 플로팅 칩 (우하단, DB 미연결 시) ── */}
+          <AnimatePresence>
+            {centerView === "monitor" && connectedSourceIds.size === 0 && !demoChipDismissed && (
+              <motion.div
+                key="demo-chip"
+                initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ delay: 0.6, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                style={{ position: "absolute", bottom: 20, right: 20, zIndex: 40, display: "flex", alignItems: "center", gap: 0, borderRadius: 10, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,.4), 0 0 0 1px oklch(60% 0.20 285 / .25)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", background: "oklch(15% 0.04 275 / .85)" }}
+              >
+                {/* 왼쪽: 상태 아이콘 */}
+                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", borderRight: "1px solid oklch(100% 0 0 / .08)" }}>
+                  <motion.div
+                    animate={{ opacity: [1, 0.4, 1] }}
+                    transition={{ duration: 1.6, repeat: Infinity }}
+                  >
+                    <Zap style={{ width: 12, height: 12, color: "oklch(75% 0.18 285)" }} />
+                  </motion.div>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "oklch(75% 0.18 285)", whiteSpace: "nowrap" }}>DEMO 모드</span>
+                </div>
+                {/* 중앙: CTA 버튼 */}
+                <button
+                  onClick={() => setCenterView("db")}
+                  style={{ padding: "9px 12px", fontSize: 10, color: "oklch(85% 0.10 275)", background: "transparent", border: "none", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 500, transition: "color 0.15s" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#fff"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "oklch(85% 0.10 275)"; }}
+                >
+                  DB 수집 연결하기 →
+                </button>
+                {/* 우측: dismiss */}
+                <button
+                  onClick={() => setDemoChipDismissed(true)}
+                  style={{ padding: "9px 10px", fontSize: 10, color: "oklch(50% 0.04 275)", background: "transparent", border: "none", borderLeft: "1px solid oklch(100% 0 0 / .08)", cursor: "pointer", display: "flex", alignItems: "center", transition: "color 0.15s" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "oklch(75% 0.04 275)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "oklch(50% 0.04 275)"; }}
+                >
+                  <X style={{ width: 11, height: 11 }} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* ── 페이지 추가 패널 — main 안에서 absolute, 탑메뉴·좌패널 제외 ── */}
           <AnimatePresence>

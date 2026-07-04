@@ -1,23 +1,85 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, SkipForward } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const goHome = useCallback(() => {
+    window.location.assign("/home");
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     await new Promise((r) => setTimeout(r, 300));
-    window.location.assign("/home");
+    setShowIntro(true);
+    setLoading(false);
   };
 
   return (
     <div style={{ position: "relative", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg, #080810)" }}>
+
+      {/* ── 인트로 비디오 오버레이 ── */}
+      <AnimatePresence>
+        {showIntro && (
+          <motion.div
+            key="intro"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <video
+              ref={videoRef}
+              src="/intro.mp4"
+              autoPlay
+              playsInline
+              onEnded={goHome}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            {/* Skip 버튼 */}
+            <motion.button
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2, duration: 0.4 }}
+              onClick={goHome}
+              style={{
+                position: "absolute", bottom: 40, right: 40,
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "10px 20px", borderRadius: 10,
+                background: "rgba(255,255,255,0.1)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                color: "rgba(255,255,255,0.85)",
+                fontSize: 13, fontWeight: 600,
+                cursor: "pointer",
+                letterSpacing: "0.02em",
+                transition: "background 0.2s, border-color 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.18)";
+                (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.35)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)";
+                (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.2)";
+              }}
+            >
+              <span>Skip</span>
+              <SkipForward style={{ width: 14, height: 14 }} />
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <MeshBg />
 
       {/* 상단 로고 — 바 없이 투명 */}
