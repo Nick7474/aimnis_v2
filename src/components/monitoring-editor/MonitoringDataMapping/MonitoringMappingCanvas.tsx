@@ -6,7 +6,7 @@ import "reactflow/dist/style.css";
 import ProjectLineEdge from "./nodes/ProjectLineEdge";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Database, Link2, Loader2, Network, Sparkles, Unlink } from "lucide-react";
-import { MonitoringMappingLoader } from "@/components/shared/AIMILoader";
+import { LoaderCard } from "@/components/shared/AIMILoader";
 import type { MappingEdge, MappingField, MappingSource } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import MonitoringSourceNode from "./nodes/MonitoringSourceNode";
@@ -240,8 +240,8 @@ export default function MonitoringMappingCanvas({
       count++;
     });
     canvasWidgets.forEach((widget) => {
-      const wType = widget.widgetType ?? widget.widgetId;
-      const binding = MONITORING_WIDGET_DEFAULT_BINDINGS[wType];
+      // widgetType에 "monitoring-" 접두사가 붙어 있으므로 widgetId 기준으로 조회
+      const binding = MONITORING_WIDGET_DEFAULT_BINDINGS[widget.widgetId];
       if (!binding || !connectedSourceIds.has(binding.source)) return;
       const edgeId = `seed-${binding.source}-${binding.field}-${widget.instanceId}-${binding.property}`;
       if (mappingEdges.some((e) => e.id === edgeId)) return;
@@ -286,8 +286,35 @@ export default function MonitoringMappingCanvas({
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#050711]">
-      {/* 자동 매핑 로딩 오버레이 */}
-      <MonitoringMappingLoader show={isMappingLoading} />
+      {/* 자동 매핑 인라인 오버레이 — 캔버스가 보이면서 로딩 표시 */}
+      <AnimatePresence>
+        {isMappingLoading && (
+          <motion.div
+            key="mapping-loader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 50,
+              background: "rgba(5,7,17,0.72)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <LoaderCard
+              character="ch5"
+              title="자동 매핑 중"
+              subtitles={["소스 필드 분석 중", "위젯 바인딩 생성 중", "데이터 연결 최적화 중"]}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(20,184,166,0.12),transparent_26%),radial-gradient(circle_at_75%_20%,rgba(139,92,246,0.13),transparent_24%)]" />
 

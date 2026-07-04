@@ -76,7 +76,7 @@ function Dots() {
 }
 
 // ── 피그마 스펙 카드 ──────────────────────────────────────────
-function LoaderCard({
+export function LoaderCard({
   character = "ch1",
   title = "Loading",
   subtitles = [],
