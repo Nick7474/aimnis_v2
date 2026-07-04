@@ -68,7 +68,7 @@ import MonitoringPageBuilder from "@/monitoring-app/components/MonitoringPageBui
 import { useMonitoringPagesStore, type MonitoringPageConfig } from "@/store/monitoringPagesStore";
 import type { MappingEdge } from "@/store/editorStore";
 import { DEFAULT_WIDGET_GROUPS, WIDGET_COLOR_GROUPS } from "@/solutions/monitoring/widgets/colorSchema";
-import { MONITORING_WIDGET_PROPERTIES } from "./MonitoringDataMapping/monitoringMappingData";
+import { MONITORING_WIDGET_PROPERTIES, MONITORING_CORE_BINDINGS } from "./MonitoringDataMapping/monitoringMappingData";
 import { MonitoringInitLoader } from "@/components/shared/AIMILoader";
 
 interface MonitoringEditorShellProps {
@@ -1826,6 +1826,67 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   };
 
   const renderMappingInspectorContent = () => {
+    /* ── 기본 위젯 (default-widget): CORE_BINDINGS 기반 연결 상태 표시 ── */
+    if (!selectedWidget && selectedElement?.kind === "default-widget") {
+      const elementId = selectedElement.id;
+      const relevantBindings = MONITORING_CORE_BINDINGS.filter((b) => b.target === elementId);
+      const sourcesNeeded = Array.from(new Set(relevantBindings.map((b) => b.source)));
+
+      return (
+        <MonitoringInspectorFrame
+          eyebrow="Connection"
+          title="연결 상태"
+          description={`${selectedElement.label}에 할당된 데이터 소스 연결 상태를 확인합니다.`}
+        >
+          {sourcesNeeded.length === 0 ? (
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 text-center">
+              <p className="text-xs text-white/40">이 위젯은 별도 매핑이 필요하지 않습니다.</p>
+            </div>
+          ) : (
+            sourcesNeeded.map((sourceId) => {
+              const isConn = connectedSourceIds.has(sourceId);
+              const bindings = relevantBindings.filter((b) => b.source === sourceId);
+              const sourceName = connectedSourceMeta[sourceId]?.name ?? sourceId;
+              return (
+                <MonitoringInspectorSection
+                  key={sourceId}
+                  icon={isConn ? CheckCircle2 : AlertTriangle}
+                  title={sourceName}
+                >
+                  <div className={`mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold ${isConn ? "text-emerald-400" : "text-amber-400/70"}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isConn ? "bg-emerald-400" : "bg-amber-400/70"}`} />
+                    {isConn ? "소스 연결됨" : "소스 미연결"}
+                  </div>
+                  <div className="space-y-1">
+                    {bindings.map((b, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5">
+                        <span className={`min-w-0 flex-1 truncate font-mono text-[10px] ${isConn ? "text-emerald-300/80" : "text-white/30"}`}>{b.field}</span>
+                        <span className="shrink-0 text-[10px] text-white/15">→</span>
+                        <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-white/50">{b.property}</span>
+                      </div>
+                    ))}
+                  </div>
+                </MonitoringInspectorSection>
+              );
+            })
+          )}
+
+          {/* 기본 위젯은 매핑 탭에서 직접 편집하는 게 아니라 DB 수집 탭에서 연결 */}
+          {sourcesNeeded.some((s) => !connectedSourceIds.has(s)) && (
+            <button
+              type="button"
+              onClick={() => { setCenterView("db"); setShowRightPanel(false); }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2.5 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/15"
+            >
+              <Database className="h-3.5 w-3.5" />
+              DB 수집 탭에서 소스 연결
+            </button>
+          )}
+        </MonitoringInspectorFrame>
+      );
+    }
+
+    /* ── 커스텀 위젯 (canvasWidget): mapping edges 기반 연결 상태 ── */
     const targetId = selectedWidget?.instanceId;
     const widgetEdges = targetId
       ? monitoringMappingEdges.filter((e) => e.targetWidgetId === targetId)
@@ -2579,7 +2640,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
       <input ref={logoInputRef} type="file" accept=".png,.svg,.jpg,.jpeg" className="hidden" onChange={handleMonitoringLogoUpload} />
       <MonitoringFloatingToolbar
-        selectedId={selectedToolbarId}
+        selectedId={centerView === "monitor" ? selectedToolbarId : null}
         label={selectedToolbarLabel}
         type={selectedToolbarType}
         onConfigure={handleConfigureSelected}
@@ -2920,9 +2981,22 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               pointerEvents: "none",
             }}
           >
-            {/* 썸네일 */}
-            <div style={{ background: "#0a0f1c", padding: "12px 12px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <MonitoringWidgetThumbnail widget={hw} />
+            {/* 실제 위젯 렌더러 축소 프리뷰 */}
+            <div style={{ background: "#0a0f1c", height: 160, overflow: "hidden", position: "relative", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{
+                width: 400,
+                height: 266,
+                transform: "scale(0.6)",
+                transformOrigin: "top left",
+                pointerEvents: "none",
+              }}>
+                <MonitoringWidgetRenderer
+                  title={hw.name}
+                  widget={hw}
+                  categoryLabel={catLabel}
+                  isConnected={true}
+                />
+              </div>
             </div>
             {/* 정보 */}
             <div style={{ padding: "12px 14px 14px" }}>
@@ -3279,16 +3353,16 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               onSelectWidget={(instanceId) => {
                 setSelectedWidgetId(instanceId);
                 setSelectedElement(null);
-                if (showRightPanel && rightInspectorMode === "settings") {
-                  setSettingsPanelScope("selection");
-                }
+                setShowRightPanel(true);
+                setRightInspectorMode("settings");
+                setSettingsPanelScope("selection");
               }}
               onSelectElement={(element) => {
                 setSelectedWidgetId(null);
                 setSelectedElement(element);
-                if (showRightPanel && rightInspectorMode === "settings") {
-                  setSettingsPanelScope("selection");
-                }
+                setShowRightPanel(true);
+                setRightInspectorMode("settings");
+                setSettingsPanelScope("selection");
               }}
               onStartWidgetInteraction={startWidgetInteraction}
               onStartDefaultWidgetInteraction={startDefaultWidgetInteraction}
