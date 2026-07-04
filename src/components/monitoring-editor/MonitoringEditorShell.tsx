@@ -2880,6 +2880,37 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         </div>
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0b1120]">
+          {/* ── DB 미연결 배너 ── */}
+          <AnimatePresence>
+            {centerView === "monitor" && connectedSourceIds.size === 0 && (
+              <motion.div
+                key="no-data-banner"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 20px", background: "oklch(18% 0.06 285 / .95)", borderBottom: "1px solid oklch(50% 0.18 285 / .25)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", zIndex: 30, flexShrink: 0 }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <motion.span
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    style={{ width: 7, height: 7, borderRadius: "50%", background: "oklch(65% 0.18 285)", display: "inline-block", flexShrink: 0, boxShadow: "0 0 8px oklch(65% 0.18 285 / .7)" }}
+                  />
+                  <span style={{ fontSize: 12, color: "oklch(75% 0.12 285)", fontWeight: 500 }}>
+                    데이터 소스가 연결되지 않았습니다. DB 수집을 먼저 설정해 주세요.
+                  </span>
+                </div>
+                <button
+                  onClick={() => setCenterView("db")}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, background: "oklch(55% 0.22 285)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+                >
+                  <Database style={{ width: 12, height: 12 }} />
+                  DB 수집 연결하기
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {/* ── 중앙 뷰 컨테이너 ── */}
           <div className="relative min-h-0 flex-1 overflow-hidden">
           {centerView === "db" ? (
@@ -2899,6 +2930,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               widgetLiveData={widgetLiveData}
               elementConfigs={elementConfigs}
               brand={brand}
+              isConnected={connectedSourceIds.size > 0}
               selectedWidgetId={selectedWidgetId}
               selectedElementId={selectedElement?.id ?? null}
               isDraggingWidget={isDraggingWidget}

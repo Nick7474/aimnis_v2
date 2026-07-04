@@ -108,6 +108,7 @@ interface MonitoringLayoutCanvasProps {
   widgetLiveData?: Record<string, Record<string, unknown>>;
   elementConfigs: MonitoringElementConfigs;
   brand?: BrandSettings;
+  isConnected?: boolean;
   selectedWidgetId: string | null;
   selectedElementId: string | null;
   isDraggingWidget: boolean;
@@ -417,6 +418,7 @@ export default function MonitoringLayoutCanvas({
   onRemovePage,
   navigateToPage,
   onNavigated,
+  isConnected = true,
 }: MonitoringLayoutCanvasProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState("홈");
@@ -629,6 +631,7 @@ export default function MonitoringLayoutCanvas({
             brandDangerColor={(instance.options.dangerColor as string | undefined) ?? brandTokens.dangerColor}
             isLight={isLightTheme}
             liveData={widgetLiveData[instance.instanceId]}
+            isConnected={isConnected}
           />
         ),
       };

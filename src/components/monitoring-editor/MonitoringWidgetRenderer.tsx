@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
-  Activity, AlertTriangle, Battery, Brain, CheckCircle2,
+  Activity, AlertTriangle, Battery, Brain, CheckCircle2, Database,
   FileText, Flame, Gauge, HeartPulse, Map, RadioTower,
   ShieldCheck, Thermometer, Waves, Zap,
 } from "lucide-react";
@@ -30,6 +30,7 @@ interface MonitoringWidgetRendererProps {
   brandAccentSecondaryColor?: string;
   isLight?: boolean;
   liveData?: Record<string, unknown>;
+  isConnected?: boolean;
 }
 
 /* ── CARD SHELL (aim-widgets.jsx의 Card와 동일) ─────── */
@@ -45,12 +46,12 @@ function SparkIcon() {
 
 function WidgetFrame({
   title, categoryLabel, accent = "blue", icon, children, selected,
-  brandColor, brandSurface, brandBorder, brandTextStrong, brandTextSoft, isLight,
+  brandColor, brandSurface, brandBorder, brandTextStrong, brandTextSoft, isLight, isConnected = true,
 }: {
   title: string; categoryLabel?: string; accent?: string;
   icon: ReactNode; children: ReactNode; selected?: boolean;
   brandColor?: string; brandSurface?: string; brandBorder?: string;
-  brandTextStrong?: string; brandTextSoft?: string; isLight?: boolean;
+  brandTextStrong?: string; brandTextSoft?: string; isLight?: boolean; isConnected?: boolean;
 }) {
   const widgetColor = ACCENT[accent] ?? C.blue;
   /* 브랜드 primary color가 있으면 아이콘/뱃지에 적용, 없으면 위젯 고유색 유지 */
@@ -90,11 +91,14 @@ function WidgetFrame({
           </div>
         </div>
         <div style={{
-          display: "flex", alignItems: "center", padding: "3px 11px", borderRadius: 20, flexShrink: 0,
-          background: selected ? "rgba(0,200,255,.1)" : `${iconColor}14`,
-          border: selected ? "1px solid rgba(0,200,255,.4)" : `1px solid ${iconColor}40`,
+          display: "flex", alignItems: "center", gap: 5, padding: "3px 11px", borderRadius: 20, flexShrink: 0,
+          background: !isConnected ? "rgba(255,255,255,.04)" : selected ? "rgba(0,200,255,.1)" : `${iconColor}14`,
+          border: !isConnected ? "1px solid rgba(255,255,255,.1)" : selected ? "1px solid rgba(0,200,255,.4)" : `1px solid ${iconColor}40`,
         }}>
-          <span style={{ fontSize: 10.5, fontWeight: 600, color: selected ? "#00C8FF" : iconColor, letterSpacing: "0.02em" }}>Live</span>
+          {isConnected && <span style={{ width: 5, height: 5, borderRadius: "50%", background: selected ? "#00C8FF" : iconColor, display: "inline-block", flexShrink: 0 }} />}
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: !isConnected ? "rgba(255,255,255,.3)" : selected ? "#00C8FF" : iconColor, letterSpacing: "0.02em" }}>
+            {isConnected ? "Live" : "미연결"}
+          </span>
         </div>
       </div>
       {/* body */}
@@ -106,7 +110,7 @@ function WidgetFrame({
 }
 
 /* ── 20 WIDGETS (aim-widgets.jsx 원본 그대로 이식) ──── */
-export default function MonitoringWidgetRenderer({ title, widget, categoryLabel, selected, brandPrimaryColor, brandSurfaceColor, brandBorderColor, brandTextStrongColor, brandTextSoftColor, brandAccentColor, brandSuccessColor, brandWarningColor, brandDangerColor, brandAccentSecondaryColor, isLight: isLightProp, liveData }: MonitoringWidgetRendererProps) {
+export default function MonitoringWidgetRenderer({ title, widget, categoryLabel, selected, brandPrimaryColor, brandSurfaceColor, brandBorderColor, brandTextStrongColor, brandTextSoftColor, brandAccentColor, brandSuccessColor, brandWarningColor, brandDangerColor, brandAccentSecondaryColor, isLight: isLightProp, liveData, isConnected = true }: MonitoringWidgetRendererProps) {
   const id = widget?.id ?? "";
   const bsc = brandSurfaceColor;
   const bbc = brandBorderColor;
@@ -128,6 +132,23 @@ export default function MonitoringWidgetRenderer({ title, widget, categoryLabel,
     progTrack:  isLight ? "rgba(0,0,0,.06)" : "rgba(255,255,255,.06)",
     gaugeTrack: isLight ? "rgba(0,0,0,.08)" : "rgba(255,255,255,.07)",
   };
+
+  /* ── 미연결 플레이스홀더 ── */
+  if (!isConnected) {
+    return (
+      <WidgetFrame title={title} categoryLabel={categoryLabel} icon={<SparkIcon />} accent="blue" selected={selected} brandColor={iconBrandColor} brandSurface={bsc} brandBorder={bbc} brandTextStrong={th.textStrong} brandTextSoft={th.textSoft} isLight={isLight} isConnected={false}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Database className="h-4 w-4" style={{ color: "rgba(255,255,255,.25)" }} />
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.25)", letterSpacing: "0.04em", marginBottom: 3 }}>데이터 없음</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,.15)" }}>DB 수집 연결 후 표시됩니다</div>
+          </div>
+        </div>
+      </WidgetFrame>
+    );
+  }
 
   switch (id) {
 
