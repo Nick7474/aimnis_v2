@@ -64,7 +64,10 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
   const [pageGuardModal, setPageGuardModal] = useState<FlowGuardScenario | null>(null);
   const routerForGuard = useRouter();
   useEffect(() => {
+    const solKey = `aimnis_harness_draft_${solution.id}`;
     const hasHarness = !!(
+      sessionStorage.getItem(solKey) ||
+      localStorage.getItem(solKey) ||
       sessionStorage.getItem("aimnis_harness_draft") ||
       localStorage.getItem("aimnis_harness_draft")
     );
@@ -191,6 +194,9 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
   };
 
   const handleGoHome = () => {
+    const solDraftKey = `aimnis_harness_draft_${solution.id}`;
+    localStorage.removeItem(solDraftKey);
+    sessionStorage.removeItem(solDraftKey);
     localStorage.removeItem("aimnis_harness_draft");
     sessionStorage.removeItem("aimnis_harness_draft");
     router.push("/home");

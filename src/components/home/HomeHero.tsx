@@ -709,7 +709,10 @@ const ROADMAP_SOLUTIONS = [
 
 function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
   const router = useRouter();
-  const { setSelectedSolution, setIsWorking, setSelectedScenario } = useHomeStore();
+  const {
+    selectedSolution, solutionSlots, blueprintMd, isComplete,
+    setSelectedSolution, setIsWorking, setSelectedScenario,
+  } = useHomeStore();
 
   return (
     <motion.div
@@ -725,6 +728,19 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
         {solutions.map((sol, i) => {
           const isAvailable = sol.status === "available";
           const logoSrc = SOLUTION_LOGOS[sol.id];
+
+          // 현재 활성 솔루션은 flat state에서, 나머지는 슬롯에서 읽기
+          const isActiveSol = selectedSolution === sol.id;
+          const slotBlueprintMd = isActiveSol ? blueprintMd : (solutionSlots[sol.id]?.blueprintMd ?? "");
+          const slotIsComplete  = isActiveSol ? isComplete  : (solutionSlots[sol.id]?.isComplete  ?? false);
+          const hasWork = !!slotBlueprintMd || !!solutionSlots[sol.id]?.selectedScenario;
+
+          // 뱃지 계산
+          const workBadge = slotIsComplete
+            ? { label: "설계 완료", cls: "bg-violet-500/20 text-violet-300" }
+            : hasWork
+            ? { label: "작업 중", cls: "bg-amber-500/15 text-amber-400" }
+            : null;
 
           return (
             <motion.div
@@ -759,12 +775,19 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
                     <p className="text-[10px] text-white/40 capitalize">{sol.category}</p>
                   </div>
                 </div>
-                <span className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  isAvailable ? "bg-emerald-500/15 text-emerald-400" : "bg-white/5 text-white/30"
-                )}>
-                  {isAvailable ? "구독 중" : "출시 예정"}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    isAvailable ? "bg-emerald-500/15 text-emerald-400" : "bg-white/5 text-white/30"
+                  )}>
+                    {isAvailable ? "구독 중" : "출시 예정"}
+                  </span>
+                  {workBadge && (
+                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", workBadge.cls)}>
+                      {workBadge.label}
+                    </span>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-white/40 leading-relaxed">{sol.description}</p>
               <div className="flex flex-wrap gap-1">
@@ -775,13 +798,20 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               <button
                 onClick={() => {
                   if (!isAvailable) return;
+                  // setSelectedSolution이 기존 슬롯을 저장하고 목표 슬롯을 복원
                   setSelectedSolution(sol.id);
-                  const scenarioId = SOLUTION_TO_SCENARIO[sol.id];
-                  if (scenarioId) {
-                    setSelectedScenario(scenarioId as "energy" | "manufacturing" | "smartcity");
+                  const existingSlot = solutionSlots[sol.id];
+                  if (existingSlot?.selectedScenario || existingSlot?.blueprintMd) {
+                    // 이전 작업 있음 → 그대로 복원하고 작업 뷰로
                     setIsWorking(true);
                   } else {
-                    router.push(`/editor?solution=${sol.id}`);
+                    const scenarioId = SOLUTION_TO_SCENARIO[sol.id];
+                    if (scenarioId) {
+                      setSelectedScenario(scenarioId as "energy" | "manufacturing" | "smartcity");
+                      setIsWorking(true);
+                    } else {
+                      router.push(`/editor?solution=${sol.id}`);
+                    }
                   }
                 }}
                 disabled={!isAvailable}
@@ -792,7 +822,7 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
                     : "cursor-not-allowed bg-white/5 text-white/20"
                 )}
               >
-                {isAvailable ? "시작하기" : "출시 예정"}
+                {isAvailable ? (hasWork ? "계속하기" : "시작하기") : "출시 예정"}
               </button>
             </motion.div>
           );

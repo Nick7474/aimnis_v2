@@ -3353,16 +3353,16 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               onSelectWidget={(instanceId) => {
                 setSelectedWidgetId(instanceId);
                 setSelectedElement(null);
-                setShowRightPanel(true);
-                setRightInspectorMode("settings");
-                setSettingsPanelScope("selection");
+                if (showRightPanel && rightInspectorMode === "settings") {
+                  setSettingsPanelScope("selection");
+                }
               }}
               onSelectElement={(element) => {
                 setSelectedWidgetId(null);
                 setSelectedElement(element);
-                setShowRightPanel(true);
-                setRightInspectorMode("settings");
-                setSettingsPanelScope("selection");
+                if (showRightPanel && rightInspectorMode === "settings") {
+                  setSettingsPanelScope("selection");
+                }
               }}
               onStartWidgetInteraction={startWidgetInteraction}
               onStartDefaultWidgetInteraction={startDefaultWidgetInteraction}

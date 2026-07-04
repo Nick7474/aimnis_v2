@@ -65,7 +65,14 @@ export default function Navbar() {
   const { projects } = useProjectStore();
 
   const hasHarness = typeof window !== "undefined"
-    ? !!(sessionStorage.getItem("aimnis_harness_draft") || localStorage.getItem("aimnis_harness_draft"))
+    ? !!(
+        sessionStorage.getItem("aimnis_harness_draft_guard") ||
+        localStorage.getItem("aimnis_harness_draft_guard") ||
+        sessionStorage.getItem("aimnis_harness_draft_monitoring") ||
+        localStorage.getItem("aimnis_harness_draft_monitoring") ||
+        sessionStorage.getItem("aimnis_harness_draft") ||
+        localStorage.getItem("aimnis_harness_draft")
+      )
     : false;
   const hasPublish = projects.length > 0;
 
