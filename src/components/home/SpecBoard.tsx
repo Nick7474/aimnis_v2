@@ -13,7 +13,6 @@ interface Props {
   renderHeaderExtra?: React.ReactNode;
 }
 
-
 export default function SpecBoard({ animatingSpecs = {}, renderHeaderExtra }: Props) {
   const selectedSolution = useHomeStore((s) => s.selectedSolution);
   const selectedScenario = useHomeStore((s) => s.selectedScenario);

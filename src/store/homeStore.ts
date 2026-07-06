@@ -5,7 +5,7 @@ import {
   getScenarioConfig,
 } from "@/data/scenarios";
 
-// ─── 채팅 메시지 ─────────────────────────────────────────────
+// ─── 채팅 메시지 (좌측 보조 패널용) ────────────────────────────
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -16,6 +16,12 @@ export interface Message {
 // ─── Spec 선택 상태 ──────────────────────────────────────────
 export type SelectedSpecs = Record<string, string | string[] | null>;
 
+const EMPTY_SPECS: SelectedSpecs = {};
+const DEFAULT_CONFIG = getScenarioConfig("guard");
+DEFAULT_CONFIG.requiredQuestions.forEach(id => {
+  EMPTY_SPECS[id] = null;
+});
+
 function createEmptySpecs(solutionId?: string | null): SelectedSpecs {
   const specs: SelectedSpecs = {};
   getScenarioConfig(solutionId).requiredQuestions.forEach(id => {
@@ -24,44 +30,8 @@ function createEmptySpecs(solutionId?: string | null): SelectedSpecs {
   return specs;
 }
 
-// ─── 솔루션별 슬롯 (in-memory 상태 보존) ─────────────────────
-export interface SolutionSlotState {
-  selectedScenario: ScenarioId | null;
-  selectedSpecs: SelectedSpecs;
-  blueprintMd: string;
-  isComplete: boolean;
-  messages: Message[];
-  isWorking: boolean;
-  turnCount: number;
-}
-
-function createEmptySlot(solutionId: string | null): SolutionSlotState {
-  return {
-    selectedScenario: null,
-    selectedSpecs: createEmptySpecs(solutionId),
-    blueprintMd: "",
-    isComplete: false,
-    messages: [],
-    isWorking: false,
-    turnCount: 0,
-  };
-}
-
-function flatToSlot(
-  state: Pick<HomeState, "selectedScenario" | "selectedSpecs" | "blueprintMd" | "isComplete" | "messages" | "isWorking" | "turnCount">
-): SolutionSlotState {
-  return {
-    selectedScenario: state.selectedScenario,
-    selectedSpecs: { ...state.selectedSpecs },
-    blueprintMd: state.blueprintMd,
-    isComplete: state.isComplete,
-    messages: [...state.messages],
-    isWorking: state.isWorking,
-    turnCount: state.turnCount,
-  };
-}
-
 // ─── MD 생성 헬퍼 ────────────────────────────────────────────
+
 function generateWidgets(specs: SelectedSpecs, solutionId?: string | null): string {
   if (solutionId === "monitoring") {
     return [
@@ -90,7 +60,9 @@ function generateApiMapping(specs: SelectedSpecs, solutionId?: string | null): s
 
 function formatSpecValue(val: string | string[] | null): string {
   if (!val) return "선택 대기 중...";
-  if (Array.isArray(val)) return val.length > 0 ? val.join(", ") : "선택 대기 중...";
+  if (Array.isArray(val)) {
+    return val.length > 0 ? val.join(", ") : "선택 대기 중...";
+  }
   return val;
 }
 
@@ -107,13 +79,16 @@ function buildBlueprintMd(
     if (Array.isArray(val)) return val.length > 0;
     return !!val;
   });
+  
   const status = isComplete ? "설계 확정" : "설계 중...";
+
   let md = `# ${solutionId === "monitoring" ? "AIM Monitoring" : s.label} ${solutionId === "monitoring" ? "Harness 설계서" : "아키텍처 설계서"}\n\n`;
   md += `## 프로젝트 정보\n`;
   md += `- 도메인: ${s.label} (${s.subLabel})\n`;
   md += `- 솔루션: ${solutionId === "monitoring" ? "AIM Monitoring" : "AIM GUARD"}\n`;
   md += `- 생성일: ${new Date().toLocaleDateString("ko-KR")}\n`;
   md += `- 상태: ${status}\n\n`;
+
   config.specGroups.forEach(group => {
     md += `## ${group.label}\n`;
     group.questions.forEach(q => {
@@ -123,57 +98,56 @@ function buildBlueprintMd(
     });
     md += "\n";
   });
+
   md += `## 추천 위젯 구성\n${generateWidgets(specs, solutionId)}\n\n`;
   md += `## API/Data Mapping\n${generateApiMapping(specs, solutionId)}\n`;
+
   return md;
 }
 
 // ─── Store 인터페이스 ─────────────────────────────────────────
 interface HomeState {
-  // 솔루션 슬롯 (솔루션별 in-memory 상태 보존)
   selectedSolution: string | null;
-  solutionSlots: Record<string, SolutionSlotState>;
-
-  // 현재 활성 슬롯의 flat 상태 (기존 컴포넌트와 호환)
-  selectedScenario: ScenarioId | null;
-  selectedSpecs: SelectedSpecs;
-  isMagicAnimating: boolean;
-  blueprintMd: string;
-  isComplete: boolean;
-  messages: Message[];
-  isThinking: boolean;
-  isWorking: boolean;
-  turnCount: number;
-  isGenerating: boolean;
-
-  // 액션
   setSelectedSolution: (id: string | null) => void;
+
+  selectedScenario: ScenarioId | null;
   setSelectedScenario: (id: ScenarioId | null) => void;
+
+  selectedSpecs: SelectedSpecs;
   updateSpec: (questionId: SpecQuestionId, value: string) => void;
   clearSpecs: () => void;
+
   applyMagicDefault: () => void;
+  isMagicAnimating: boolean;
   setMagicAnimating: (v: boolean) => void;
+
+  blueprintMd: string;
+  isComplete: boolean;
+
+  messages: Message[];
   addMessage: (msg: Message) => void;
   updateLastMessage: (content: string) => void;
+  isThinking: boolean;
   setIsThinking: (v: boolean) => void;
+
   reset: () => void;
+
+  isWorking: boolean;
   setIsWorking: (v: boolean) => void;
+  turnCount: number;
   incrementTurn: () => void;
   appendBlueprint: (content: string) => void;
   setBlueprint: (md: string) => void;
-  generateHarness: (provider?: string) => Promise<void>;
 
-  // 슬롯 초기화 액션
-  resetSolutionSlot: (solutionId: string) => void;
-  resetAllSlots: () => void;
+  isGenerating: boolean;
+  generateHarness: (provider?: string) => Promise<void>;
 }
 
 // ─── 초기 상태 ───────────────────────────────────────────────
 const initialState = {
   selectedSolution: null as string | null,
-  solutionSlots: {} as Record<string, SolutionSlotState>,
   selectedScenario: null as ScenarioId | null,
-  selectedSpecs: createEmptySpecs(null),
+  selectedSpecs: { ...EMPTY_SPECS },
   isMagicAnimating: false,
   blueprintMd: "",
   isComplete: false,
@@ -188,37 +162,17 @@ const initialState = {
 export const useHomeStore = create<HomeState>((set, get) => ({
   ...initialState,
 
-  setSelectedSolution: (id) => {
-    const state = get();
-    const { selectedSolution, solutionSlots } = state;
-
-    // 현재 슬롯 스냅샷 저장
-    const updatedSlots: Record<string, SolutionSlotState> = { ...solutionSlots };
-    if (selectedSolution) {
-      updatedSlots[selectedSolution] = flatToSlot(state);
-    }
-
-    // 목표 슬롯 복원 (없으면 빈 슬롯)
-    const target = id ? (updatedSlots[id] ?? createEmptySlot(id)) : createEmptySlot(null);
-
-    set({
-      selectedSolution: id,
-      solutionSlots: updatedSlots,
-      selectedScenario: target.selectedScenario,
-      selectedSpecs: target.selectedSpecs,
-      blueprintMd: target.blueprintMd,
-      isComplete: target.isComplete,
-      messages: target.messages,
-      isWorking: target.isWorking,
-      turnCount: target.turnCount,
-      isThinking: false,
-      isMagicAnimating: false,
-      isGenerating: false,
-    });
-  },
+  setSelectedSolution: (id) => set({
+    selectedSolution: id,
+    selectedScenario: null,
+    selectedSpecs: createEmptySpecs(id),
+    isComplete: false,
+    blueprintMd: "",
+    messages: [],
+  }),
 
   setSelectedScenario: (id) => {
-    const { selectedSolution, selectedSpecs } = get();
+    const { selectedSolution } = get();
     const specs = createEmptySpecs(selectedSolution);
     set({
       selectedScenario: id,
@@ -236,18 +190,25 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     if (!q) return;
 
     let nextVal: string | string[] | null = value;
+    
     if (q.multiple) {
-      const currentArr = Array.isArray(selectedSpecs[questionId])
-        ? (selectedSpecs[questionId] as string[])
+      const currentArr = Array.isArray(selectedSpecs[questionId]) 
+        ? (selectedSpecs[questionId] as string[]) 
         : [];
-      nextVal = currentArr.includes(value)
-        ? currentArr.filter(v => v !== value)
-        : [...currentArr, value];
+      if (currentArr.includes(value)) {
+        nextVal = currentArr.filter(v => v !== value);
+      } else {
+        nextVal = [...currentArr, value];
+      }
     } else {
       nextVal = selectedSpecs[questionId] === value ? null : value;
     }
 
-    const nextSpecs: SelectedSpecs = { ...selectedSpecs, [questionId]: nextVal };
+    const nextSpecs: SelectedSpecs = {
+      ...selectedSpecs,
+      [questionId]: nextVal,
+    };
+
     const isComplete = config.requiredQuestions.every(id => {
       const v = nextSpecs[id];
       if (Array.isArray(v)) return v.length > 0;
@@ -277,9 +238,13 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     const config = getScenarioConfig(selectedSolution);
     const { defaultSpecs } = config.scenarioMap[selectedScenario];
     const next: SelectedSpecs = createEmptySpecs(selectedSolution);
+    
     Object.keys(defaultSpecs).forEach(k => {
-      if (defaultSpecs[k]) next[k] = defaultSpecs[k] as string | string[];
+      if (defaultSpecs[k]) {
+        next[k] = defaultSpecs[k] as string | string[];
+      }
     });
+
     set({
       selectedSpecs: next,
       isComplete: true,
@@ -289,7 +254,8 @@ export const useHomeStore = create<HomeState>((set, get) => ({
 
   setMagicAnimating: (isMagicAnimating) => set({ isMagicAnimating }),
 
-  addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+  addMessage: (msg) =>
+    set((s) => ({ messages: [...s.messages, msg] })),
   updateLastMessage: (content) =>
     set((s) => {
       const msgs = [...s.messages];
@@ -298,54 +264,12 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     }),
   setIsThinking: (isThinking) => set({ isThinking }),
 
-  reset: () => set({ ...initialState, selectedSpecs: createEmptySpecs(null), solutionSlots: {} }),
+  reset: () => set({ ...initialState, selectedSpecs: { ...EMPTY_SPECS } }),
 
   setIsWorking: (isWorking) => set({ isWorking }),
   incrementTurn: () => set((s) => ({ turnCount: s.turnCount + 1 })),
   appendBlueprint: (content) => set((s) => ({ blueprintMd: s.blueprintMd + content })),
   setBlueprint: (md) => set({ blueprintMd: md }),
-
-  // ─── 슬롯 초기화 ──────────────────────────────────────────
-  resetSolutionSlot: (solutionId) => {
-    const state = get();
-    const updatedSlots = { ...state.solutionSlots };
-    delete updatedSlots[solutionId];
-    if (state.selectedSolution === solutionId) {
-      const empty = createEmptySlot(solutionId);
-      set({
-        solutionSlots: updatedSlots,
-        selectedScenario: empty.selectedScenario,
-        selectedSpecs: empty.selectedSpecs,
-        blueprintMd: empty.blueprintMd,
-        isComplete: empty.isComplete,
-        messages: empty.messages,
-        isWorking: empty.isWorking,
-        turnCount: empty.turnCount,
-        isThinking: false,
-        isGenerating: false,
-      });
-    } else {
-      set({ solutionSlots: updatedSlots });
-    }
-  },
-
-  resetAllSlots: () => {
-    const { selectedSolution } = get();
-    const empty = createEmptySlot(selectedSolution);
-    set({
-      solutionSlots: {},
-      selectedScenario: empty.selectedScenario,
-      selectedSpecs: empty.selectedSpecs,
-      blueprintMd: empty.blueprintMd,
-      isComplete: empty.isComplete,
-      messages: empty.messages,
-      isWorking: empty.isWorking,
-      turnCount: empty.turnCount,
-      isThinking: false,
-      isMagicAnimating: false,
-      isGenerating: false,
-    });
-  },
 
   // ─── Harness AI 생성 ─────────────────────────────────────────
   generateHarness: async (provider = "gemini-flash-lite") => {
@@ -379,7 +303,8 @@ export const useHomeStore = create<HomeState>((set, get) => ({
 
       set({ isComplete: true });
     } catch {
-      set({ blueprintMd: buildBlueprintMd(get().selectedScenario, get().selectedSpecs, get().selectedSolution) });
+      // fallback: 정적 blueprint
+      set({ blueprintMd: buildBlueprintMd(selectedScenario, get().selectedSpecs, selectedSolution) });
     } finally {
       set({ isGenerating: false });
     }

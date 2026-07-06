@@ -2,39 +2,9 @@ import { NextRequest } from "next/server";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
-// ─── 멀티턴 컨텍스트 빌더 ────────────────────────────────────────────
-function buildTurnContext(
-  allMessages: { role: string; content: string }[],
-  maxTurns: number
-): { role: "user" | "assistant"; content: string }[] {
-  const valid = allMessages.filter((m) => m.content?.trim());
-  const result: { role: "user" | "assistant"; content: string }[] = [];
-  let expectedRole: "user" | "assistant" = "user";
-  for (let i = valid.length - 1; i >= 0 && result.length < maxTurns * 2; i--) {
-    if (valid[i].role === expectedRole) {
-      result.unshift({ role: valid[i].role as "user" | "assistant", content: valid[i].content });
-      expectedRole = expectedRole === "user" ? "assistant" : "user";
-    }
-  }
-  while (result.length > 0 && result[0].role !== "user") result.shift();
-  return result;
-}
-
-// ─── Claude용 시스템 프롬프트 ────────────────────────────────────────
-function buildClaudeSystem(solution: string, chatMode?: string): string {
-  if (chatMode === "design") {
-    return `당신은 AIMNIS 설계 어시스턴트 AIMI입니다.
-사용자는 ${solution} 솔루션의 AI 모니터링 시스템을 설계 중입니다.
-역할: 현장 전문 컨설턴트로서 요구사항을 파악하고 최적 구성을 제안합니다.
-이전 대화 맥락을 반드시 참고하여 연속성 있게 응답하세요.
-[절대 규칙] 위젯 생성 요청 시 정확히 1개만 생성하세요.
-[위젯 생성 형식]
-__WIDGET_JSON__
-{"action":"add_widget","widget":{"widgetId":"w-001","type":"kpi","title":"위젯제목","data":{"value":"수치","unit":"단위","trend":"증감","trendUp":true,"color":"#hex"}}}
-위젯 타입: kpi | chart-line | chart-bar | chart-donut | gauge | alert-panel
-일반 질문은 __WIDGET_JSON__ 없이 텍스트로 2~3문장 이내로 답변하세요.`;
-  }
-  return `당신은 AIMNIS 에이전트입니다.
+// ─── Claude용 시스템 프롬프트 (JSON 스키마 포함 상세 버전) ──────────
+function buildClaudeSystem(solution: string): string {
+  return `당신은 AIMNIS 에이전트입니다. 
 현재 편집 중인 솔루션: ${solution}
 
 역할: 산업 현장 전문가이자 AIMNIS 플랫폼 컨설턴트
@@ -62,16 +32,15 @@ __WIDGET_JSON__
 async function handleClaude(
   messages: { role: string; content: string }[],
   solution: string,
-  model: string = HAIKU_MODEL,
-  chatMode?: string
+  model: string = HAIKU_MODEL
 ): Promise<{ stream: ReadableStream<Uint8Array>; inputTokens: number; outputTokens: number }> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || undefined });
 
   const resp = await client.messages.create({
     model,
-    max_tokens: chatMode === "design" ? 300 : 600,
-    system: buildClaudeSystem(solution, chatMode),
+    max_tokens: 600,
+    system: buildClaudeSystem(solution),
     messages: messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
   });
 
@@ -90,38 +59,28 @@ async function handleClaude(
 }
 
 export async function POST(req: NextRequest) {
-  const { messages, solution, keepTurns, chatMode } = await req.json();
+  const { messages, solution } = await req.json();
   const sol = (solution as string) ?? "guard";
 
-  let messagesForApi: { role: string; content: string }[];
-
-  if (keepTurns && (keepTurns as number) > 1) {
-    // 멀티턴: 최근 N 턴의 대화 컨텍스트 유지
-    messagesForApi = buildTurnContext(messages, keepTurns as number);
-    if (messagesForApi.length === 0) {
-      const lastUser = (messages as { role: string; content: string }[])
-        .filter((m) => m.role === "user" && m.content?.trim())
-        .slice(-1)[0]?.content ?? "";
-      if (!lastUser) return new Response("메시지가 비어있습니다.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-      messagesForApi = [{ role: "user", content: lastUser }];
+  // ─── 핵심: 프론트에서 온 메시지 배열 중 마지막 user 메시지 1개만 추출 ───
+  // 과거 대화 기록을 AI에게 주면 이전 위젯 요청을 다시 만드는 버그가 발생하므로
+  // 무조건 현재 요청 1건만 전달합니다.
+  let lastUserContent = "";
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user" && messages[i].content?.trim()) {
+      lastUserContent = messages[i].content.trim();
+      break;
     }
-  } else {
-    // 싱글턴: 마지막 user 메시지 1개만 (에디터 위젯 중복 방지)
-    let lastUserContent = "";
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "user" && messages[i].content?.trim()) {
-        lastUserContent = messages[i].content.trim();
-        break;
-      }
-    }
-    if (!lastUserContent) {
-      return new Response("메시지가 비어있습니다.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-    }
-    messagesForApi = [{ role: "user", content: lastUserContent }];
   }
 
+  if (!lastUserContent) {
+    return new Response("메시지가 비어있습니다.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
+
+  const singleMessage = [{ role: "user", content: lastUserContent }];
+
   try {
-    const { stream, inputTokens, outputTokens } = await handleClaude(messagesForApi, sol, HAIKU_MODEL, chatMode);
+    const { stream, inputTokens, outputTokens } = await handleClaude(singleMessage, sol, HAIKU_MODEL);
     return new Response(stream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",

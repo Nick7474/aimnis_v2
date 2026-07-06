@@ -35,7 +35,7 @@ export default function RealtimeAlertList({ brand = DEFAULT_BRAND }: { brand?: M
     switch(risk) {
       case '위험': return { color: brand.dangerColor, borderColor: `${brand.dangerColor}55` };
       case '경고': return { color: brand.warningColor, borderColor: `${brand.warningColor}55` };
-      case '주의': return { color: brand.warningColor, borderColor: `${brand.warningColor}55` };
+      case '주의': return { color: '#fb923c', borderColor: '#f9731655' };
       default: return { color: brand.textSoftColor, borderColor: brand.borderColor };
     }
   };

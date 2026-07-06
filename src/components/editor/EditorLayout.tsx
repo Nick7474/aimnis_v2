@@ -64,10 +64,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
   const [pageGuardModal, setPageGuardModal] = useState<FlowGuardScenario | null>(null);
   const routerForGuard = useRouter();
   useEffect(() => {
-    const solKey = `aimnis_harness_draft_${solution.id}`;
     const hasHarness = !!(
-      sessionStorage.getItem(solKey) ||
-      localStorage.getItem(solKey) ||
       sessionStorage.getItem("aimnis_harness_draft") ||
       localStorage.getItem("aimnis_harness_draft")
     );
@@ -174,7 +171,7 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
     [addToRightPanel, insertToRightPanel, updateOverlayWidgetPosition, reorderRightPanel]
   );
   const router = useRouter();
-  const upsertProject = useProjectStore(s => s.upsert);
+  const publishProject = useProjectStore(s => s.publish);
   const [saved, setSaved] = useState(false);
   const [showPublishToast, setShowPublishToast] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
@@ -193,17 +190,8 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
     setShowPublishModal(true);
   };
 
-  const handleGoHome = () => {
-    const solDraftKey = `aimnis_harness_draft_${solution.id}`;
-    localStorage.removeItem(solDraftKey);
-    sessionStorage.removeItem(solDraftKey);
-    localStorage.removeItem("aimnis_harness_draft");
-    sessionStorage.removeItem("aimnis_harness_draft");
-    router.push("/home");
-  };
-
   const handleConfirmPublish = () => {
-    const project = upsertProject({
+    const project = publishProject({
       name: publishForm.name || solution.name,
       solution: solution.id,
       status: "active",
@@ -245,21 +233,10 @@ export default function EditorLayout({ solution, template, widgets }: EditorLayo
       <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0a0a14] px-4">
         {/* 좌측: 로고 + 솔루션명 */}
         <div className="relative z-20 flex items-center gap-3">
-          <button type="button" onClick={handleGoHome} className="flex items-center gap-2.5">
+          <Link href="/home" className="flex items-center gap-2.5">
             <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS Logo" className="h-[24px] w-[24px] object-contain drop-shadow-xl" />
             <span className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-montserrat)" }}>AIMNIS</span>
-            <span
-              className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
-              style={{
-                background: "oklch(60% 0.20 285 / .15)",
-                color: "oklch(60% 0.20 285)",
-                border: "1px solid oklch(60% 0.20 285 / .25)",
-                letterSpacing: "0.08em",
-              }}
-            >
-              Enterprise
-            </span>
-          </button>
+          </Link>
           <span className="text-white/15">/</span>
           <div className="flex items-center gap-2">
             <div className="flex h-5 w-5 items-center justify-center">

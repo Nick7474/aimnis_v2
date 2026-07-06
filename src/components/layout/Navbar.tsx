@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Activity, LayoutDashboard, Database, Settings, LogOut } from "lucide-react";
+import { Shield, LayoutDashboard, Database, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHomeStore } from "@/store/homeStore";
 import { useProjectStore } from "@/store/projectStore";
@@ -17,11 +17,6 @@ const BASE_NAV_ITEMS = [
   { href: "/projects", label: "프로젝트",  icon: Database },
   { href: "/guard",    label: "AIM GUARD", icon: Shield },
 ];
-
-const SOLUTION_META: Record<string, { name: string; Icon: typeof Shield }> = {
-  guard:      { name: "AIM GUARD",      Icon: Shield   },
-  monitoring: { name: "AIM Monitoring", Icon: Activity },
-};
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -46,33 +41,11 @@ export default function Navbar() {
     item.dynamic ? { ...item, href: activeEditorHref } : item
   );
 
-  const selectedSolution = useHomeStore((s) => s.selectedSolution);
-  const [activeSolutionId, setActiveSolutionId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (pathname === "/guard") { setActiveSolutionId("guard"); return; }
-    if (pathname.startsWith("/editor")) {
-      const search = typeof window !== "undefined" ? window.location.search : "";
-      const params = new URLSearchParams(search);
-      const sol = params.get("solution");
-      setActiveSolutionId(sol === "monitoring" ? "monitoring" : "guard");
-      return;
-    }
-    setActiveSolutionId(selectedSolution);
-  }, [pathname, selectedSolution]);
-
   const { isComplete } = useHomeStore();
   const { projects } = useProjectStore();
 
   const hasHarness = typeof window !== "undefined"
-    ? !!(
-        sessionStorage.getItem("aimnis_harness_draft_guard") ||
-        localStorage.getItem("aimnis_harness_draft_guard") ||
-        sessionStorage.getItem("aimnis_harness_draft_monitoring") ||
-        localStorage.getItem("aimnis_harness_draft_monitoring") ||
-        sessionStorage.getItem("aimnis_harness_draft") ||
-        localStorage.getItem("aimnis_harness_draft")
-      )
+    ? !!(sessionStorage.getItem("aimnis_harness_draft") || localStorage.getItem("aimnis_harness_draft"))
     : false;
   const hasPublish = projects.length > 0;
 
@@ -160,21 +133,6 @@ export default function Navbar() {
             Enterprise
           </span>
         </a>
-
-        {/* 솔루션 배지 — 로고 우측 */}
-        {activeSolutionId && SOLUTION_META[activeSolutionId] && (() => {
-          const meta = SOLUTION_META[activeSolutionId];
-          const SolIcon = meta.Icon;
-          return (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <span style={{ fontSize: 14, color: "var(--t4)", opacity: 0.3, lineHeight: 1 }}>/</span>
-              <SolIcon style={{ width: 13, height: 13, flexShrink: 0 }} color="#94a3b8" />
-              <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.8)", whiteSpace: "nowrap" }}>
-                {meta.name}
-              </span>
-            </div>
-          );
-        })()}
 
         {/* 네비게이션 탭 — 중앙 배치 */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, height: 47, flex: 1 }}>

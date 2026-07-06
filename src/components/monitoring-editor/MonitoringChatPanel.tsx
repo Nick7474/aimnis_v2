@@ -17,17 +17,6 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   streaming?: boolean;
-  chips?: string[];
-}
-
-function getContextChips(content: string): string[] {
-  if (content.includes("캔버스에 추가") || content.includes("위젯을 추가")) {
-    return ["비슷한 위젯 추가", "레이아웃 조언", "설정 안내"];
-  }
-  if (content.includes("브랜드 테마") || content.includes("컬러")) {
-    return ["다른 브랜드 적용", "색상 초기화", "폰트 변경"];
-  }
-  return ["위젯 더 추가", "레이아웃 최적화", "AI 진단 추가"];
 }
 
 const LOGS = [
@@ -44,36 +33,14 @@ type QuickHint =
   | { type: "preset";  label: string; presetId: string; presetLabel: string }
   | { type: "chat";    label: string; prompt: string };
 
-const PRESET_KEYWORD_MAP: Array<{ keywords: string[]; presetId: string; presetLabel: string }> = [
-  // 기본값 복원 — 다른 프리셋보다 먼저 체크
-  { keywords: ["컬러 초기화", "색상 초기화", "테마 초기화", "기본 테마", "기본 컬러", "컬러 리셋", "리셋 컬러", "초기 컬러", "기본값 복원", "원래 색상", "원래대로"], presetId: "monitoring-default", presetLabel: "AIM Monitoring 기본 테마" },
-  { keywords: ["kepco", "한전", "에너지관제", "energy monitoring"], presetId: "kepco-aiot-blue", presetLabel: "KEPCO Energy Control" },
-  { keywords: ["posco", "포스코", "철강", "스마트팩토리"], presetId: "posco-smart-safety", presetLabel: "POSCO Smart Safety" },
-  { keywords: ["삼성", "samsung", "반도체", "캠퍼스"], presetId: "samsung-digital-campus", presetLabel: "Samsung Digital Campus" },
-  { keywords: ["현대", "hyundai", "모빌리티", "mobility"], presetId: "hyundai-mobility-guard", presetLabel: "Hyundai Mobility" },
-  { keywords: ["twin-x", "twinx", "인더스트리얼", "industrial gray"], presetId: "twinx-industrial-gray", presetLabel: "TWIN-X Industrial Gray" },
-  { keywords: ["공공기관", "neutral", "중립톤", "정부기관"], presetId: "public-neutral", presetLabel: "Public Institution Neutral" },
-];
-
-function detectPresetKeyword(text: string): { presetId: string; presetLabel: string } | null {
-  const lower = text.toLowerCase().trim();
-  for (const preset of PRESET_KEYWORD_MAP) {
-    if (preset.keywords.some((kw) => lower.includes(kw))) {
-      return { presetId: preset.presetId, presetLabel: preset.presetLabel };
-    }
-  }
-  return null;
-}
-
 const QUICK_HINTS: QuickHint[] = [
-  { type: "widget", label: "초음파 아크",    widgetPrompt: "초음파 아크 위험 위젯을 추가해줘" },
-  { type: "widget", label: "진동 FFT",       widgetPrompt: "진동 FFT 스펙트럼 추가해줘" },
-  { type: "widget", label: "작업자 SpO2",    widgetPrompt: "spo2 산소포화도 안전 위젯을 추가해줘" },
-  { type: "widget", label: "환경 위험",       widgetPrompt: "가스 열화 위젯 추가해줘" },
-  { type: "widget", label: "SOP 자동화",      widgetPrompt: "sop 자동 실행 위젯 추가해줘" },
-  { type: "preset", label: "KEPCO 톤",       presetId: "kepco-aiot-blue", presetLabel: "KEPCO AIoT Control" },
-  { type: "widget", label: "제조 설비",       widgetPrompt: "복합 센서 헬스 위젯 추가해줘" },
-  { type: "preset", label: "컬러 초기화",    presetId: "monitoring-default", presetLabel: "AIM Monitoring 기본 테마" },
+  { type: "widget", label: "초음파 아크",       widgetPrompt: "초음파 아크 위험 위젯을 추가해줘" },
+  { type: "widget", label: "진동 FFT",          widgetPrompt: "진동 FFT 스펙트럼 추가해줘" },
+  { type: "widget", label: "작업자 SpO2안전",   widgetPrompt: "spo2 산소포화도 안전 위젯을 추가해줘" },
+  { type: "widget", label: "환경 위험",          widgetPrompt: "가스 열화 위젯 추가해줘" },
+  { type: "widget", label: "SOP 자동화",         widgetPrompt: "sop 자동 실행 위젯 추가해줘" },
+  { type: "preset", label: "KEPCO 톤",          presetId: "kepco-aiot-blue", presetLabel: "KEPCO AIoT Control" },
+  { type: "widget", label: "제조 설비",          widgetPrompt: "복합 센서 헬스 위젯 추가해줘" },
 ];
 
 function extractDisplayText(content: string) {
@@ -119,59 +86,16 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
 
     setInput("");
     setAttachedImages([]);
-
-    // 브랜드 프리셋 키워드 즉시 처리 (API 호출 없이)
-    const presetMatch = detectPresetKeyword(text);
-    if (presetMatch) {
-      const result = onPresetCommand?.(presetMatch.presetId);
-      const isReset = presetMatch.presetId === "monitoring-default";
-      const assistantContent = result?.applied
-        ? isReset
-          ? `✓ 컬러를 AIM Monitoring 기본 테마로 초기화했습니다.\n모든 색상과 서비스명이 최초 기본값으로 돌아갑니다.`
-          : `✓ ${presetMatch.presetLabel} 브랜드 테마를 적용했습니다.\n모니터링 화면의 색상·서비스명이 변경됩니다.`
-        : `${presetMatch.presetLabel} 테마 적용에 실패했습니다.`;
-      setMessages((current) => [
-        ...current,
-        { id: `user-${Date.now()}`, role: "user", content: text },
-        {
-          id: `assistant-${Date.now() + 1}`,
-          role: "assistant",
-          content: assistantContent,
-          chips: getContextChips(assistantContent),
-        },
-      ]);
-      return;
-    }
-
     const widgetCommand = onWidgetCommand?.(text);
-    if (widgetCommand?.added) {
-      const assistantContent = `✓ ${widgetCommand.widgetName ?? "AIM Monitoring 위젯"}을 캔버스에 추가했습니다.`;
-      setMessages((current) => [
-        ...current,
-        { id: `user-${Date.now()}`, role: "user", content: text },
-        {
-          id: `assistant-${Date.now() + 1}`,
-          role: "assistant",
-          content: assistantContent,
-          chips: getContextChips(assistantContent),
-        },
-      ]);
-      return;
-    }
-
-    // 멀티턴 컨텍스트: API 호출 전 현재 메시지 히스토리 캡처
-    const contextHistory = messages
-      .filter((m) => !m.streaming && m.content.trim() && m.id !== "monitoring-welcome")
-      .slice(-4)
-      .map((m) => ({ role: m.role, content: m.content }));
-
     setMessages((current) => [
       ...current,
       { id: `user-${Date.now()}`, role: "user", content: text || "첨부 파일 분석 요청" },
       {
         id: `assistant-${Date.now() + 1}`,
         role: "assistant",
-        content: "",
+        content: widgetCommand?.added
+          ? `요청하신 ${widgetCommand.widgetName ?? "AIM Monitoring 위젯"}을 컨텐츠에 추가했습니다.\n\n`
+          : "",
         streaming: true,
       },
     ]);
@@ -182,9 +106,8 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...contextHistory, { role: "user", content: text }],
+          messages: [{ role: "user", content: text }],
           solution: solutionId,
-          keepTurns: 3,
         }),
       });
 
@@ -205,22 +128,12 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
         updateLastAssistant(full);
       }
 
-      const finalContent = full || "응답을 받았지만 표시할 내용이 없습니다.";
-      setMessages((current) =>
-        current.map((m, idx) =>
-          idx === current.length - 1 && m.role === "assistant"
-            ? { ...m, content: finalContent, streaming: false, chips: getContextChips(finalContent) }
-            : m
-        )
-      );
+      updateLastAssistant(full || "응답을 받았지만 표시할 내용이 없습니다.");
     } catch {
-      const errContent = "API 연결 오류가 발생했습니다. ANTHROPIC_API_KEY 또는 /api/chat 상태를 확인해야 합니다.";
-      setMessages((current) =>
-        current.map((m, idx) =>
-          idx === current.length - 1 && m.role === "assistant"
-            ? { ...m, content: errContent, streaming: false }
-            : m
-        )
+      updateLastAssistant(
+        widgetCommand?.added
+          ? `요청하신 ${widgetCommand.widgetName ?? "AIM Monitoring 위젯"}을 컨텐츠에 추가했습니다.\n\nAPI 답변은 연결 오류로 표시하지 못했습니다.`
+          : "API 연결 오류가 발생했습니다. ANTHROPIC_API_KEY 또는 /api/chat 상태를 확인해야 합니다."
       );
     } finally {
       setIsStreaming(false);
@@ -231,61 +144,38 @@ export default function MonitoringChatPanel({ solutionId, onWidgetCommand, onPre
     <div className="flex h-full flex-col">
       <div ref={messageScrollRef} className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         <AnimatePresence initial={false}>
-          {messages.map((message, msgIdx) => {
+          {messages.map((message) => {
             const displayText = extractDisplayText(message.content);
-            const isLastAssistant = message.role === "assistant" && msgIdx === messages.length - 1 && !message.streaming;
             return (
               <motion.div
                 key={message.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
-                className={cn("flex flex-col gap-1.5", message.role === "user" ? "items-end" : "items-start")}
+                className={cn("flex gap-2", message.role === "user" ? "justify-end" : "items-start justify-start")}
               >
-                <div className={cn("flex gap-2", message.role === "user" ? "justify-end" : "items-start justify-start")}>
-                  {message.role === "assistant" && (
-                    <img src="/img/ch6.png" alt="에임이" className="mt-1 h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20" />
-                  )}
-                  <div
-                    className={cn(
-                      "max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-xs leading-relaxed",
-                      message.role === "user"
-                        ? "bg-purple-500/20 text-purple-100"
-                        : "bg-white/5 text-white/80"
-                    )}
-                  >
-                    {displayText ? (
-                      displayText
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-white/30">
-                        <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2 }}>
-                          ●
-                        </motion.span>
-                        생각 중…
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {/* 빠른 선택 칩 — 마지막 AI 메시지에만 표시 */}
-                {isLastAssistant && message.chips && message.chips.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.2 }}
-                    className="ml-8 flex flex-wrap gap-1"
-                  >
-                    {message.chips.map((chip) => (
-                      <button
-                        key={chip}
-                        type="button"
-                        onClick={() => sendText(chip)}
-                        className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-white/30 transition-all hover:border-violet-400/30 hover:bg-violet-400/10 hover:text-violet-300"
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </motion.div>
+                {message.role === "assistant" && (
+                  <img src="/img/ch6.png" alt="에임이" className="mt-1 h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20" />
                 )}
+                <div
+                  className={cn(
+                    "max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-xs leading-relaxed",
+                    message.role === "user"
+                      ? "bg-purple-500/20 text-purple-100"
+                      : "bg-white/5 text-white/80"
+                  )}
+                >
+                  {displayText ? (
+                    displayText
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-white/30">
+                      <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2 }}>
+                        ●
+                      </motion.span>
+                      생각 중…
+                    </span>
+                  )}
+                </div>
               </motion.div>
             );
           })}

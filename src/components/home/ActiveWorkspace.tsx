@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
 import BlueprintCards from "./BlueprintCards";
 import { HarnessLoader } from "@/components/shared/AIMILoader";
 
-const LS_KEY_BASE = "aimnis_harness_draft";
+// localStorage 키
+const LS_KEY = "aimnis_harness_draft";
 
 interface AiResponse {
   message: string;
@@ -189,7 +190,6 @@ export default function ActiveWorkspace() {
     const solutionId = selectedSolution ?? "guard";
 
     // localStorage + sessionStorage 이중 저장 (탭 닫혀도 유지)
-    const lsKey = `${LS_KEY_BASE}_${solutionId}`;
     const payload = JSON.stringify({
       solution: solutionId,
       md: blueprintMd,
@@ -197,8 +197,8 @@ export default function ActiveWorkspace() {
       savedAt: Date.now(),
     });
     try {
-      localStorage.setItem(lsKey, payload);
-      sessionStorage.setItem(lsKey, payload);
+      localStorage.setItem(LS_KEY, payload);
+      sessionStorage.setItem(LS_KEY, payload);
     } catch {
       // storage quota 예외 무시
     }

@@ -103,7 +103,7 @@ export default function AiChatInput({
   }, [isRecording, value, onChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       onSubmit();
     }

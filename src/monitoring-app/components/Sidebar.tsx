@@ -52,7 +52,6 @@ interface SidebarProps {
     textColor: string;
     textSoftColor: string;
     sidebarColor?: string;
-    fontFamily?: string;
   };
   expandMode?: 'hover' | 'fixed' | 'collapsed';
   menuDensity?: 'comfortable' | 'compact';
@@ -76,7 +75,6 @@ export default function Sidebar({
   footerText = '© 2026 KOWEPO.',
 }: SidebarProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [suppressHoverUntilLeave, setSuppressHoverUntilLeave] = useState(false);
   const colors = brand ?? {
     primaryColor: '#2563EB',
     accentColor: '#60A5FA',
@@ -91,10 +89,12 @@ export default function Sidebar({
 
   const sidebarBg = colors.sidebarColor ?? colors.surfaceColor;
   const sidebarIsDark = hexLuminance(sidebarBg) < 0.45;
-  const sidebarBorder = colors.borderColor;
+  const sidebarBorder = sidebarIsDark
+    ? `${sidebarBg}99`
+    : colors.borderColor;
   const sidebarInactiveText = sidebarIsDark
     ? 'rgba(255,255,255,0.60)'
-    : colors.textColor;
+    : colors.textSoftColor;
   const sidebarFooterText = sidebarIsDark
     ? 'rgba(255,255,255,0.40)'
     : colors.textSoftColor;
@@ -111,13 +111,8 @@ export default function Sidebar({
 
   return (
     <aside
-      onMouseEnter={() => {
-        if (!suppressHoverUntilLeave) setIsHovered(true);
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setSuppressHoverUntilLeave(false);
-      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={cn(
         "relative z-50 flex h-full min-h-0 shrink-0 flex-col border-r transition-all duration-300",
         isExpanded ? "w-[220px]" : "w-[72px]"
@@ -126,7 +121,6 @@ export default function Sidebar({
         backgroundColor: sidebarBg,
         borderColor: sidebarBorder,
         flexShrink: 0,
-        fontFamily: colors.fontFamily,
         height: '100%',
         minHeight: 0,
         position: 'relative',
@@ -232,15 +226,7 @@ export default function Sidebar({
       {expandMode !== 'collapsed' && (
         <div className="flex justify-center px-2 py-2">
           <button
-            onClick={() => {
-              if (isExpanded) {
-                setIsHovered(false);
-                setSuppressHoverUntilLeave(true);
-              } else {
-                setSuppressHoverUntilLeave(false);
-              }
-              toggleSidebar();
-            }}
+            onClick={toggleSidebar}
             className={cn(
               "flex items-center rounded-lg transition-colors",
               isExpanded ? "w-full justify-center gap-3 px-3 py-2" : "h-10 w-10 justify-center"

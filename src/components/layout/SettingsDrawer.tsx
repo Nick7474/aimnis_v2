@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Cpu, Trash2, RefreshCw, LogOut, CheckCircle2, AlertCircle, ChevronRight, Layout, Database } from "lucide-react";
+import { X, Cpu, Trash2, RefreshCw, LogOut, CheckCircle2, AlertCircle, ChevronRight } from "lucide-react";
 import { useLLMStore, PROVIDER_META, type LLMProvider } from "@/store/llmStore";
 import { useProjectStore } from "@/store/projectStore";
 import { useHomeStore } from "@/store/homeStore";
@@ -15,15 +15,9 @@ interface SettingsDrawerProps {
   onClose: () => void;
 }
 
-// 솔루션 목록 (LS 키 및 표시용)
-const RESET_SOLUTIONS = [
-  { id: "guard",      label: "AIM Guard" },
-  { id: "monitoring", label: "Monitoring" },
-] as const;
-type ResetScope = "all" | "guard" | "monitoring";
-
-// ── API 연결 상태 ─────────────────────────────────────────────
+// ── API 연결 상태 (간이 체크) ─────────────────────────────────
 function ApiStatusBadge() {
+  // ANTHROPIC_API_KEY 존재 여부는 서버에서만 알 수 있어 항상 "연결됨" 표시 (데모 기준)
   return (
     <div className="flex items-center gap-1.5">
       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -41,61 +35,29 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
-// ── 범위 선택 포함 확인 Row ──────────────────────────────────
-function ScopedConfirmRow({
+// ── 확인 다이얼로그 (인라인) ──────────────────────────────────
+function ConfirmRow({
   label,
   desc,
   icon: Icon,
   onConfirm,
   danger = false,
-  showScope = false,
 }: {
   label: string;
   desc: string;
   icon: React.ElementType;
-  onConfirm: (scope: ResetScope) => void;
+  onConfirm: () => void;
   danger?: boolean;
-  showScope?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const [scope, setScope] = useState<ResetScope>("all");
 
   if (confirming) {
     return (
-      <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 space-y-2.5">
-        <p className="text-xs text-red-300">정말 초기화하시겠어요?</p>
-        {showScope && (
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => setScope("all")}
-              className={cn(
-                "rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors",
-                scope === "all"
-                  ? "bg-white/15 text-white"
-                  : "bg-white/5 text-white/35 hover:bg-white/8"
-              )}
-            >
-              전체
-            </button>
-            {RESET_SOLUTIONS.map(sol => (
-              <button
-                key={sol.id}
-                onClick={() => setScope(sol.id as ResetScope)}
-                className={cn(
-                  "rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors",
-                  scope === sol.id
-                    ? "bg-white/15 text-white"
-                    : "bg-white/5 text-white/35 hover:bg-white/8"
-                )}
-              >
-                {sol.label}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/8 px-3 py-2.5">
+        <span className="text-xs text-red-300">정말 초기화하시겠어요?</span>
         <div className="flex gap-1.5">
           <button
-            onClick={() => { onConfirm(scope); setConfirming(false); }}
+            onClick={() => { onConfirm(); setConfirming(false); }}
             className="rounded-lg bg-red-500/20 px-2.5 py-1 text-[11px] font-semibold text-red-300 hover:bg-red-500/30 transition-colors"
           >
             확인
@@ -131,101 +93,11 @@ function ScopedConfirmRow({
   );
 }
 
-// ── 기존 단순 확인 Row ─────────────────────────────────────────
-function ConfirmRow({
-  label,
-  desc,
-  icon: Icon,
-  onConfirm,
-}: {
-  label: string;
-  desc: string;
-  icon: React.ElementType;
-  onConfirm: () => void;
-}) {
-  const [confirming, setConfirming] = useState(false);
-  if (confirming) {
-    return (
-      <div className="flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/8 px-3 py-2.5">
-        <span className="text-xs text-red-300">정말 초기화하시겠어요?</span>
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => { onConfirm(); setConfirming(false); }}
-            className="rounded-lg bg-red-500/20 px-2.5 py-1 text-[11px] font-semibold text-red-300 hover:bg-red-500/30 transition-colors"
-          >
-            확인
-          </button>
-          <button
-            onClick={() => setConfirming(false)}
-            className="rounded-lg bg-white/5 px-2.5 py-1 text-[11px] text-white/40 hover:text-white/60 transition-colors"
-          >
-            취소
-          </button>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <button
-      onClick={() => setConfirming(true)}
-      className="flex w-full items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 transition-all text-left hover:border-white/10 hover:bg-white/[0.04]"
-    >
-      <Icon className="h-3.5 w-3.5 flex-shrink-0 text-white/30" />
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-white/70">{label}</p>
-        <p className="text-[10px] text-white/25 mt-0.5">{desc}</p>
-      </div>
-      <ChevronRight className="ml-auto h-3 w-3 flex-shrink-0 text-white/20" />
-    </button>
-  );
-}
-
-// ── 모니터링 draft 부분 초기화 헬퍼 ─────────────────────────
-const MONITORING_DRAFT_KEY = "aimnis_monitoring_editor_draft";
-
-function resetMonitoringLayout() {
-  try {
-    const raw = localStorage.getItem(MONITORING_DRAFT_KEY);
-    if (!raw) return;
-    const draft = JSON.parse(raw);
-    localStorage.setItem(MONITORING_DRAFT_KEY, JSON.stringify({
-      ...draft,
-      canvasWidgets: [],
-      brand: { name: "AIM Monitoring", primaryColor: "#2563eb", logoUrl: null },
-      elementConfigs: {},
-      addedPages: [],
-    }));
-  } catch { /* ignore */ }
-}
-
-function resetMonitoringData() {
-  try {
-    const raw = localStorage.getItem(MONITORING_DRAFT_KEY);
-    if (!raw) return;
-    const draft = JSON.parse(raw);
-    localStorage.setItem(MONITORING_DRAFT_KEY, JSON.stringify({
-      ...draft,
-      connectedSourceIds: [],
-      monitoringMappingEdges: [],
-    }));
-  } catch { /* ignore */ }
-}
-
-function clearHarnessDraft(solutionId?: string) {
-  const keys = solutionId
-    ? [`aimnis_harness_draft_${solutionId}`]
-    : ["aimnis_harness_draft_guard", "aimnis_harness_draft_monitoring", "aimnis_harness_draft"];
-  keys.forEach(k => {
-    localStorage.removeItem(k);
-    sessionStorage.removeItem(k);
-  });
-}
-
 // ── 메인 컴포넌트 ─────────────────────────────────────────────
 export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
   const { provider, setProvider } = useLLMStore();
   const { projects, remove } = useProjectStore();
-  const { reset: resetHome, resetSolutionSlot, resetAllSlots } = useHomeStore();
+  const { reset: resetHome } = useHomeStore();
   const { todayUsage, totalInputTokens, totalOutputTokens, totalCostUsd, last7Days, clearAll: clearUsage } = useUsageStore();
   const router = useRouter();
   const [resetDone, setResetDone] = useState<string | null>(null);
@@ -240,44 +112,11 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
     setTimeout(() => setResetDone(null), 2500);
   };
 
-  // ── 화면 초기화 (레이아웃·브랜드·설문, 데이터 연결 유지) ──
-  const handleResetScreen = (scope: ResetScope) => {
-    if (scope === "all" || scope === "guard") {
-      clearHarnessDraft("guard");
-      resetSolutionSlot("guard");
-    }
-    if (scope === "all" || scope === "monitoring") {
-      resetMonitoringLayout();
-      resetSolutionSlot("monitoring");
-    }
-    if (scope === "all") {
-      sessionStorage.removeItem("aimnis_active_editor");
-      resetHome();
-    }
-    showFeedback(
-      scope === "all"
-        ? "전체 화면이 초기화됐습니다. 데이터 연결은 유지됩니다."
-        : `${scope === "guard" ? "AIM Guard" : "AIM Monitoring"} 화면이 초기화됐습니다.`
-    );
+  const handleResetProjects = () => {
+    projects.forEach(p => remove(p.id));
+    showFeedback("프로젝트 데이터를 초기화했습니다.");
   };
 
-  // ── 데이터 초기화 (매핑 연결·프로젝트, 레이아웃 유지) ──────
-  const handleResetData = (scope: ResetScope) => {
-    if (scope === "all" || scope === "monitoring") {
-      resetMonitoringData();
-    }
-    // 프로젝트는 전역 (솔루션 무관)
-    if (scope === "all") {
-      projects.forEach(p => remove(p.id));
-    }
-    showFeedback(
-      scope === "all"
-        ? "데이터 연결과 프로젝트가 초기화됐습니다. 위젯 배치는 유지됩니다."
-        : `${scope === "monitoring" ? "AIM Monitoring" : "AIM Guard"} 데이터 연결이 초기화됐습니다.`
-    );
-  };
-
-  // ── 에임이 인사 초기화 ────────────────────────────────────
   const handleResetGreeting = () => {
     localStorage.removeItem("aimi_editor_welcomed");
     showFeedback("에임이 인사를 초기화했습니다. 에디터 재접속 시 첫 인사가 표시됩니다.");
@@ -371,6 +210,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <section>
                 <SectionHeader label="API 사용량" />
                 <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 space-y-3">
+                  {/* 오늘 / 누적 */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-2">
                       <p className="text-[10px] text-white/30 mb-1">오늘</p>
@@ -407,7 +247,9 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                               className="w-full rounded-sm transition-all"
                               style={{
                                 height: `${Math.max(pct, 2)}%`,
-                                background: isToday ? "rgba(139,92,246,0.8)" : "rgba(255,255,255,0.12)",
+                                background: isToday
+                                  ? "rgba(139,92,246,0.8)"
+                                  : "rgba(255,255,255,0.12)",
                                 minHeight: 2,
                               }}
                             />
@@ -418,6 +260,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                     </div>
                   </div>
 
+                  {/* Anthropic Console 링크 */}
                   <a
                     href="https://console.anthropic.com/settings/usage"
                     target="_blank"
@@ -462,7 +305,9 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                           </div>
                           <p className="text-[10px] text-white/25 mt-0.5">{meta.desc}</p>
                         </div>
-                        {isActive && <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-violet-400" />}
+                        {isActive && (
+                          <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-violet-400" />
+                        )}
                       </button>
                     );
                   })}
@@ -476,20 +321,12 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <section>
                 <SectionHeader label="데모 관리" />
                 <div className="space-y-2">
-                  <ScopedConfirmRow
-                    label="화면 초기화"
-                    desc="위젯 배치·브랜드·설문 초기화 (데이터 연결 유지)"
-                    icon={Layout}
-                    onConfirm={handleResetScreen}
-                    showScope
-                  />
-                  <ScopedConfirmRow
-                    label="데이터 초기화"
-                    desc="매핑 연결·프로젝트 삭제 (위젯 배치 유지)"
-                    icon={Database}
-                    onConfirm={handleResetData}
+                  <ConfirmRow
+                    label="프로젝트 데이터 초기화"
+                    desc={`저장된 프로젝트 ${projects.length}개 전체 삭제`}
+                    icon={Trash2}
+                    onConfirm={handleResetProjects}
                     danger
-                    showScope
                   />
                   <ConfirmRow
                     label="에임이 인사 초기화"
@@ -498,27 +335,10 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                     onConfirm={handleResetGreeting}
                   />
                 </div>
-
-                {/* 범례 */}
-                <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 space-y-1.5">
-                  <div className="flex items-start gap-2">
-                    <Layout className="h-3 w-3 flex-shrink-0 text-white/25 mt-0.5" />
-                    <p className="text-[10px] text-white/30 leading-relaxed">
-                      <span className="text-white/50 font-medium">화면</span> — 배치·브랜드 초기화, 연결 데이터 보존
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Database className="h-3 w-3 flex-shrink-0 text-white/25 mt-0.5" />
-                    <p className="text-[10px] text-white/30 leading-relaxed">
-                      <span className="text-white/50 font-medium">데이터</span> — 매핑·프로젝트 삭제, 배치 보존
-                    </p>
-                  </div>
-                </div>
-
                 <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-amber-500/15 bg-amber-500/5 px-3 py-2.5">
                   <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 text-amber-400/70 mt-0.5" />
                   <p className="text-[10px] text-amber-300/60 leading-relaxed">
-                    시연 전 초기화하면 처음 방문 경험을 다시 보여줄 수 있습니다.
+                    시연 전 데이터를 초기화하면 처음 방문 경험을 다시 보여줄 수 있습니다.
                   </p>
                 </div>
               </section>
@@ -547,7 +367,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               </section>
             </div>
 
-            {/* 하단 고정 */}
+            {/* 하단 고정 — 에임이 서명 */}
             <div className="border-t border-white/[0.05] px-5 py-3 flex items-center gap-2">
               <img src="/img/ch6.png" alt="에임이" className="h-5 w-5 rounded-full object-cover opacity-40" />
               <p className="text-[10px] text-white/20">에임이 · AIMNIS Platform © 2026</p>
