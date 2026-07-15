@@ -1,4 +1,5 @@
 import { Bell, ChevronDown } from 'lucide-react';
+import MonitoringLogoSVG from './MonitoringLogoSVG';
 
 interface HeaderProps {
   title?: string;
@@ -9,7 +10,6 @@ interface HeaderProps {
   operatorRole?: string;
   logoUrl?: string | null;
   logoSize?: number;
-  sidebarWidth?: number;
   brand?: {
     primaryColor: string;
     secondaryColor: string;
@@ -23,6 +23,7 @@ interface HeaderProps {
     textStrongColor: string;
     textColor: string;
     textSoftColor: string;
+    fontFamily?: string;
   };
 }
 
@@ -35,7 +36,6 @@ export default function Header({
   operatorRole = '관리자',
   logoUrl,
   logoSize = 32,
-  sidebarWidth = 220,
   brand,
 }: HeaderProps) {
   const colors = brand ?? {
@@ -53,30 +53,29 @@ export default function Header({
     textSoftColor: '#94a3b8',
   };
 
-  const clampedLogoSize = Math.max(20, Math.min(44, logoSize ?? 32));
-  const logoMaxWidth = Math.min(160, sidebarWidth - 24);
   const isAimLogo = typeof logoUrl === "string" && logoUrl.includes("Mornitering");
+  const clampedLogoSize = isAimLogo
+    ? Math.max(40, Math.min(200, logoSize ?? 160))
+    : Math.max(16, Math.min(200, logoSize ?? 32));
 
   return (
     <header
       className="flex h-14 shrink-0 items-center border-b"
-      style={{ backgroundColor: colors.surfaceColor, borderColor: colors.borderColor }}
+      style={{ backgroundColor: colors.surfaceColor, borderColor: colors.borderColor, fontFamily: colors.fontFamily }}
     >
-      {/* Logo area — same width as sidebar, centered */}
+      {/* Logo area stays fixed even when the sidebar collapses. */}
       <div
-        className="flex h-full shrink-0 items-center justify-center transition-all duration-300"
-        style={{ width: sidebarWidth }}
+        className="flex h-full w-[220px] shrink-0 items-center justify-center"
       >
         {logoUrl && (
-          <img
-            src={logoUrl}
-            alt="Logo"
-            className="block object-contain"
-            style={isAimLogo
-              ? { width: 160, height: "auto" }
-              : { height: clampedLogoSize, maxWidth: logoMaxWidth }
-            }
-          />
+          isAimLogo
+            ? <MonitoringLogoSVG width={clampedLogoSize} textColor={colors.textStrongColor} />
+            : <img
+                src={logoUrl}
+                alt="Logo"
+                className="block object-contain"
+                style={{ height: clampedLogoSize, maxWidth: 160 }}
+              />
         )}
       </div>
 

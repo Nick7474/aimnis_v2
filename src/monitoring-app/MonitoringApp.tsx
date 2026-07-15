@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import MonitoringPageBuilder from "./components/MonitoringPageBuilder";
 import Dashboard from "./components/Dashboard";
+import RuntimeWidgetOverlay from "./components/RuntimeWidgetOverlay";
 import IntegratedDashboard from "./pages/IntegratedDashboard";
 import EquipmentDiagnosis from "./pages/EquipmentDiagnosis";
 import EnvironmentDiagnosis from "./pages/EnvironmentDiagnosis";
@@ -25,7 +26,11 @@ const PAGE_KEY_LABELS: Record<string, string> = {
   settings: "설정",
 };
 
-export default function MonitoringApp() {
+interface MonitoringAppProps {
+  runtimeMode?: boolean;
+}
+
+export default function MonitoringApp({ runtimeMode = false }: MonitoringAppProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState("홈");
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -84,6 +89,7 @@ export default function MonitoringApp() {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         addedPages={addedPages}
+        hidePageManagement={runtimeMode}
         onOpenPageBuilder={() => setIsBuilderOpen(true)}
         onRemovePage={(key) => {
           if (currentPage !== "홈") {
@@ -99,6 +105,7 @@ export default function MonitoringApp() {
         <Header />
         <main className="custom-scrollbar relative flex-1 overflow-y-auto px-[20px] pb-[20px] pt-4 lg:pt-6">
           {renderPage()}
+          {runtimeMode && <RuntimeWidgetOverlay />}
         </main>
 
         {/* Page Builder — absolute within content area (좌사이드바·탑메뉴 제외) */}

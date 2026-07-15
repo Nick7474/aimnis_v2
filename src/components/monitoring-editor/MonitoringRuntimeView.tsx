@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Activity, ArrowLeft, Edit2 } from "lucide-react";
 import type { SolutionWidget } from "@/lib/solutionLoader";
+import type { BrandSettings } from "@/lib/brandPresets";
 import { useProjectStore } from "@/store/projectStore";
-import MonitoringApp from "@/monitoring-app/MonitoringApp";
-import MonitoringWidgetRenderer from "./MonitoringWidgetRenderer";
+import MonitoringLayoutCanvas, {
+  DEFAULT_MONITORING_ELEMENT_CONFIGS,
+  type MonitoringDataReadiness,
+  type MonitoringElementConfigs,
+} from "./MonitoringLayoutCanvas";
+import { useMonitoringPagesStore } from "@/store/monitoringPagesStore";
 
 interface MonitoringRuntimeViewProps {
   widgets: SolutionWidget[];
@@ -28,71 +34,78 @@ interface RuntimeWidgetInstance {
 
 interface MonitoringSnapshot {
   schemaVersion: "monitoring.snapshot.v1";
+  elements?: MonitoringElementConfigs;
+  brand?: { settings?: BrandSettings };
   widgets: {
-    grid: {
-      columns: number;
-      rowHeight: number;
-    };
+    grid: { columns: number; rowHeight: number };
     items: RuntimeWidgetInstance[];
+  };
+  data?: {
+    connectedSourceIds: string[];
+    mappingEdges: Array<{ targetWidgetId: string }>;
   };
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  ultrasonic: "초음파",
-  vibration: "진동",
-  thermal: "열",
-  gas: "가스",
-  "worker-bio": "작업자",
-  imu: "IMU",
-  communication: "통신",
-  "ai-diagnosis": "AI",
-  "sop-events": "SOP",
-  "sensor-fleet": "계측기",
-  "field-validation": "실증",
-};
-
 export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeViewProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project");
   const projects = useProjectStore((state) => state.projects);
   const [draftSnapshot, setDraftSnapshot] = useState<MonitoringSnapshot | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const { addedPages } = useMonitoringPagesStore();
 
-  const widgetById = useMemo(() => {
-    return Object.fromEntries(widgets.map((widget) => [widget.id, widget])) as Record<string, SolutionWidget>;
-  }, [widgets]);
+  // widgetId → SolutionWidget 맵
+  const widgetById = useMemo(
+    () => Object.fromEntries(widgets.map((w) => [w.id, w])) as Record<string, SolutionWidget>,
+    [widgets]
+  );
 
+  // draft 로드 (projectId 없을 때만)
   useEffect(() => {
     if (projectId) return;
     const raw = window.localStorage.getItem("aimnis_monitoring_editor_draft");
     if (!raw) return;
-
     try {
-      const snapshot = JSON.parse(raw) as MonitoringSnapshot;
-      if (snapshot.schemaVersion === "monitoring.snapshot.v1") {
-        setDraftSnapshot(snapshot);
-      }
+      const snap = JSON.parse(raw) as MonitoringSnapshot;
+      if (snap.schemaVersion === "monitoring.snapshot.v1") setDraftSnapshot(snap);
     } catch {
       window.localStorage.removeItem("aimnis_monitoring_editor_draft");
     }
   }, [projectId]);
 
+  // 활성 프로젝트 조회
   const activeProject = useMemo(() => {
-    const monitoringProjects = projects.filter((project) => project.solution === "monitoring");
-    return projectId ? monitoringProjects.find((project) => project.id === projectId) ?? null : monitoringProjects[0] ?? null;
+    const list = projects.filter((p) => p.solution === "monitoring");
+    return projectId ? list.find((p) => p.id === projectId) ?? null : list[0] ?? null;
   }, [projectId, projects]);
 
   const snapshot = (activeProject?.monitoringSnapshot as MonitoringSnapshot | undefined) ?? draftSnapshot;
-  const items = snapshot?.widgets.items ?? [];
-  const columns = snapshot?.widgets.grid.columns ?? 12;
-  const rowHeight = snapshot?.widgets.grid.rowHeight ?? 52;
+  const elementConfigs = snapshot?.elements ?? DEFAULT_MONITORING_ELEMENT_CONFIGS;
+  const runtimeWidgets = snapshot?.widgets.items ?? [];
+  const hasSnapshotDataState = Boolean(snapshot?.data);
+  const runtimeMappedTargetIds = useMemo(
+    () => new Set((snapshot?.data?.mappingEdges ?? []).map((edge) => edge.targetWidgetId)),
+    [snapshot?.data?.mappingEdges]
+  );
+  const runtimeDataReadiness = useMemo<MonitoringDataReadiness>(() => {
+    if (!hasSnapshotDataState) return "mapped";
+    if ((snapshot?.data?.connectedSourceIds.length ?? 0) === 0) return "none";
+    if (runtimeMappedTargetIds.size === 0) return "source-connected";
+    return "mapped";
+  }, [hasSnapshotDataState, runtimeMappedTargetIds, snapshot?.data?.connectedSourceIds.length]);
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#050814] text-white">
+      {/* 런타임 헤더 */}
       <header className="absolute inset-x-0 top-0 z-40 flex h-12 items-center justify-between border-b border-white/10 bg-[#07101f]/90 px-4 backdrop-blur">
         <div className="flex items-center gap-3">
-          <Link href="/projects" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:text-white">
+          <button
+            onClick={() => router.back()}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:text-white"
+          >
             <ArrowLeft className="h-4 w-4" />
-          </Link>
+          </button>
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-blue-300" />
             <span className="text-xs font-semibold">{activeProject?.name ?? "AIM Monitoring"}</span>
@@ -107,38 +120,30 @@ export default function MonitoringRuntimeView({ widgets }: MonitoringRuntimeView
         </Link>
       </header>
 
+      {/* 저장된 12-grid 스냅샷을 에디터/풀스크린과 동일한 캔버스로 렌더 */}
       <main className="absolute inset-0 pt-12">
-        <MonitoringApp />
-        {items.length > 0 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 top-12">
-            {items.map((instance) => {
-              const meta = widgetById[instance.widgetId];
-              if (!meta) return null;
-
-              return (
-                <div
-                  key={instance.instanceId}
-                  className="pointer-events-auto absolute overflow-hidden rounded-lg"
-                  style={{
-                    left: `${(instance.x / columns) * 100}%`,
-                    top: instance.y * rowHeight,
-                    width: `${(instance.w / columns) * 100}%`,
-                    height: instance.h * rowHeight,
-                  }}
-                >
-                  <MonitoringWidgetRenderer
-                    title={instance.title}
-                    widget={meta}
-                    categoryLabel={
-                      CATEGORY_LABELS[String(instance.options.dataSource ?? meta.dataSource ?? "")]
-                      ?? String(instance.options.dataSource ?? meta.dataSource ?? "Monitoring")
-                    }
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <MonitoringLayoutCanvas
+          canvasRef={canvasRef}
+          customWidgets={runtimeWidgets}
+          widgetById={widgetById}
+          elementConfigs={elementConfigs}
+          brand={snapshot?.brand?.settings}
+          isConnected={!hasSnapshotDataState || (snapshot?.data?.connectedSourceIds.length ?? 0) > 0}
+          dataReadiness={runtimeDataReadiness}
+          mappedTargetIds={hasSnapshotDataState ? runtimeMappedTargetIds : undefined}
+          selectedWidgetId={null}
+          selectedElementId={null}
+          isDraggingWidget={false}
+          interactionActive={false}
+          layoutPriorityId={null}
+          onDragOver={() => {}}
+          onDrop={() => {}}
+          onSelectWidget={() => {}}
+          onSelectElement={() => {}}
+          onStartWidgetInteraction={() => {}}
+          addedPages={addedPages}
+          hidePageManagement
+        />
       </main>
     </div>
   );

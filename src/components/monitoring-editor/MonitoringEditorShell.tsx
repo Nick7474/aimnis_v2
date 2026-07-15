@@ -2,12 +2,14 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
+  AlertTriangle,
   BookmarkPlus,
   Check,
+  CheckCircle2,
   ChevronLeft,
   Database,
   Edit3,
@@ -15,6 +17,7 @@ import {
   Grip,
   ImagePlus,
   LayoutDashboard,
+  List,
   Maximize2,
   Minimize2,
   MessageSquareText,
@@ -31,15 +34,18 @@ import {
   Trash2,
   Type,
   X,
+  Zap,
 } from "lucide-react";
 import type { BrandDensity, BrandMapTone, BrandRadius, BrandSettings } from "@/lib/brandPresets";
 import { getBrandTextDefaults } from "@/lib/brandPresets";
 import type { SolutionManifest, SolutionTemplate, SolutionWidget } from "@/lib/solutionLoader";
+import { monitoringGridItemsIntersect, resolveMonitoringGrid, type MonitoringLayoutMode } from "@/lib/monitoringLayoutEngine";
 import { cn } from "@/lib/utils";
 import { useProjectStore } from "@/store/projectStore";
 import MonitoringLayoutCanvas, {
   DEFAULT_MONITORING_ELEMENT_CONFIGS,
   type MonitoringEditableElement,
+  type MonitoringDataReadiness,
   type MonitoringElementConfigs,
 } from "./MonitoringLayoutCanvas";
 import {
@@ -61,6 +67,9 @@ import MonitoringDBCanvas from "./MonitoringDBCanvas";
 import MonitoringPageBuilder from "@/monitoring-app/components/MonitoringPageBuilder";
 import { useMonitoringPagesStore, type MonitoringPageConfig } from "@/store/monitoringPagesStore";
 import type { MappingEdge } from "@/store/editorStore";
+import { DEFAULT_WIDGET_GROUPS, WIDGET_COLOR_GROUPS } from "@/solutions/monitoring/widgets/colorSchema";
+import { MONITORING_WIDGET_PROPERTIES, MONITORING_CORE_BINDINGS } from "./MonitoringDataMapping/monitoringMappingData";
+import { MonitoringInitLoader } from "@/components/shared/AIMILoader";
 
 interface MonitoringEditorShellProps {
   solution: SolutionManifest;
@@ -110,6 +119,8 @@ interface CanvasWidgetInstance {
   options: Record<string, WidgetOptionValue>;
 }
 
+type MonitoringConnectedSourceMeta = Record<string, { name: string; endpoint: string; fields?: string[] }>;
+
 interface MonitoringSnapshot {
   schemaVersion: "monitoring.snapshot.v1";
   solution: "monitoring";
@@ -137,6 +148,12 @@ interface MonitoringSnapshot {
       rowHeight: number;
     };
     items: CanvasWidgetInstance[];
+  };
+  data?: {
+    connectedSourceIds: string[];
+    connectedSourceMeta: MonitoringConnectedSourceMeta;
+    mappingEdges: MappingEdge[];
+    mappingNodePositions: Record<string, { x: number; y: number }>;
   };
   createdAt: string;
   updatedAt: string;
@@ -192,7 +209,7 @@ const MONITORING_DEFAULT_BRAND: BrandSettings = {
   productName: "AIM Monitoring",
   logoUrl: "/img/AIM%20Mornitering2.svg",
   logoMode: "combined",
-  logoSize: 32,
+  logoSize: 160,
   primaryColor: "#2563EB",
   secondaryColor: "#00C8FF",
   accentColor: "#3B82F6",
@@ -447,6 +464,7 @@ const DATA_SOURCE_CHOICES = Object.entries(WIDGET_CATEGORY_LABELS).map(([value, 
 const WIDGET_COMMAND_KEYWORDS = [
   "추가", "넣", "생성", "배치", "구성", "만들", "올려", "붙여",
   "보여줘", "보여", "열어", "넣어줘", "추가해줘", "달아줘", "설치", "띄워",
+  "주세요", "해주세요", "해줘", "싶어", "필요해", "원해", "써줘", "사용",
 ];
 
 const WIDGET_COMMAND_PATTERNS: Array<{ widgetId: string; keywords: string[] }> = [
@@ -696,7 +714,14 @@ function normalizeCommandText(prompt: string) {
 
 function hasWidgetCreateIntent(prompt: string) {
   const normalized = normalizeCommandText(prompt);
-  return WIDGET_COMMAND_KEYWORDS.some((keyword) => normalized.includes(keyword));
+  if (WIDGET_COMMAND_KEYWORDS.some((keyword) => normalized.includes(keyword))) return true;
+  // short phrases (≤5 words): match direct widget keyword without action verb
+  if (normalized.split(/\s+/).filter(Boolean).length <= 5) {
+    return WIDGET_COMMAND_PATTERNS.some((pattern) =>
+      pattern.keywords.some((kw) => normalized.includes(kw.toLowerCase()))
+    );
+  }
+  return false;
 }
 
 function resolveWidgetIdFromPrompt(prompt: string, widgets: SolutionWidget[]) {
@@ -738,7 +763,65 @@ function canvasWidgetsIntersect(
   a: Pick<CanvasWidgetInstance, "x" | "y" | "w" | "h">,
   b: Pick<CanvasWidgetInstance, "x" | "y" | "w" | "h">
 ) {
-  return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+  return monitoringGridItemsIntersect(a, b);
+}
+
+interface ResolvedMonitoringLayout {
+  widgets: CanvasWidgetInstance[];
+  elements: MonitoringElementConfigs;
+}
+
+/** 기본 위젯과 라이브러리 위젯을 동일한 12-column 좌표계에서 확정한다. */
+function resolveMonitoringLayout(
+  widgets: CanvasWidgetInstance[],
+  elements: MonitoringElementConfigs,
+  priorityId?: string,
+  mode: MonitoringLayoutMode = "compact"
+): ResolvedMonitoringLayout {
+  const defaults = Object.entries(elements.defaultWidgets)
+    .filter(([, config]) => config.visible !== false)
+    .map(([id, config]) => {
+      const fallback = DEFAULT_WIDGET_POSITIONS[id] ?? { x: 0, y: 0, w: 1, h: 1 };
+      return {
+        id,
+        source: "default" as const,
+        x: config.x ?? fallback.x,
+        y: config.y ?? fallback.y,
+        w: config.w ?? fallback.w,
+        h: config.h ?? fallback.h,
+      };
+    });
+  const customs = widgets.map((widget) => ({
+    id: widget.instanceId,
+    source: "custom" as const,
+    x: widget.x,
+    y: widget.y,
+    w: widget.w,
+    h: widget.h,
+  }));
+  const placed = resolveMonitoringGrid([...defaults, ...customs], {
+    columns: GRID_COLS,
+    mode,
+    priorityId,
+    sourceOrder: { default: 0, custom: 1 },
+  });
+
+  const positionById = Object.fromEntries(placed.map((item) => [item.id, item]));
+  return {
+    widgets: widgets.map((widget) => {
+      const position = positionById[widget.instanceId];
+      return position ? { ...widget, x: position.x, y: position.y, w: position.w, h: position.h } : widget;
+    }),
+    elements: {
+      ...elements,
+      defaultWidgets: Object.fromEntries(
+        Object.entries(elements.defaultWidgets).map(([id, config]) => {
+          const position = positionById[id];
+          return [id, position ? { ...config, x: position.x, y: position.y, w: position.w, h: position.h } : config];
+        })
+      ),
+    },
+  };
 }
 
 function findNextWidgetPlacement(
@@ -820,8 +903,10 @@ function normalizeElementConfigs(configs?: Partial<MonitoringElementConfigs> | n
 export default function MonitoringEditorShell({ solution, widgets }: MonitoringEditorShellProps) {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project");
+  const router = useRouter();
   const projects = useProjectStore((state) => state.projects);
-  const publishProject = useProjectStore((state) => state.publish);
+  const upsertProject = useProjectStore((state) => state.upsert);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(MONITORING_LEFT_PANEL_WIDTH);
   const [leftTab, setLeftTab] = useState<LeftTab>("chat");
   const [centerView, setCenterView] = useState<CenterView>("monitor");
   const [rightInspectorMode, setRightInspectorMode] = useState<RightInspectorMode>("settings");
@@ -829,6 +914,9 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [saved, setSaved] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishForm, setPublishForm] = useState({ name: "", client: "", versionNote: "" });
+  const [publishDone, setPublishDone] = useState<{ id: string } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDraggingWidget, setIsDraggingWidget] = useState(false);
   const [canvasWidgets, setCanvasWidgets] = useState<CanvasWidgetInstance[]>([]);
@@ -836,7 +924,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [widgetLiveData, setWidgetLiveData] = useState<Record<string, Record<string, unknown>>>({});
   const [mappingNodePositions, setMappingNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   const [connectedSourceIds, setConnectedSourceIds] = useState<Set<string>>(new Set());
-  const [connectedSourceMeta, setConnectedSourceMeta] = useState<Record<string, { name: string; endpoint: string; fields?: string[] }>>({});
+  const [connectedSourceMeta, setConnectedSourceMeta] = useState<MonitoringConnectedSourceMeta>({});
   const [isPageBuilderOpen, setIsPageBuilderOpen] = useState(false);
   const [pendingNavPage, setPendingNavPage] = useState<string | null>(null);
   const { addedPages, addPage, removePage } = useMonitoringPagesStore();
@@ -848,12 +936,44 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   const [customBrandSlots, setCustomBrandSlots] = useState<MonitoringBrandSlot[]>([]);
   const [brandSlotName, setBrandSlotName] = useState("AIM Monitoring Default");
   const [customBrandName, setCustomBrandName] = useState("");
+  const [isEditorReady, setIsEditorReady] = useState(false);
+  const [autoSaveAt, setAutoSaveAt] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showResetModal, setShowResetModal] = useState<null | "draft" | "data">(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [interaction, setInteraction] = useState<WidgetInteraction | null>(null);
   const [defaultInteraction, setDefaultInteraction] = useState<DefaultWidgetInteraction | null>(null);
   const [widgetSearch, setWidgetSearch] = useState("");
+  const [hoveredLibraryWidgetId, setHoveredLibraryWidgetId] = useState<string | null>(null);
+  const [hoverCardY, setHoverCardY] = useState(0);
+  const [widgetViewMode, setWidgetViewMode] = useState<"grid" | "list">("grid");
   const canvasRef = useRef<HTMLDivElement>(null);
+  const fullscreenCanvasRef = useRef<HTMLDivElement>(null);
+  const canvasWidgetsRef = useRef<CanvasWidgetInstance[]>([]);
+  const elementConfigsRef = useRef<MonitoringElementConfigs>(elementConfigs);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const hydratedRef = useRef(false);
+
+  canvasWidgetsRef.current = canvasWidgets;
+  elementConfigsRef.current = elementConfigs;
+
+  const commitResolvedLayout = useCallback((
+    priorityId?: string,
+    mode: MonitoringLayoutMode = "compact",
+    widgetsOverride?: CanvasWidgetInstance[],
+    elementsOverride?: MonitoringElementConfigs
+  ) => {
+    const resolved = resolveMonitoringLayout(
+      widgetsOverride ?? canvasWidgetsRef.current,
+      elementsOverride ?? elementConfigsRef.current,
+      priorityId,
+      mode
+    );
+    canvasWidgetsRef.current = resolved.widgets;
+    elementConfigsRef.current = resolved.elements;
+    setCanvasWidgets(resolved.widgets);
+    setElementConfigs(resolved.elements);
+  }, []);
 
   const widgetById = useMemo(() => {
     return Object.fromEntries(widgets.map((widget) => [widget.id, widget])) as Record<string, SolutionWidget>;
@@ -900,14 +1020,26 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     [canvasWidgets]
   );
 
+  const mappedTargetIds = useMemo(
+    () => new Set(monitoringMappingEdges.map((edge) => edge.targetWidgetId)),
+    [monitoringMappingEdges]
+  );
+
+  const dataReadiness = useMemo<MonitoringDataReadiness>(() => {
+    if (connectedSourceIds.size === 0) return "none";
+    if (mappedTargetIds.size === 0) return "source-connected";
+    return "mapped";
+  }, [connectedSourceIds, mappedTargetIds]);
+
   const createSnapshot = (): MonitoringSnapshot => {
     const now = new Date().toISOString();
+    const resolved = resolveMonitoringLayout(canvasWidgets, elementConfigs);
     return {
       schemaVersion: "monitoring.snapshot.v1",
       solution: "monitoring",
       app: {
         activePageId: "home",
-        dashboardMode: canvasWidgets.length > 0 ? "custom" : "default",
+        dashboardMode: resolved.widgets.length > 0 ? "custom" : "default",
         runtimeView: "operator",
       },
       editor: {
@@ -917,7 +1049,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         selectedWidgetId,
         selectedElement,
       },
-      elements: elementConfigs,
+      elements: resolved.elements,
       brand: {
         selectedPresetId: selectedBrandPresetId,
         settings: brand,
@@ -928,7 +1060,13 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           columns: GRID_COLS,
           rowHeight: GRID_ROW_HEIGHT,
         },
-        items: canvasWidgets,
+        items: resolved.widgets,
+      },
+      data: {
+        connectedSourceIds: Array.from(connectedSourceIds),
+        connectedSourceMeta,
+        mappingEdges: monitoringMappingEdges,
+        mappingNodePositions,
       },
       createdAt: now,
       updatedAt: now,
@@ -936,17 +1074,24 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   };
 
   const applySnapshot = (snapshot: MonitoringSnapshot) => {
+    const normalizedElements = normalizeElementConfigs(snapshot.elements);
+    const resolved = resolveMonitoringLayout(snapshot.widgets.items ?? [], normalizedElements);
     setCenterView(snapshot.editor.centerView);
-    setLeftTab(snapshot.editor.leftPanelTab);
     setShowRightPanel(snapshot.editor.showRightPanel);
-    setCanvasWidgets(snapshot.widgets.items ?? []);
+    canvasWidgetsRef.current = resolved.widgets;
+    elementConfigsRef.current = resolved.elements;
+    setCanvasWidgets(resolved.widgets);
     setSelectedWidgetId(snapshot.editor.selectedWidgetId);
     setSelectedElement(snapshot.editor.selectedElement ?? null);
-    setElementConfigs(normalizeElementConfigs(snapshot.elements));
+    setElementConfigs(resolved.elements);
     setBrand(resolveSnapshotBrand(snapshot.brand));
     setSelectedBrandPresetId(snapshot.brand?.selectedPresetId ?? "monitoring-default");
     setCustomBrandSlots(snapshot.brand?.customSlots ?? []);
     setBrandSlotName(snapshot.brand?.settings?.productName ? `${snapshot.brand.settings.productName} Theme` : "AIM Monitoring Default");
+    setConnectedSourceIds(new Set(snapshot.data?.connectedSourceIds ?? []));
+    setConnectedSourceMeta(snapshot.data?.connectedSourceMeta ?? {});
+    setMonitoringMappingEdges(snapshot.data?.mappingEdges ?? []);
+    setMappingNodePositions(snapshot.data?.mappingNodePositions ?? {});
   };
 
   const handleSave = () => {
@@ -957,26 +1102,41 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   };
 
   const handlePublish = () => {
+    setPublishForm({ name: solution.name ?? "", client: "", versionNote: "" });
+    setPublishDone(null);
+    setShowPublishModal(true);
+  };
+
+  const handleConfirmPublish = () => {
     const snapshot = createSnapshot();
-    const project = publishProject({
-      name: solution.name,
+    const project = upsertProject({
+      id: projectId ?? undefined,
+      name: publishForm.name || solution.name,
       solution: solution.id,
       status: "active",
-      client: "미지정",
+      client: publishForm.client || "미지정",
       description: solution.description,
-      versionNote: "AIM Monitoring editor snapshot",
+      versionNote: publishForm.versionNote || "AIM Monitoring snapshot",
       tags: ["AIM Monitoring", "AIoT", "예지보전"],
       stats: { alerts: 26, uptime: "89.4%", sensors: Math.max(154, canvasWidgets.length) },
       harnessFile: null,
       industry: "industrial-aiot",
-      systemTitle: solution.name,
+      systemTitle: publishForm.name || solution.name,
       monitoringSnapshot: snapshot,
     });
-
     window.localStorage.setItem(MONITORING_DRAFT_STORAGE_KEY, JSON.stringify(snapshot));
     setPublishedUrl(`https://${solution.id}.aimnis.ai/${project.id}`);
+    setPublishDone({ id: project.id });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1600);
+    // 새 프로젝트인 경우 URL에 project ID 반영
+    if (!projectId) {
+      router.replace(`/editor?solution=monitoring&project=${project.id}`);
+    }
+  };
+
+  const handleGoHome = () => {
+    router.push("/home");
   };
 
   const updateMonitoringBrand = (patch: Partial<BrandSettings>, options?: { syncHeader?: boolean; syncLogo?: boolean }) => {
@@ -995,10 +1155,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      updateMonitoringBrand(
-        { logoUrl: typeof reader.result === "string" ? reader.result : null },
-        { syncLogo: true }
-      );
+      const url = typeof reader.result === "string" ? reader.result : undefined;
+      updateHeaderConfig("logoUrl", url);
     };
     reader.readAsDataURL(file);
     event.target.value = "";
@@ -1089,6 +1247,11 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     window.setTimeout(() => setSaved(false), 1600);
   };
 
+  useEffect(() => {
+    const t = setTimeout(() => setIsEditorReady(true), 1500);
+    return () => clearTimeout(t);
+  }, []);
+
   /* 세션 중 마지막 에디터 = monitoring → Navbar가 올바른 에디터로 링크 */
   useEffect(() => {
     sessionStorage.setItem("aimnis_active_editor", "monitoring");
@@ -1122,6 +1285,23 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     hydratedRef.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projects]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    setIsSaving(true);
+    autoSaveTimerRef.current = setTimeout(() => {
+      const snapshot = createSnapshot();
+      window.localStorage.setItem(MONITORING_DRAFT_STORAGE_KEY, JSON.stringify(snapshot));
+      setAutoSaveAt(new Date());
+      setIsSaving(false);
+      autoSaveTimerRef.current = null;
+    }, 1500);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasWidgets, elementConfigs, brand, connectedSourceIds, monitoringMappingEdges]);
 
   const getCanvasMetrics = () => {
     const canvas = canvasRef.current;
@@ -1159,21 +1339,35 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         };
       });
 
-    setCanvasWidgets((current) => {
-      const placement = findNextWidgetPlacement(widget, [...current, ...defaultOccupied], preferred);
-      const instance: CanvasWidgetInstance = {
-        instanceId,
-        widgetId: widget.id,
-        title: widget.name,
-        x: placement.x,
-        y: placement.y,
-        w: placement.w,
-        h: placement.h,
-        options: buildDefaultWidgetOptions(widget),
-      };
-
-      return [...current, instance];
-    });
+    const width = Math.min(widget.defaultSize.w, GRID_COLS);
+    const height = Math.max(MIN_WIDGET_H, widget.defaultSize.h);
+    const placement = preferred
+      ? {
+          x: clamp(preferred.x, 0, GRID_COLS - width),
+          y: Math.max(0, preferred.y),
+          w: width,
+          h: height,
+        }
+      : findNextWidgetPlacement(widget, [...canvasWidgetsRef.current, ...defaultOccupied]);
+    const instance: CanvasWidgetInstance = {
+      instanceId,
+      widgetId: widget.id,
+      title: widget.name,
+      x: placement.x,
+      y: placement.y,
+      w: placement.w,
+      h: placement.h,
+      options: buildDefaultWidgetOptions(widget),
+    };
+    const resolved = resolveMonitoringLayout(
+      [...canvasWidgetsRef.current, instance],
+      elementConfigsRef.current,
+      preferred ? instanceId : undefined
+    );
+    canvasWidgetsRef.current = resolved.widgets;
+    elementConfigsRef.current = resolved.elements;
+    setCanvasWidgets(resolved.widgets);
+    setElementConfigs(resolved.elements);
 
     setSelectedWidgetId(instanceId);
     setSelectedElement(null);
@@ -1294,7 +1488,11 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         updateDefaultWidgetConfig(defaultInteraction.elementId, { x: nextX, y: nextY, w: nextW, h: nextH });
       }
     };
-    const handlePointerUp = () => setDefaultInteraction(null);
+    const draggedId = defaultInteraction.elementId;
+    const handlePointerUp = () => {
+      setDefaultInteraction(null);
+      commitResolvedLayout(draggedId);
+    };
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
     return () => {
@@ -1303,8 +1501,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       document.body.style.cursor = previousCursor;
       document.body.style.userSelect = previousUserSelect;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultInteraction]);
+  }, [commitResolvedLayout, defaultInteraction]);
 
   const updateSelectedWidget = (patch: Partial<CanvasWidgetInstance>) => {
     if (!selectedWidgetId) return;
@@ -1315,31 +1512,54 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
   const removeSelectedWidget = () => {
     if (!selectedWidgetId) return;
-    setCanvasWidgets((current) => current.filter((widget) => widget.instanceId !== selectedWidgetId));
+    const nextWidgets = canvasWidgetsRef.current.filter((widget) => widget.instanceId !== selectedWidgetId);
+    commitResolvedLayout(undefined, "compact", nextWidgets, elementConfigsRef.current);
     setSelectedWidgetId(null);
   };
 
   const hideSelectedDefaultWidget = () => {
     if (selectedElement?.kind !== "default-widget") return;
-    updateDefaultWidgetConfig(selectedElement.id, { visible: false });
+    const currentConfig =
+      elementConfigsRef.current.defaultWidgets[selectedElement.id] ??
+      DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[selectedElement.id];
+    const nextElements = {
+      ...elementConfigsRef.current,
+      defaultWidgets: {
+        ...elementConfigsRef.current.defaultWidgets,
+        [selectedElement.id]: {
+          ...currentConfig,
+          visible: false,
+        },
+      },
+    };
+    commitResolvedLayout(undefined, "compact", canvasWidgetsRef.current, nextElements);
     setSelectedElement(null);
   };
 
   const resetAllDefaultWidgets = () => {
-    setElementConfigs((current) => ({
-      ...current,
+    const nextElements = {
+      ...elementConfigsRef.current,
       defaultWidgets: Object.fromEntries(
-        Object.entries(current.defaultWidgets).map(([id]) => [
+        Object.entries(elementConfigsRef.current.defaultWidgets).map(([id]) => [
           id,
           { ...DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id], x: undefined, y: undefined, w: undefined, h: undefined },
         ])
       ),
-    }));
+    };
+    commitResolvedLayout(undefined, "compact", canvasWidgetsRef.current, nextElements);
   };
 
   const resetFullCanvas = () => {
-    setCanvasWidgets([]);
-    resetAllDefaultWidgets();
+    const nextElements = {
+      ...elementConfigsRef.current,
+      defaultWidgets: Object.fromEntries(
+        Object.entries(elementConfigsRef.current.defaultWidgets).map(([id]) => [
+          id,
+          { ...DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id], x: undefined, y: undefined, w: undefined, h: undefined },
+        ])
+      ),
+    };
+    commitResolvedLayout(undefined, "compact", [], nextElements);
     setSelectedWidgetId(null);
     setSelectedElement(null);
   };
@@ -1367,6 +1587,19 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             }
           : widget
       )
+    );
+  };
+
+  const resetSelectedWidgetColors = () => {
+    if (!selectedWidgetId) return;
+    const colorOptionIds = ["bgColor", "borderColor", "textStrongColor", "textSoftColor", "accentColor", "accentSecondaryColor", "successColor", "warningColor", "dangerColor"];
+    setCanvasWidgets((current) =>
+      current.map((widget) => {
+        if (widget.instanceId !== selectedWidgetId) return widget;
+        const nextOptions = { ...widget.options };
+        for (const key of colorOptionIds) delete nextOptions[key];
+        return { ...widget, options: nextOptions };
+      })
     );
   };
 
@@ -1402,7 +1635,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   ) => {
     setElementConfigs((current) => {
       const currentConfig = current.defaultWidgets[id] ?? DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id];
-      return {
+      const next = {
         ...current,
         defaultWidgets: {
           ...current.defaultWidgets,
@@ -1412,6 +1645,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           },
         },
       };
+      elementConfigsRef.current = next;
+      return next;
     });
 
     if (patch.title && selectedElement?.id === id) {
@@ -1466,8 +1701,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       const dxCols = Math.round((event.clientX - interaction.startClientX) / metrics.strideX);
       const dyRows = Math.round((event.clientY - interaction.startClientY) / metrics.strideY);
 
-      setCanvasWidgets((current) =>
-        current.map((widget) => {
+      setCanvasWidgets((current) => {
+        const next = current.map((widget) => {
           if (widget.instanceId !== interaction.instanceId) return widget;
 
           if (interaction.kind === "move") {
@@ -1502,12 +1737,16 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           }
 
           return { ...widget, x: nextX, y: nextY, w: nextW, h: nextH };
-        })
-      );
+        });
+        canvasWidgetsRef.current = next;
+        return next;
+      });
     };
 
+    const draggedId = interaction.instanceId;
     const handlePointerUp = () => {
       setInteraction(null);
+      commitResolvedLayout(draggedId);
     };
 
     window.addEventListener("pointermove", handlePointerMove);
@@ -1519,7 +1758,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       document.body.style.cursor = previousCursor;
       document.body.style.userSelect = previousUserSelect;
     };
-  }, [interaction]);
+  }, [commitResolvedLayout, interaction]);
 
   const selectedInspectorLabel = selectedWidget?.title ?? selectedElement?.label ?? null;
   const selectedToolbarId = selectedWidget?.instanceId ?? selectedElement?.id ?? null;
@@ -1587,48 +1826,152 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
   };
 
   const renderMappingInspectorContent = () => {
+    /* ── 기본 위젯 (default-widget): CORE_BINDINGS 기반 연결 상태 표시 ── */
+    if (!selectedWidget && selectedElement?.kind === "default-widget") {
+      const elementId = selectedElement.id;
+      const relevantBindings = MONITORING_CORE_BINDINGS.filter((b) => b.target === elementId);
+      const sourcesNeeded = Array.from(new Set(relevantBindings.map((b) => b.source)));
+
+      return (
+        <MonitoringInspectorFrame
+          eyebrow="Connection"
+          title="연결 상태"
+          description={`${selectedElement.label}에 할당된 데이터 소스 연결 상태를 확인합니다.`}
+        >
+          {sourcesNeeded.length === 0 ? (
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 text-center">
+              <p className="text-xs text-white/40">이 위젯은 별도 매핑이 필요하지 않습니다.</p>
+            </div>
+          ) : (
+            sourcesNeeded.map((sourceId) => {
+              const isConn = connectedSourceIds.has(sourceId);
+              const bindings = relevantBindings.filter((b) => b.source === sourceId);
+              const sourceName = connectedSourceMeta[sourceId]?.name ?? sourceId;
+              return (
+                <MonitoringInspectorSection
+                  key={sourceId}
+                  icon={isConn ? CheckCircle2 : AlertTriangle}
+                  title={sourceName}
+                >
+                  <div className={`mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold ${isConn ? "text-emerald-400" : "text-amber-400/70"}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isConn ? "bg-emerald-400" : "bg-amber-400/70"}`} />
+                    {isConn ? "소스 연결됨" : "소스 미연결"}
+                  </div>
+                  <div className="space-y-1">
+                    {bindings.map((b, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5">
+                        <span className={`min-w-0 flex-1 truncate font-mono text-[10px] ${isConn ? "text-emerald-300/80" : "text-white/30"}`}>{b.field}</span>
+                        <span className="shrink-0 text-[10px] text-white/15">→</span>
+                        <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-white/50">{b.property}</span>
+                      </div>
+                    ))}
+                  </div>
+                </MonitoringInspectorSection>
+              );
+            })
+          )}
+
+          {/* 기본 위젯은 매핑 탭에서 직접 편집하는 게 아니라 DB 수집 탭에서 연결 */}
+          {sourcesNeeded.some((s) => !connectedSourceIds.has(s)) && (
+            <button
+              type="button"
+              onClick={() => { setCenterView("db"); setShowRightPanel(false); }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2.5 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/15"
+            >
+              <Database className="h-3.5 w-3.5" />
+              DB 수집 탭에서 소스 연결
+            </button>
+          )}
+        </MonitoringInspectorFrame>
+      );
+    }
+
+    /* ── 커스텀 위젯 (canvasWidget): mapping edges 기반 연결 상태 ── */
+    const targetId = selectedWidget?.instanceId;
+    const widgetEdges = targetId
+      ? monitoringMappingEdges.filter((e) => e.targetWidgetId === targetId)
+      : [];
+
+    const bySource = widgetEdges.reduce<Record<string, typeof widgetEdges>>((acc, e) => {
+      if (!acc[e.sourceConnector]) acc[e.sourceConnector] = [];
+      acc[e.sourceConnector].push(e);
+      return acc;
+    }, {});
+
+    const widgetId = selectedWidget?.widgetId ?? "";
+    const knownProps = MONITORING_WIDGET_PROPERTIES[widgetId] ?? [];
+    const mappedPropSet = new Set(widgetEdges.map((e) => e.targetProperty));
+    const unmappedProps = knownProps.filter((p) => !mappedPropSet.has(p));
+
     return (
       <MonitoringInspectorFrame
         eyebrow="Connection"
-        title="데이터 연결"
-        description="AIM Monitoring 위젯과 복합 계측 데이터 소스를 연결합니다."
+        title="연결 상태"
+        description={`${selectedWidget?.title ?? "위젯"}에 연결된 데이터 소스와 필드 매핑을 확인합니다.`}
       >
-        <MonitoringInspectorSection icon={Network} title="Data Connectors">
-          {(solution.dataConnectors ?? []).map((connector) => (
-            <div
-              key={connector}
-              className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2"
-            >
-              <div>
-                <p className="text-xs font-medium text-white/65">{connector}</p>
-                <p className="mt-0.5 text-[10px] text-white/25">AIM Monitoring source</p>
+        {widgetEdges.length > 0 ? (
+          <>
+            <MonitoringInspectorSection icon={CheckCircle2} title={`연결된 필드 ${widgetEdges.length}개`}>
+              {Object.entries(bySource).map(([sourceId, edges]) => (
+                <div key={sourceId} className="space-y-1.5">
+                  <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-300/50">
+                    {connectedSourceMeta[sourceId]?.name ?? sourceId}
+                  </p>
+                  {edges.map((edge) => (
+                    <div
+                      key={edge.id}
+                      className="flex items-center gap-2 rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-emerald-300/80">
+                        {edge.sourceField}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-white/15">→</span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-white/50">
+                        {edge.targetProperty}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </MonitoringInspectorSection>
+
+            {unmappedProps.length > 0 && (
+              <MonitoringInspectorSection icon={AlertTriangle} title={`미연결 속성 ${unmappedProps.length}개`}>
+                <div className="flex flex-wrap gap-1.5">
+                  {unmappedProps.map((p) => (
+                    <span
+                      key={p}
+                      className="rounded-md bg-amber-400/[0.08] px-2 py-1 font-mono text-[10px] text-amber-300/50 ring-1 ring-amber-400/15"
+                    >
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </MonitoringInspectorSection>
+            )}
+          </>
+        ) : (
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 text-center">
+            <div className="mb-3 flex justify-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05] ring-1 ring-white/[0.08]">
+                <Network className="h-4 w-4 text-white/25" />
               </div>
-              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[9px] text-emerald-300">
-                연결 가능
-              </span>
             </div>
-          ))}
-        </MonitoringInspectorSection>
-        <MonitoringInspectorSection icon={Database} title="API Mapping">
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[10px] text-white/35">
-              <span>Widget field</span>
-              <span className="text-white/15">→</span>
-              <span>Data field</span>
-            </div>
-            {["riskScore", "sensorStatus", "eventLevel", "lastUpdated"].map((field, index) => (
-              <div key={field} className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                <span className="rounded-lg border border-white/[0.06] bg-black/20 px-2 py-1.5 text-[10px] text-white/55">
-                  {field}
-                </span>
-                <span className="text-white/20">→</span>
-                <span className="rounded-lg border border-cyan-400/15 bg-cyan-400/10 px-2 py-1.5 text-[10px] text-cyan-200">
-                  data.track{index + 1}
-                </span>
-              </div>
-            ))}
+            <p className="text-xs font-medium text-white/40">연결된 소스 없음</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-white/20">
+              자동 매핑을 실행하거나<br />매핑 탭에서 직접 연결하세요
+            </p>
           </div>
-        </MonitoringInspectorSection>
+        )}
+
+        <button
+          type="button"
+          onClick={() => { setCenterView("mapping"); setShowRightPanel(false); }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/15"
+        >
+          <Network className="h-3.5 w-3.5" />
+          매핑 탭에서 편집하기
+        </button>
       </MonitoringInspectorFrame>
     );
   };
@@ -1785,7 +2128,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           <MonitoringNumberControl
             label="로고 크기"
             min={20}
-            max={44}
+            max={200}
             unit="px"
             value={brand.logoSize}
             onChange={(logoSize) => updateMonitoringBrand({ logoSize })}
@@ -1883,6 +2226,28 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             전체 초기화 (기본값으로)
           </button>
         </MonitoringInspectorSection>
+
+        <MonitoringInspectorSection icon={AlertTriangle} title="데이터 초기화">
+          <p className="text-[10px] leading-relaxed text-white/30">
+            초기화 후 자동 저장되므로 복구가 불가합니다. 신중하게 진행하세요.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowResetModal("draft")}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-500/15"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            편집 내용 초기화
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowResetModal("data")}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2.5 text-xs font-medium text-red-200 transition-colors hover:bg-red-500/15"
+          >
+            <X className="h-3.5 w-3.5" />
+            데이터 연결 초기화
+          </button>
+        </MonitoringInspectorSection>
       </MonitoringInspectorFrame>
     );
   };
@@ -1916,7 +2281,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             <MonitoringNumberControl
               label="세로 그리드"
               min={MIN_WIDGET_H}
-              max={12}
+              max={50}
               value={selectedWidget.h}
               onChange={(h) => updateSelectedWidget({ h })}
             />
@@ -1931,7 +2296,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               }
               readOnly
             />
-            {selectedWidgetOptionDefinitions.map((option) => {
+            {selectedWidgetOptionDefinitions.filter((o) => o.id !== "dataSource").map((option) => {
               const currentValue = selectedWidget.options[option.id] ?? option.defaultValue;
 
               if (option.type === "toggle") {
@@ -1972,11 +2337,33 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           </MonitoringInspectorSection>
 
           <MonitoringInspectorSection icon={Palette} title="Panel Style">
-            <MonitoringColorControl label="패널 배경" value={brand.surfaceColor} onChange={(surfaceColor) => updateMonitoringBrand({ surfaceColor })} />
-            <MonitoringColorControl label="패널 라인" value={brand.borderColor} onChange={(borderColor) => updateMonitoringBrand({ borderColor })} />
-            <MonitoringColorControl label="주요 텍스트" value={brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateMonitoringBrand({ textStrongColor })} />
-            <MonitoringColorControl label="보조 텍스트" value={brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateMonitoringBrand({ textSoftColor })} />
+            <MonitoringColorControl label="패널 배경" value={(selectedWidget?.options.bgColor as string | undefined) ?? brand.surfaceColor} onChange={(v) => updateSelectedWidgetOption("bgColor", v)} />
+            <MonitoringColorControl label="패널 라인" value={(selectedWidget?.options.borderColor as string | undefined) ?? brand.borderColor} onChange={(v) => updateSelectedWidgetOption("borderColor", v)} />
           </MonitoringInspectorSection>
+
+          <MonitoringInspectorSection icon={Type} title="텍스트 색상">
+            <MonitoringColorControl label="주요 텍스트" value={(selectedWidget?.options.textStrongColor as string | undefined) ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(v) => updateSelectedWidgetOption("textStrongColor", v)} />
+            <MonitoringColorControl label="보조 텍스트" value={(selectedWidget?.options.textSoftColor as string | undefined) ?? brand.textSoftColor ?? "#94A3B8"} onChange={(v) => updateSelectedWidgetOption("textSoftColor", v)} />
+          </MonitoringInspectorSection>
+
+          {(WIDGET_COLOR_GROUPS[selectedWidgetMeta?.id ?? ""] ?? DEFAULT_WIDGET_GROUPS).includes("accent") && (
+            <MonitoringInspectorSection icon={SlidersHorizontal} title="강조 색상">
+              <MonitoringColorControl label="강조색 (Accent)" value={(selectedWidget?.options.accentColor as string | undefined) ?? brand.accentColor} onChange={(v) => updateSelectedWidgetOption("accentColor", v)} />
+              {(WIDGET_COLOR_GROUPS[selectedWidgetMeta?.id ?? ""] ?? DEFAULT_WIDGET_GROUPS).includes("accentSecondary") && (
+                <MonitoringColorControl label="보조 강조색" value={(selectedWidget?.options.accentSecondaryColor as string | undefined) ?? brand.secondaryColor} onChange={(v) => updateSelectedWidgetOption("accentSecondaryColor", v)} />
+              )}
+            </MonitoringInspectorSection>
+          )}
+
+          {(WIDGET_COLOR_GROUPS[selectedWidgetMeta?.id ?? ""] ?? DEFAULT_WIDGET_GROUPS).includes("status") && (
+            <MonitoringInspectorSection icon={Activity} title="상태 색상">
+              <MonitoringColorControl label="정상 (Success)" value={(selectedWidget?.options.successColor as string | undefined) ?? brand.successColor} onChange={(v) => updateSelectedWidgetOption("successColor", v)} />
+              <MonitoringColorControl label="경고 (Warning)" value={(selectedWidget?.options.warningColor as string | undefined) ?? brand.warningColor} onChange={(v) => updateSelectedWidgetOption("warningColor", v)} />
+              <MonitoringColorControl label="위험 (Danger)" value={(selectedWidget?.options.dangerColor as string | undefined) ?? brand.dangerColor} onChange={(v) => updateSelectedWidgetOption("dangerColor", v)} />
+            </MonitoringInspectorSection>
+          )}
+
+          <MonitoringResetButton label="색상 초기화 (브랜드 기본값)" onClick={resetSelectedWidgetColors} />
 
           <button
             type="button"
@@ -1984,7 +2371,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/15"
           >
             <Network className="h-3.5 w-3.5" />
-            데이터 매핑 스튜디오 열기
+            연결 상태 확인
           </button>
 
           <button
@@ -2013,8 +2400,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                 onClick={() => logoInputRef.current?.click()}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-3 py-4 text-xs text-white/35 transition-all hover:border-violet-400/40 hover:text-white/60"
               >
-                {brand.logoUrl ? (
-                  <img src={brand.logoUrl} alt="Tenant logo" className="h-8 max-w-[180px] object-contain" />
+                {(elementConfigs.header.logoUrl ?? brand.logoUrl) ? (
+                  <img src={elementConfigs.header.logoUrl ?? brand.logoUrl!} alt="Tenant logo" className="h-8 max-w-[180px] object-contain" />
                 ) : (
                   <>
                     <ImagePlus className="h-3.5 w-3.5" />
@@ -2025,10 +2412,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <MonitoringNumberControl
                 label="로고 크기"
                 min={20}
-                max={44}
+                max={200}
                 unit="px"
-                value={brand.logoSize}
-                onChange={(logoSize) => updateMonitoringBrand({ logoSize })}
+                value={elementConfigs.header.logoSize ?? brand.logoSize}
+                onChange={(logoSize) => updateHeaderConfig("logoSize", logoSize)}
               />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Type} title="Identity">
@@ -2038,11 +2425,11 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <MonitoringTextControl label="권한" value={elementConfigs.header.operatorRole} onChange={(operatorRole) => updateHeaderConfig("operatorRole", operatorRole)} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Palette} title="Header Tone">
-              <MonitoringColorControl label="헤더 배경" value={brand.backgroundColor} onChange={(backgroundColor) => updateMonitoringBrand({ backgroundColor })} />
-              <MonitoringColorControl label="보더" value={brand.borderColor} onChange={(borderColor) => updateMonitoringBrand({ borderColor })} />
-              <MonitoringColorControl label="강조 색상" value={brand.accentColor} onChange={(accentColor) => updateMonitoringBrand({ accentColor })} />
-              <MonitoringColorControl label="제목 텍스트" value={brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateMonitoringBrand({ textStrongColor })} />
-              <MonitoringColorControl label="보조 텍스트" value={brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateMonitoringBrand({ textSoftColor })} />
+              <MonitoringColorControl label="헤더 배경" value={elementConfigs.header.bgColor ?? brand.surfaceColor} onChange={(bgColor) => updateHeaderConfig("bgColor", bgColor)} />
+              <MonitoringColorControl label="보더" value={elementConfigs.header.borderColor ?? brand.borderColor} onChange={(borderColor) => updateHeaderConfig("borderColor", borderColor)} />
+              <MonitoringColorControl label="강조 색상" value={elementConfigs.header.accentColor ?? brand.accentColor} onChange={(accentColor) => updateHeaderConfig("accentColor", accentColor)} />
+              <MonitoringColorControl label="제목 텍스트" value={elementConfigs.header.textStrongColor ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateHeaderConfig("textStrongColor", textStrongColor)} />
+              <MonitoringColorControl label="보조 텍스트" value={elementConfigs.header.textSoftColor ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateHeaderConfig("textSoftColor", textSoftColor)} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={Settings2} title="Header Options">
               <MonitoringToggleControl label="시간 표시" checked={elementConfigs.header.showTimestamp} onChange={(showTimestamp) => updateHeaderConfig("showTimestamp", showTimestamp)} />
@@ -2062,12 +2449,12 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
           >
             {renderSelectionScopeBanner("좌측 메뉴")}
             <MonitoringInspectorSection icon={Palette} title="Navigation Tone">
-              <MonitoringColorControl label="활성 메뉴" value={brand.primaryColor} onChange={(primaryColor) => updateMonitoringBrand({ primaryColor })} />
-              <MonitoringColorControl label="아이콘/강조" value={brand.accentColor} onChange={(accentColor) => updateMonitoringBrand({ accentColor })} />
-              <MonitoringColorControl label="사이드바 배경" value={brand.surfaceColor} onChange={(surfaceColor) => updateMonitoringBrand({ surfaceColor })} />
-              <MonitoringColorControl label="라인 컬러" value={brand.borderColor} onChange={(borderColor) => updateMonitoringBrand({ borderColor })} />
-              <MonitoringColorControl label="비활성 메뉴 텍스트" value={brand.textColor ?? "#CBD5E1"} onChange={(textColor) => updateMonitoringBrand({ textColor })} />
-              <MonitoringColorControl label="섹션/버전 텍스트" value={brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateMonitoringBrand({ textSoftColor })} />
+              <MonitoringColorControl label="활성 메뉴" value={elementConfigs.sidebar.primaryColor ?? brand.primaryColor} onChange={(primaryColor) => updateSidebarConfig("primaryColor", primaryColor)} />
+              <MonitoringColorControl label="아이콘/강조" value={elementConfigs.sidebar.accentColor ?? brand.accentColor} onChange={(accentColor) => updateSidebarConfig("accentColor", accentColor)} />
+              <MonitoringColorControl label="사이드바 배경" value={elementConfigs.sidebar.bgColor ?? brand.surfaceColor} onChange={(bgColor) => updateSidebarConfig("bgColor", bgColor)} />
+              <MonitoringColorControl label="라인 컬러" value={elementConfigs.sidebar.borderColor ?? brand.borderColor} onChange={(borderColor) => updateSidebarConfig("borderColor", borderColor)} />
+              <MonitoringColorControl label="비활성 메뉴 텍스트" value={elementConfigs.sidebar.textColor ?? brand.textColor ?? "#CBD5E1"} onChange={(textColor) => updateSidebarConfig("textColor", textColor)} />
+              <MonitoringColorControl label="섹션/버전 텍스트" value={elementConfigs.sidebar.textSoftColor ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateSidebarConfig("textSoftColor", textSoftColor)} />
             </MonitoringInspectorSection>
             <MonitoringInspectorSection icon={LayoutDashboard} title="Navigation Feel">
               <MonitoringSelectControl
@@ -2100,15 +2487,26 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       }
 
       if (selectedDefaultWidgetConfig) {
+        const wid = selectedElement.id;
+        const isAccentCard = wid === "summary-equipment-status";
+        const isStatusCard = wid === "summary-environment-risk" || wid === "summary-worker-safety";
+        const isAlertCard = wid === "summary-alert-count";
+        const isAnomalyChart = wid === "equipment-anomaly-chart";
+        const isSystemStatus = wid === "system-status";
+        const isActionProgress = wid === "action-progress";
+        const isRealtimeAlerts = wid === "realtime-alerts";
+        const isWorkerSafety = wid === "worker-safety-overview";
+        const isEnvDiag = wid === "environment-diagnosis";
+        const upd = (patch: Partial<MonitoringElementConfigs["defaultWidgets"][string]>) => updateDefaultWidgetConfig(wid, patch);
         return (
           <MonitoringInspectorFrame
             eyebrow="Panel Inspector"
             title="기본 대시보드 위젯 설정"
-            description="AI Studio 기본 콘텐츠의 표시명, 데이터 바인딩, 강조 색상을 조정합니다."
+            description="위젯 표시명, 데이터 바인딩, 색상을 조정합니다. 변경사항이 즉시 캔버스에 반영됩니다."
           >
             {renderSelectionScopeBanner(selectedElement.label)}
             <MonitoringInspectorSection icon={Type} title="Widget Properties">
-              <MonitoringTextControl label="표시 이름" value={selectedDefaultWidgetConfig.title} onChange={(title) => updateDefaultWidgetConfig(selectedElement.id, { title })} />
+              <MonitoringTextControl label="표시 이름" value={selectedDefaultWidgetConfig.title} onChange={(title) => upd({ title })} />
               <MonitoringSelectControl
                 label="데이터 바인딩"
                 value={selectedDefaultWidgetConfig.dataBinding}
@@ -2119,17 +2517,82 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                   { value: "environment-risk-live", label: "환경 위험 데이터" },
                   { value: "sop-event-log", label: "SOP 이벤트 로그" },
                 ]}
-                onChange={(dataBinding) => updateDefaultWidgetConfig(selectedElement.id, { dataBinding })}
+                onChange={(dataBinding) => upd({ dataBinding })}
               />
-              <MonitoringColorControl label="강조 색상" value={selectedDefaultWidgetConfig.accentColor} onChange={(accentColor) => updateDefaultWidgetConfig(selectedElement.id, { accentColor })} />
-              <MonitoringToggleControl label="위젯 표시" checked={selectedDefaultWidgetConfig.visible} onChange={(visible) => updateDefaultWidgetConfig(selectedElement.id, { visible })} />
+              <MonitoringToggleControl label="위젯 표시" checked={selectedDefaultWidgetConfig.visible} onChange={(visible) => upd({ visible })} />
             </MonitoringInspectorSection>
-            <MonitoringInspectorSection icon={Palette} title="Panel Style">
-              <MonitoringColorControl label="패널 배경" value={brand.surfaceColor} onChange={(surfaceColor) => updateMonitoringBrand({ surfaceColor })} />
-              <MonitoringColorControl label="패널 라인" value={brand.borderColor} onChange={(borderColor) => updateMonitoringBrand({ borderColor })} />
-              <MonitoringColorControl label="주요 텍스트" value={brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => updateMonitoringBrand({ textStrongColor })} />
-              <MonitoringColorControl label="보조 텍스트" value={brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => updateMonitoringBrand({ textSoftColor })} />
+
+            {/* ── 위젯 타입별 컬러 컨트롤 ── */}
+            {isAccentCard && (
+              <MonitoringInspectorSection icon={Palette} title="차트 색상">
+                <MonitoringColorControl label="주컬러 (스파크라인)" value={selectedDefaultWidgetConfig.accentColor} onChange={(accentColor) => upd({ accentColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isStatusCard && (
+              <MonitoringInspectorSection icon={Palette} title="상태 색상">
+                <MonitoringColorControl label="상태색 (텍스트 + 라인)" value={selectedDefaultWidgetConfig.warningColor ?? brand.warningColor} onChange={(warningColor) => upd({ warningColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isAlertCard && (
+              <MonitoringInspectorSection icon={Palette} title="차트 색상">
+                <MonitoringColorControl label="위험색 (바 차트)" value={selectedDefaultWidgetConfig.dangerColor ?? brand.dangerColor} onChange={(dangerColor) => upd({ dangerColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isAnomalyChart && (
+              <MonitoringInspectorSection icon={Palette} title="계열별 라인 색상">
+                <MonitoringColorControl label="계열 1 — 진동" value={selectedDefaultWidgetConfig.series1Color ?? "#f97316"} onChange={(series1Color) => upd({ series1Color })} />
+                <MonitoringColorControl label="계열 2 — 온도" value={selectedDefaultWidgetConfig.series2Color ?? "#ef4444"} onChange={(series2Color) => upd({ series2Color })} />
+                <MonitoringColorControl label="계열 3 — 열화상" value={selectedDefaultWidgetConfig.series3Color ?? "#a855f7"} onChange={(series3Color) => upd({ series3Color })} />
+                <MonitoringColorControl label="계열 4 — 가스" value={selectedDefaultWidgetConfig.series4Color ?? "#06b6d4"} onChange={(series4Color) => upd({ series4Color })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isSystemStatus && (
+              <MonitoringInspectorSection icon={Activity} title="상태 색상">
+                <MonitoringColorControl label="정상 (Status dot + 바)" value={selectedDefaultWidgetConfig.successColor ?? brand.successColor} onChange={(successColor) => upd({ successColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isActionProgress && (
+              <MonitoringInspectorSection icon={Palette} title="차트 색상">
+                <MonitoringColorControl label="진행 바 색상" value={selectedDefaultWidgetConfig.accentColor ?? brand.accentColor} onChange={(accentColor) => upd({ accentColor })} />
+                <MonitoringColorControl label="정상 완료 색상" value={selectedDefaultWidgetConfig.successColor ?? brand.successColor} onChange={(successColor) => upd({ successColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isRealtimeAlerts && (
+              <MonitoringInspectorSection icon={Activity} title="알림 유형 색상">
+                <MonitoringColorControl label="경고 색상" value={selectedDefaultWidgetConfig.warningColor ?? brand.warningColor} onChange={(warningColor) => upd({ warningColor })} />
+                <MonitoringColorControl label="위험 색상" value={selectedDefaultWidgetConfig.dangerColor ?? brand.dangerColor} onChange={(dangerColor) => upd({ dangerColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isWorkerSafety && (
+              <MonitoringInspectorSection icon={Activity} title="상태 색상">
+                <MonitoringColorControl label="강조 (전체 수)" value={selectedDefaultWidgetConfig.accentColor ?? brand.accentColor} onChange={(accentColor) => upd({ accentColor })} />
+                <MonitoringColorControl label="정상 색상" value={selectedDefaultWidgetConfig.successColor ?? brand.successColor} onChange={(successColor) => upd({ successColor })} />
+                <MonitoringColorControl label="경고 색상" value={selectedDefaultWidgetConfig.warningColor ?? brand.warningColor} onChange={(warningColor) => upd({ warningColor })} />
+                <MonitoringColorControl label="위험 색상" value={selectedDefaultWidgetConfig.dangerColor ?? brand.dangerColor} onChange={(dangerColor) => upd({ dangerColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            {isEnvDiag && (
+              <MonitoringInspectorSection icon={Activity} title="지표 색상">
+                <MonitoringColorControl label="경고 지표 색상" value={selectedDefaultWidgetConfig.warningColor ?? brand.warningColor} onChange={(warningColor) => upd({ warningColor })} />
+                <MonitoringColorControl label="정상 지표 색상" value={selectedDefaultWidgetConfig.successColor ?? brand.successColor} onChange={(successColor) => upd({ successColor })} />
+              </MonitoringInspectorSection>
+            )}
+
+            <MonitoringInspectorSection icon={SlidersHorizontal} title="Panel Style">
+              <MonitoringColorControl label="패널 배경" value={selectedDefaultWidgetConfig?.bgColor ?? brand.surfaceColor} onChange={(bgColor) => upd({ bgColor })} />
+              <MonitoringColorControl label="패널 라인" value={selectedDefaultWidgetConfig?.borderColor ?? brand.borderColor} onChange={(borderColor) => upd({ borderColor })} />
+              <MonitoringColorControl label="주요 텍스트" value={selectedDefaultWidgetConfig?.textStrongColor ?? brand.textStrongColor ?? "#F8FAFC"} onChange={(textStrongColor) => upd({ textStrongColor })} />
+              <MonitoringColorControl label="보조 텍스트" value={selectedDefaultWidgetConfig?.textSoftColor ?? brand.textSoftColor ?? "#94A3B8"} onChange={(textSoftColor) => upd({ textSoftColor })} />
             </MonitoringInspectorSection>
+
             <button
               type="button"
               onClick={handleConnectSelectedData}
@@ -2141,8 +2604,8 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             <MonitoringResetButton
               label="기본 위젯 설정 복원"
               onClick={() =>
-                updateDefaultWidgetConfig(selectedElement.id, {
-                  ...(DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[selectedElement.id] ?? selectedDefaultWidgetConfig),
+                updateDefaultWidgetConfig(wid, {
+                  ...(DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[wid] ?? selectedDefaultWidgetConfig),
                   x: undefined,
                   y: undefined,
                   w: undefined,
@@ -2172,9 +2635,12 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#080810] text-white">
+      {/* 에디터 초기 로딩 오버레이 */}
+      <MonitoringInitLoader show={!isEditorReady} />
+
       <input ref={logoInputRef} type="file" accept=".png,.svg,.jpg,.jpeg" className="hidden" onChange={handleMonitoringLogoUpload} />
       <MonitoringFloatingToolbar
-        selectedId={selectedToolbarId}
+        selectedId={centerView === "monitor" ? selectedToolbarId : null}
         label={selectedToolbarLabel}
         type={selectedToolbarType}
         onConfigure={handleConfigureSelected}
@@ -2184,10 +2650,21 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
       />
       <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0a0a14] px-4">
         <div className="relative z-20 flex min-w-0 items-center gap-3">
-          <Link href="/home" className="flex items-center gap-2.5">
+          <button type="button" onClick={handleGoHome} className="flex items-center gap-2.5">
             <img src="/img/Aimnis_Symbol.svg" alt="AIMNIS Logo" className="h-[24px] w-[24px] object-contain drop-shadow-xl" />
             <span className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-montserrat)" }}>AIMNIS</span>
-          </Link>
+            <span
+              className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
+              style={{
+                background: "oklch(60% 0.20 285 / .15)",
+                color: "oklch(60% 0.20 285)",
+                border: "1px solid oklch(60% 0.20 285 / .25)",
+                letterSpacing: "0.08em",
+              }}
+            >
+              Enterprise
+            </span>
+          </button>
           <span className="text-white/15">/</span>
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex h-5 w-5 items-center justify-center">
@@ -2302,14 +2779,23 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             <TopIcon><Edit3 className="h-3 w-3" /></TopIcon>
             <span className="block">편집</span>
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="flex h-8 w-[64px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 text-xs leading-none text-white/50 transition-colors hover:text-white/80"
-          >
-            <TopIcon><Save className="h-3 w-3" /></TopIcon>
-            <span className="block">저장</span>
-          </button>
+          <div className="flex h-8 min-w-[80px] items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3">
+            {isSaving ? (
+              <>
+                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-white/30" />
+                <span className="text-[10px] text-white/35">저장 중...</span>
+              </>
+            ) : autoSaveAt ? (
+              <>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                <span className="text-[10px] text-white/40">
+                  자동 저장됨 {autoSaveAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </>
+            ) : (
+              <span className="text-[10px] text-white/20">자동 저장</span>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setIsFullscreen((v) => !v)}
@@ -2329,22 +2815,216 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         </div>
       </header>
 
-      {publishedUrl && (
-        <div className="absolute right-4 top-16 z-50 rounded-xl border border-emerald-400/20 bg-[#07111f]/95 p-3 text-xs shadow-2xl shadow-emerald-500/10 backdrop-blur">
-          <p className="font-semibold text-emerald-200">퍼블리시 완료</p>
-          <p className="mt-1 font-mono text-[10px] text-emerald-300/80">{publishedUrl}</p>
-          <Link href="/projects" className="mt-2 inline-flex text-[10px] font-medium text-blue-200 hover:text-blue-100">
-            프로젝트에서 확인
-          </Link>
-        </div>
-      )}
+      {/* ── 퍼블리시 모달 ── */}
+      <AnimatePresence>
+        {showPublishModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }}
+              className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f1a] p-6 shadow-2xl">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-white">
+                    {publishDone ? "✅ 퍼블리시 완료" : "프로젝트 퍼블리시"}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-white/40">
+                    {publishDone ? "프로젝트가 등록됐습니다" : "프로젝트 정보를 입력하세요"}
+                  </p>
+                </div>
+                <button onClick={() => setShowPublishModal(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/70 transition-colors">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {!publishDone ? (
+                <>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">프로젝트명</label>
+                      <input value={publishForm.name} onChange={e => setPublishForm(p => ({ ...p, name: e.target.value }))}
+                        placeholder={solution.name}
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">고객사 (선택)</label>
+                      <input value={publishForm.client} onChange={e => setPublishForm(p => ({ ...p, client: e.target.value }))}
+                        placeholder="예: KEPCO, POSCO, 현대제철..."
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/30">버전 메모 (선택)</label>
+                      <input value={publishForm.versionNote} onChange={e => setPublishForm(p => ({ ...p, versionNote: e.target.value }))}
+                        placeholder="변경 사항을 간략히 기록하세요"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-colors" />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2.5">
+                    <Activity className="h-3.5 w-3.5 text-sky-400 flex-shrink-0" />
+                    <span className="text-xs text-white/50">솔루션: <span className="text-white/70">{solution.name}</span></span>
+                  </div>
+                  <button onClick={handleConfirmPublish}
+                    className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 hover:from-violet-500 hover:to-indigo-500 transition-all">
+                    <Rocket className="h-4 w-4" />
+                    프로젝트에 배포하기
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+                    ✓ 프로젝트 DB에 등록 완료
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setShowPublishModal(false); router.push("/projects"); }}
+                      className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2.5 text-xs font-medium text-white/70 hover:text-white transition-colors">
+                      프로젝트 보기
+                    </button>
+                    <button onClick={() => { setShowPublishModal(false); router.push("/monitoring"); }}
+                      className="flex-1 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 py-2.5 text-xs font-bold text-white hover:from-sky-500 hover:to-blue-500 transition-all">
+                      AIM Monitoring 실행
+                    </button>
+                  </div>
+                  <button onClick={() => setShowPublishModal(false)}
+                    className="w-full text-center text-xs text-white/30 hover:text-white/50 transition-colors py-1">
+                    닫기
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 초기화 확인 모달 ── */}
+      <AnimatePresence>
+        {showResetModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 12 }}
+              className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f0f1a] p-6 shadow-2xl"
+            >
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/15 ring-1 ring-red-400/20">
+                  <AlertTriangle className="h-4 w-4 text-red-300" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">
+                    {showResetModal === "draft" ? "편집 내용 초기화" : "데이터 연결 초기화"}
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-white/45">
+                    {showResetModal === "draft"
+                      ? "캔버스 위젯, 레이아웃, 브랜드 설정이 모두 기본값으로 되돌아갑니다. 이 작업은 자동 저장되므로 되돌릴 수 없습니다."
+                      : "연결된 데이터 소스와 모든 매핑 설정이 삭제됩니다. 이 작업은 자동 저장되므로 되돌릴 수 없습니다."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(null)}
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-medium text-white/60 transition-colors hover:text-white/90"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (showResetModal === "draft") {
+                      resetFullCanvas();
+                      resetMonitoringBrand();
+                      window.localStorage.removeItem(MONITORING_DRAFT_STORAGE_KEY);
+                      setAutoSaveAt(null);
+                    } else {
+                      setConnectedSourceIds(new Set());
+                      setConnectedSourceMeta({});
+                      setMonitoringMappingEdges([]);
+                      setMappingNodePositions({});
+                    }
+                    setShowResetModal(null);
+                  }}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 py-2.5 text-xs font-bold text-white shadow-lg shadow-red-500/20 transition-all hover:from-red-500 hover:to-rose-500"
+                >
+                  초기화
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 위젯 라이브러리 호버 프리뷰 플라이아웃 ── */}
+      {hoveredLibraryWidgetId && (() => {
+        const hw = widgets.find((w) => w.id === hoveredLibraryWidgetId);
+        if (!hw) return null;
+        const catLabel = WIDGET_CATEGORY_LABELS[hw.dataSource ?? ""] ?? (hw.dataSource ?? "기타");
+        const clampedY = Math.min(Math.max(hoverCardY, 70), (typeof window !== "undefined" ? window.innerHeight : 900) - 320);
+        return (
+          <div
+            style={{
+              position: "fixed",
+              left: leftPanelWidth + 14,
+              top: clampedY,
+              zIndex: 9998,
+              width: 232,
+              background: "#0d1220",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 14,
+              overflow: "hidden",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
+              pointerEvents: "none",
+            }}
+          >
+            {/* 실제 위젯 렌더러 축소 프리뷰 */}
+            <div style={{ background: "#0a0f1c", height: 160, overflow: "hidden", position: "relative", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{
+                width: 400,
+                height: 266,
+                transform: "scale(0.6)",
+                transformOrigin: "top left",
+                pointerEvents: "none",
+              }}>
+                <MonitoringWidgetRenderer
+                  title={hw.name}
+                  widget={hw}
+                  categoryLabel={catLabel}
+                  isConnected={true}
+                />
+              </div>
+            </div>
+            {/* 정보 */}
+            <div style={{ padding: "12px 14px 14px" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 5, lineHeight: 1.3 }}>{hw.name}</p>
+              <p style={{ fontSize: 11, color: "#64748b", lineHeight: 1.55, marginBottom: 10 }}>{hw.description ?? "위젯 설명 없음"}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: 4 }}>
+                  {catLabel}
+                </span>
+                <span style={{ fontSize: 10, color: "#334155", fontFamily: "monospace" }}>
+                  {hw.defaultSize.w}×{hw.defaultSize.h} grid
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#475569" }}>
+                <span style={{ opacity: 0.7 }}>←</span>
+                드래그하여 캔버스에 추가
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <motion.div
           data-monitoring-left-panel
-          animate={{ marginLeft: showRightPanel ? -(MONITORING_LEFT_PANEL_WIDTH - 70) : 0 }}
+          animate={{ marginLeft: showRightPanel ? -(leftPanelWidth - 70) : 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          style={{ position: "relative", display: "flex", flexShrink: 0, height: "100%", minHeight: 0, width: MONITORING_LEFT_PANEL_WIDTH }}
+          style={{ position: "relative", display: "flex", flexShrink: 0, height: "100%", minHeight: 0, width: leftPanelWidth }}
         >
         <aside className="flex min-h-0 w-full flex-shrink-0 flex-col overflow-hidden bg-[#0a0a14]">
           <div className="flex items-center gap-2.5 border-b border-white/5 px-3 py-2">
@@ -2381,11 +3061,10 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             </div>
           </div>
 
-          {leftTab === "chat" ? (
-            <div className="min-h-0 flex-1 overflow-hidden">
-              <MonitoringChatPanel solutionId={solution.id} onWidgetCommand={handleChatWidgetCommand} onPresetCommand={handleChatPresetCommand} />
-            </div>
-          ) : (
+          <div className={cn("min-h-0 flex-1 overflow-hidden", leftTab !== "chat" && "hidden")}>
+            <MonitoringChatPanel solutionId={solution.id} onWidgetCommand={handleChatWidgetCommand} onPresetCommand={handleChatPresetCommand} />
+          </div>
+          {leftTab === "widgets" && (
             <div className="min-h-0 flex-1 overflow-y-auto">
               {/* 검색창 */}
               <div className="sticky top-0 z-10 bg-[#0a0a14] px-3 pb-2 pt-3">
@@ -2408,9 +3087,31 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                     </button>
                   )}
                 </div>
-                <p className="mt-2 text-[10px] leading-relaxed text-white/30">
-                  드래그하면 12그리드에 배치됩니다.
-                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-[10px] text-white/30">드래그하여 추가</p>
+                  <div className="flex items-center gap-0.5 rounded-md border border-white/[0.07] bg-black/20 p-[3px]">
+                    <button
+                      type="button"
+                      onClick={() => setWidgetViewMode("grid")}
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded transition-colors",
+                        widgetViewMode === "grid" ? "bg-white/10 text-white/80" : "text-white/30 hover:text-white/60"
+                      )}
+                    >
+                      <Grip className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWidgetViewMode("list")}
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded transition-colors",
+                        widgetViewMode === "list" ? "bg-white/10 text-white/80" : "text-white/30 hover:text-white/60"
+                      )}
+                    >
+                      <List className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-4 px-3 pb-3">
@@ -2424,55 +3125,110 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/30">
                         {WIDGET_CATEGORY_LABELS[group] ?? group}
                       </p>
-                      <div className="grid grid-cols-2 gap-[7px]">
-                        {groupWidgets.map((widget) => {
-                          const used = usedWidgetIds.has(widget.id);
-                          return (
-                            <button
-                              key={widget.id}
-                              type="button"
-                              draggable
-                              onDragStart={(event) => {
-                                event.dataTransfer.setData("application/x-aim-monitoring-widget", widget.id);
-                                event.dataTransfer.effectAllowed = "copy";
-                                setIsDraggingWidget(true);
-                              }}
-                              onDragEnd={() => setIsDraggingWidget(false)}
-                              title={widget.name}
-                              className={cn(
-                                "group relative flex flex-col rounded-[9px] p-[7px] text-left transition-all duration-150 hover:border-[#3b82f6]",
-                                used
-                                  ? "border border-[rgba(59,130,246,.3)] bg-[rgba(59,130,246,.06)]"
-                                  : "border border-white/[0.07] bg-[#0f1623]"
-                              )}
-                            >
-                              <MonitoringWidgetThumbnail widget={widget} />
-                              <span
-                                className="mt-2 line-clamp-2 text-[11px] font-semibold leading-snug text-[#e2e8f0]"
-                                style={{ minHeight: "2.6em" }}
+                      {widgetViewMode === "grid" ? (
+                        <div className="grid grid-cols-2 gap-[7px]">
+                          {groupWidgets.map((widget) => {
+                            const used = usedWidgetIds.has(widget.id);
+                            return (
+                              <button
+                                key={widget.id}
+                                type="button"
+                                draggable
+                                onDragStart={(event) => {
+                                  event.dataTransfer.setData("application/x-aim-monitoring-widget", widget.id);
+                                  event.dataTransfer.effectAllowed = "copy";
+                                  setIsDraggingWidget(true);
+                                }}
+                                onDragEnd={() => { setIsDraggingWidget(false); setHoveredLibraryWidgetId(null); }}
+                                onMouseEnter={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setHoveredLibraryWidgetId(widget.id);
+                                  setHoverCardY(rect.top);
+                                }}
+                                onMouseLeave={() => setHoveredLibraryWidgetId(null)}
+                                className={cn(
+                                  "group relative flex flex-col rounded-[9px] p-[7px] text-left transition-all duration-150 hover:border-[#3b82f6]",
+                                  used
+                                    ? "border border-[rgba(59,130,246,.3)] bg-[rgba(59,130,246,.06)]"
+                                    : "border border-white/[0.07] bg-[#0f1623]"
+                                )}
                               >
-                                {widget.name}
-                              </span>
-                              <div className="mt-[5px] flex items-center justify-between">
-                                <span className="font-mono text-[9px] text-white/[0.28]">
-                                  {widget.defaultSize.w}x{widget.defaultSize.h}
-                                </span>
+                                <MonitoringWidgetThumbnail widget={widget} />
                                 <span
-                                  className={cn(
-                                    "flex h-4 w-4 items-center justify-center rounded-[4px]",
-                                    used ? "bg-[rgba(91,143,214,.18)]" : "bg-white/[0.04]"
-                                  )}
+                                  className="mt-2 line-clamp-2 text-[11px] font-semibold leading-snug text-[#e2e8f0]"
+                                  style={{ minHeight: "2.6em" }}
                                 >
-                                  {used
-                                    ? <Edit3 className="h-[9px] w-[9px] text-[#3b82f6]" strokeWidth={2.2} />
-                                    : <Plus  className="h-[9px] w-[9px] text-white/[0.4]" strokeWidth={2.2} />
-                                  }
+                                  {widget.name}
                                 </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                                <div className="mt-[5px] flex items-center justify-between">
+                                  <span className="font-mono text-[9px] text-white/[0.28]">
+                                    {widget.defaultSize.w}x{widget.defaultSize.h}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "flex h-4 w-4 items-center justify-center rounded-[4px]",
+                                      used ? "bg-[rgba(91,143,214,.18)]" : "bg-white/[0.04]"
+                                    )}
+                                  >
+                                    {used
+                                      ? <Edit3 className="h-[9px] w-[9px] text-[#3b82f6]" strokeWidth={2.2} />
+                                      : <Plus  className="h-[9px] w-[9px] text-white/[0.4]" strokeWidth={2.2} />
+                                    }
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {groupWidgets.map((widget) => {
+                            const used = usedWidgetIds.has(widget.id);
+                            const catLabel = WIDGET_CATEGORY_LABELS[widget.dataSource ?? ""] ?? (widget.dataSource ?? "기타");
+                            return (
+                              <button
+                                key={widget.id}
+                                type="button"
+                                draggable
+                                onDragStart={(event) => {
+                                  event.dataTransfer.setData("application/x-aim-monitoring-widget", widget.id);
+                                  event.dataTransfer.effectAllowed = "copy";
+                                  setIsDraggingWidget(true);
+                                }}
+                                onDragEnd={() => setIsDraggingWidget(false)}
+                                className={cn(
+                                  "group flex w-full gap-2.5 rounded-[9px] p-2 text-left transition-all duration-150 hover:border-[#3b82f6]",
+                                  used
+                                    ? "border border-[rgba(59,130,246,.3)] bg-[rgba(59,130,246,.06)]"
+                                    : "border border-white/[0.07] bg-[#0f1623]"
+                                )}
+                              >
+                                <div className="h-[52px] w-[64px] shrink-0 overflow-hidden rounded-lg">
+                                  <MonitoringWidgetThumbnail widget={widget} />
+                                </div>
+                                <div className="min-w-0 flex-1 py-0.5">
+                                  <p className="truncate text-[11px] font-semibold text-[#e2e8f0]">{widget.name}</p>
+                                  <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-white/35">{widget.description}</p>
+                                  <div className="mt-1.5 flex items-center gap-1.5">
+                                    <span className="rounded px-1.5 py-px text-[9px] font-medium text-[#3b82f6]" style={{ background: "rgba(59,130,246,0.08)" }}>
+                                      {catLabel}
+                                    </span>
+                                    <span className="font-mono text-[9px] text-white/20">{widget.defaultSize.w}×{widget.defaultSize.h}</span>
+                                  </div>
+                                </div>
+                                <div className="flex shrink-0 items-center self-center pr-0.5">
+                                  <span className={cn("flex h-5 w-5 items-center justify-center rounded-[4px]", used ? "bg-[rgba(91,143,214,.18)]" : "bg-white/[0.04]")}>
+                                    {used
+                                      ? <Edit3 className="h-[9px] w-[9px] text-[#3b82f6]" strokeWidth={2.2} />
+                                      : <Plus  className="h-[9px] w-[9px] text-white/[0.4]" strokeWidth={2.2} />
+                                    }
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </section>
                   ))
                 )}
@@ -2480,6 +3236,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
             </div>
           )}
         </aside>
+
         <AnimatePresence>
           {showRightPanel && (
             <motion.div
@@ -2499,7 +3256,66 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
         </AnimatePresence>
         </motion.div>
 
+        {/* ── 좌측 패널 리사이즈 핸들 — 1px 레이아웃, ±5px 히트영역 ── */}
+        <div
+          className="group relative flex-shrink-0 cursor-col-resize"
+          style={{ width: 1, zIndex: 20 }}
+          onMouseDown={(e) => {
+            const startX = e.clientX;
+            const startW = leftPanelWidth;
+            const onMove = (ev: MouseEvent) => {
+              setLeftPanelWidth(Math.min(480, Math.max(200, startW + ev.clientX - startX)));
+            };
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+              document.body.style.cursor = "";
+              document.body.style.userSelect = "";
+            };
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }}
+        >
+          <div className="absolute inset-0 bg-white/[0.07] transition-colors duration-150 group-hover:bg-violet-500/60" />
+          <div className="absolute inset-y-0" style={{ left: -5, right: -5 }} />
+        </div>
+
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0b1120]">
+          {/* ── 데이터 준비 상태 배너 ── */}
+          <AnimatePresence>
+            {centerView === "monitor" && dataReadiness !== "mapped" && (
+              <motion.div
+                key="no-data-banner"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 20px", background: "oklch(18% 0.06 285 / .95)", borderBottom: "1px solid oklch(50% 0.18 285 / .25)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", zIndex: 30, flexShrink: 0 }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <motion.span
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    style={{ width: 7, height: 7, borderRadius: "50%", background: "oklch(65% 0.18 285)", display: "inline-block", flexShrink: 0, boxShadow: "0 0 8px oklch(65% 0.18 285 / .7)" }}
+                  />
+                  <span style={{ fontSize: 12, color: "oklch(75% 0.12 285)", fontWeight: 500 }}>
+                    {dataReadiness === "none"
+                      ? "데이터 소스가 연결되지 않았습니다. DB 수집을 먼저 설정해 주세요."
+                      : "DB 소스가 연결되었습니다. 데이터 매핑을 완료하면 위젯 값이 표시됩니다."}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setCenterView(dataReadiness === "none" ? "db" : "mapping")}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, background: "oklch(55% 0.22 285)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+                >
+                  {dataReadiness === "none" ? <Database style={{ width: 12, height: 12 }} /> : <Network style={{ width: 12, height: 12 }} />}
+                  {dataReadiness === "none" ? "DB 수집 연결하기" : "데이터 매핑하기"}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {/* ── 중앙 뷰 컨테이너 ── */}
           <div className="relative min-h-0 flex-1 overflow-hidden">
           {centerView === "db" ? (
@@ -2519,10 +3335,14 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               widgetLiveData={widgetLiveData}
               elementConfigs={elementConfigs}
               brand={brand}
+              isConnected={connectedSourceIds.size > 0}
+              dataReadiness={dataReadiness}
+              mappedTargetIds={mappedTargetIds}
               selectedWidgetId={selectedWidgetId}
               selectedElementId={selectedElement?.id ?? null}
               isDraggingWidget={isDraggingWidget}
               interactionActive={Boolean(interaction) || Boolean(defaultInteraction)}
+              layoutPriorityId={interaction?.instanceId ?? defaultInteraction?.elementId ?? null}
               onDragOver={(event) => {
                 if (event.dataTransfer.types.includes("application/x-aim-monitoring-widget")) {
                   event.preventDefault();
@@ -2571,6 +3391,7 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               activePageLabel="홈 대시보드"
             />
           )}
+
           </div>
 
           {/* ── 페이지 추가 패널 — main 안에서 absolute, 탑메뉴·좌패널 제외 ── */}
@@ -2669,21 +3490,26 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               <Minimize2 className="h-4 w-4" />
             </button>
             <MonitoringLayoutCanvas
-              canvasRef={canvasRef}
+              canvasRef={fullscreenCanvasRef}
               customWidgets={canvasWidgets}
               widgetById={widgetById}
               widgetLiveData={widgetLiveData}
               elementConfigs={elementConfigs}
               brand={brand}
+              isConnected={connectedSourceIds.size > 0}
+              dataReadiness={dataReadiness}
+              mappedTargetIds={mappedTargetIds}
               selectedWidgetId={selectedWidgetId}
               selectedElementId={null}
               isDraggingWidget={false}
               interactionActive={false}
+              layoutPriorityId={null}
               onDragOver={() => {}}
               onDrop={() => {}}
               onSelectWidget={(id) => { setSelectedWidgetId(id); setIsFullscreen(false); }}
               onSelectElement={() => {}}
               onStartWidgetInteraction={() => {}}
+              hidePageManagement
             />
           </motion.div>
         )}

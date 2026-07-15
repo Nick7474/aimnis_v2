@@ -58,6 +58,20 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
   const textStrong = brand?.textStrongColor ?? '#F8FAFC';
   const textMuted  = brand?.textSoftColor   ?? '#94A3B8';
 
+  function hexLum(hex: string) {
+    const h = hex.replace('#', '');
+    return (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) / 255;
+  }
+  const isLight = hexLum(bg) > 0.5;
+  const th = {
+    tableHead:   isLight ? '#EEF1F7'         : 'rgba(30,41,59,.5)',
+    rowSelected: isLight ? `${primary}1a`    : '#1e293b',
+    rowDivider:  border,
+    chartGrid:   isLight ? 'rgba(0,0,0,.08)' : '#334155',
+    tooltipBg:   surface,
+    tooltipBd:   border,
+  };
+
   const [activeTab, setActiveTab] = useState('전체 작업자');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(mockWorkers[0]);
 
@@ -85,7 +99,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header & Tabs */}
       <div className="shrink-0 mb-4 lg:mb-6">
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2 mb-4" style={{ color: textStrong }}>
           작업자 안전
         </h2>
         <div className="flex items-center gap-6 border-b" style={{ borderColor: border }}>
@@ -93,12 +107,8 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedWorker(tab === '전체 작업자' || tab === '위험 작업자' ? mockWorkers[0] : null); }}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
-                  ? 'border-b-2'
-                  : 'text-slate-400 border-transparent hover:text-slate-300'
-              }`}
-              style={activeTab === tab ? { color: primary, borderColor: primary } : undefined}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors`}
+              style={activeTab === tab ? { color: primary, borderColor: primary } : { color: textMuted, borderColor: 'transparent' }}
             >
               {tab}
             </button>
@@ -114,8 +124,8 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                <Users size={24} className="text-blue-400" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">전체 작업자</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">128 <span className="text-sm font-normal text-slate-500">명</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>전체 작업자</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>128 <span className="text-sm font-normal" style={{ color: textMuted }}>명</span></div>
             </div>
           </div>
           <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
@@ -123,8 +133,8 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                <ShieldCheck size={24} className="text-emerald-500" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">정상 작업자</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">98 <span className="text-sm font-normal text-slate-500">명</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>정상 작업자</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>98 <span className="text-sm font-normal" style={{ color: textMuted }}>명</span></div>
             </div>
           </div>
           <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border" style={{ background: surface, borderColor: border }}>
@@ -132,8 +142,8 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                <AlertTriangle size={24} className="text-yellow-500" />
             </div>
             <div className="flex flex-col flex-1">
-               <div className="text-slate-400 text-sm font-medium">주의/위험 작업자</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">23 <span className="text-sm font-normal text-slate-500">명</span></div>
+               <div className="text-sm font-medium" style={{ color: textMuted }}>주의/위험 작업자</div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>23 <span className="text-sm font-normal" style={{ color: textMuted }}>명</span></div>
             </div>
           </div>
           <div className="rounded-xl px-5 py-4 flex gap-4 items-center h-[100px] shrink-0 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.05)]" style={{ background: surface }}>
@@ -142,17 +152,17 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
             </div>
             <div className="flex flex-col flex-1">
                <div className="text-red-400 text-sm font-bold">긴급 조치 필요</div>
-               <div className="text-3xl font-bold text-slate-100 mt-0.5">7 <span className="text-sm font-normal text-slate-500">명</span></div>
+               <div className="text-3xl font-bold mt-0.5" style={{ color: textStrong }}>7 <span className="text-sm font-normal" style={{ color: textMuted }}>명</span></div>
             </div>
           </div>
         </div>
 
         {activeTab === '안전 알림 이력' ? (
           <div className="rounded-xl flex flex-col overflow-hidden min-h-[400px] border" style={{ background: surface, borderColor: border }}>
-             <div className="px-4 py-3 border-b text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+             <div className="px-4 py-3 border-b text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                안전 알림 전체 이력
              </div>
-             <div className="p-4 flex-1" style={{ background: bg }}>
+             <div className="p-4 flex-1" style={{ background: surface }}>
                 <table className="w-full text-left whitespace-nowrap text-sm">
                    <thead className="text-[11px] text-slate-500 border-b" style={{ borderColor: border }}>
                      <tr>
@@ -164,11 +174,11 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                         <th className="pb-2 font-medium text-center">조치 상태</th>
                      </tr>
                    </thead>
-                   <tbody className="text-slate-300">
+                   <tbody style={{ color: textStrong }}>
                       {mockHistory.map(row => (
-                        <tr key={row.id} className="hover:bg-[#1e293b]/50 border-b border-[#1f2937]/50">
-                           <td className="py-3 text-slate-400">{row.date}</td>
-                           <td className="py-3 text-slate-200">{row.name}</td>
+                        <tr key={row.id} style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
+                           <td className="py-3" style={{ color: textMuted }}>{row.date}</td>
+                           <td className="py-3" style={{ color: textStrong }}>{row.name}</td>
                            <td className="py-3">{row.issue}</td>
                            <td className="py-3 text-center">{row.value}</td>
                            <td className="py-3 text-center">
@@ -219,7 +229,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
           <div className="flex items-center rounded-lg p-1 ml-auto border" style={{ background: surface, borderColor: border }}>
              <div className="px-3 text-xs text-slate-500 mr-1">이상 유형:</div>
             {['SpO2', '심박수', '낙상', '위험 구역', '통신 끊김'].map(s => (
-               <button key={s} className="px-3 py-1 text-sm rounded text-slate-400 hover:text-slate-200 hover:bg-[#1f2937]">
+               <button key={s} className="px-3 py-1 text-sm rounded" style={{ color: textMuted }}>
                  {s}
                </button>
             ))}
@@ -239,12 +249,12 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
         <div className="flex flex-col xl:flex-row gap-4 lg:gap-6 shrink-0 min-h-[300px]">
           {/* List */}
           <div className="rounded-xl flex flex-col overflow-hidden w-full xl:w-[60%] border" style={{ background: surface, borderColor: border }}>
-            <div className="px-4 py-3 border-b text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+            <div className="px-4 py-3 border-b text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
               작업자 목록
             </div>
-            <div className="overflow-x-auto flex-1 min-h-[220px]" style={{ background: `${bg}4D` }}>
+            <div className="overflow-x-auto flex-1 min-h-[220px]" style={{ background: surface }}>
               <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="text-[11px] text-slate-400 border-b bg-[#1e293b]/50" style={{ borderColor: border }}>
+                <thead className="text-[11px] border-b" style={{ borderColor: border, background: th.tableHead, color: textMuted }}>
                   <tr>
                     <th className="px-4 py-2 font-medium">상태</th>
                     <th className="px-4 py-2 font-medium">작업자명</th>
@@ -259,22 +269,23 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                     <th className="px-4 py-2 font-medium text-center">상세</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1f2937]">
+                <tbody>
                   {(activeTab === '위험 작업자' ? mockWorkers.filter(w => w.status !== '정상') : mockWorkers).map((worker) => (
                     <tr
                       key={worker.id}
                       onClick={() => setSelectedWorker(worker)}
-                      className={`cursor-pointer transition-colors text-[13px] ${selectedWorker?.id === worker.id ? 'bg-[#1e293b]' : 'hover:bg-[#1e293b]/50'}`}
+                      className="cursor-pointer transition-colors text-[13px]"
+                      style={{ borderBottom: `1px solid ${th.rowDivider}`, background: selectedWorker?.id === worker.id ? th.rowSelected : undefined }}
                     >
                       <td className="px-4 py-2.5">
                         <span className={`px-2 py-0.5 rounded text-[11px] font-medium border ${getStatusColor(worker.status)}`}>
                           {worker.status}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 font-medium text-slate-200">{worker.name}</td>
-                      <td className="px-4 py-2.5 text-slate-400">{worker.team}</td>
-                      <td className="px-4 py-2.5 text-slate-400">{worker.location}</td>
-                      <td className="px-4 py-2.5 text-slate-300">{worker.mainIssue === '이상 없음' ? '-' : worker.mainIssue}</td>
+                      <td className="px-4 py-2.5 font-medium" style={{ color: textStrong }}>{worker.name}</td>
+                      <td className="px-4 py-2.5" style={{ color: textMuted }}>{worker.team}</td>
+                      <td className="px-4 py-2.5" style={{ color: textMuted }}>{worker.location}</td>
+                      <td className="px-4 py-2.5" style={{ color: textStrong }}>{worker.mainIssue === '이상 없음' ? '-' : worker.mainIssue}</td>
                       <td className={`px-4 py-2.5 text-center font-bold ${(worker.spo2 && worker.spo2 < 90) ? 'text-red-400' : 'text-slate-300'}`}>
                         {worker.spo2 || '-'}
                       </td>
@@ -284,7 +295,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                       <td className={`px-4 py-2.5 text-center font-bold ${worker.fallDetection === '감지' ? 'text-red-400' : 'text-slate-500'}`}>
                         {worker.fallDetection}
                       </td>
-                      <td className="px-4 py-2.5 text-slate-500 text-[11px]">{worker.lastUpdated}</td>
+                      <td className="px-4 py-2.5 text-[11px]" style={{ color: textMuted }}>{worker.lastUpdated}</td>
                       <td className="px-4 py-2.5 text-center">
                         <span className={`text-[11px] border px-2 py-0.5 rounded-sm ${getActionStatusColor(worker.actionStatus)}`}>{worker.actionStatus}</span>
                       </td>
@@ -298,15 +309,15 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
             </div>
             <div className="px-4 py-2 border-t flex items-center justify-center text-xs text-slate-500" style={{ borderColor: border, background: surface }}>
                <div className="flex gap-1">
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&lt;&lt;</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&lt;</button>
+                 <button className="px-2 py-1 rounded" style={{ color: textMuted }}>&lt;&lt;</button>
+                 <button className="px-2 py-1 rounded" style={{ color: textMuted }}>&lt;</button>
                  <button className="px-2 py-1 rounded text-white" style={{ background: `${primary}33`, color: primary }}>1</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded">2</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded">3</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded">4</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded">5</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&gt;</button>
-                 <button className="px-2 py-1 hover:bg-[#1f2937] rounded text-slate-400">&gt;&gt;</button>
+                 <button className="px-2 py-1 rounded">2</button>
+                 <button className="px-2 py-1 rounded">3</button>
+                 <button className="px-2 py-1 rounded">4</button>
+                 <button className="px-2 py-1 rounded">5</button>
+                 <button className="px-2 py-1 rounded" style={{ color: textMuted }}>&gt;</button>
+                 <button className="px-2 py-1 rounded" style={{ color: textMuted }}>&gt;&gt;</button>
                  <select className="bg-transparent border border-[#334155] rounded outline-none ml-2 text-slate-400">
                     <option>10 / 페이지</option>
                  </select>
@@ -317,27 +328,27 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
           {/* Details */}
           {selectedWorker ? (
             <div className="rounded-xl flex flex-col w-full xl:w-[40%] animate-in fade-in duration-200 border" style={{ background: surface, borderColor: border }}>
-              <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+              <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                 작업자 상세
                 <span className="text-[10px] text-slate-500 font-normal flex items-center gap-1"><History size={12}/> 10초 전 갱신</span>
               </div>
-              <div className="p-4 flex flex-col gap-5 flex-1" style={{ background: bg }}>
+              <div className="p-4 flex flex-col gap-5 flex-1" style={{ background: surface }}>
                 {/* Header Profile */}
                 <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-full bg-[#1e293b] flex items-center justify-center border-2 border-[#334155] shrink-0">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 shrink-0" style={{ background: border, borderColor: border }}>
                     <Heart size={24} className="text-slate-500" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg font-bold text-slate-100">{selectedWorker.name}</span>
+                      <span className="text-lg font-bold" style={{ color: textStrong }}>{selectedWorker.name}</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${getStatusColor(selectedWorker.status)}`}>{selectedWorker.status}</span>
                     </div>
-                    <div className="text-sm text-slate-400 mb-1">{selectedWorker.team}</div>
-                    <div className="text-xs text-slate-500">현재 위치: <span className="text-slate-300">{selectedWorker.location}</span></div>
+                    <div className="text-sm mb-1" style={{ color: textMuted }}>{selectedWorker.team}</div>
+                    <div className="text-xs" style={{ color: textMuted }}>현재 위치: <span style={{ color: textStrong }}>{selectedWorker.location}</span></div>
                   </div>
-                  <div className="flex flex-col items-end gap-1 text-xs text-slate-500">
-                    <div>최근 측정 <span className="text-slate-300">{selectedWorker.lastUpdated}</span></div>
-                    <div>현상태 <span className="text-slate-300">{selectedWorker.mainIssue}</span></div>
+                  <div className="flex flex-col items-end gap-1 text-xs" style={{ color: textMuted }}>
+                    <div>최근 측정 <span style={{ color: textStrong }}>{selectedWorker.lastUpdated}</span></div>
+                    <div>현상태 <span style={{ color: textStrong }}>{selectedWorker.mainIssue}</span></div>
                     <div className="flex items-center gap-1 mt-1">
                        연락 가능 여부
                        {selectedWorker.contactAvailable ? (
@@ -351,7 +362,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
 
                 {/* Biometrics */}
                 <div className="rounded-lg p-3 border" style={{ background: surface, borderColor: border }}>
-                  <div className="text-xs font-bold text-slate-400 mb-2 pb-1 border-b" style={{ borderColor: border }}>생체·안전 정보</div>
+                  <div className="text-xs font-bold mb-2 pb-1 border-b" style={{ borderColor: border, color: textMuted }}>생체·안전 정보</div>
                   <div className="grid grid-cols-2 gap-4">
                      <div className="flex justify-between items-center py-1">
                         <span className="text-slate-500 text-sm">SpO2</span>
@@ -381,16 +392,16 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                 </div>
 
                 {/* Action Info */}
-                <div className="bg-[#1e293b]/30 rounded-lg p-3 border" style={{ borderColor: border }}>
-                  <div className="text-xs font-bold text-slate-300 mb-1">권장 조치</div>
-                  <p className="text-[13px] text-slate-400 leading-relaxed mb-4">
+                <div className="rounded-lg p-3 border" style={{ background: isLight ? `${primary}08` : 'rgba(30,41,59,0.3)', borderColor: border }}>
+                  <div className="text-xs font-bold mb-1" style={{ color: textStrong }}>권장 조치</div>
+                  <p className="text-[13px] leading-relaxed mb-4" style={{ color: textMuted }}>
                     {selectedWorker.status === '위험' ? 'SpO2 수치가 정상 범위보다 낮습니다. 작업자에게 휴식 및 산소 공급을 권장하고 상태를 지속적으로 모니터링하십시오.' : '현재 특별한 조치가 필요하지 않거나 확인 중입니다.'}
                   </p>
                   <div className="flex gap-2">
-                     <select className="rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none flex-1 border border-[#334155]" style={{ background: surface }}>
+                     <select className="rounded-lg px-3 py-1.5 text-xs outline-none flex-1 border" style={{ color: textStrong, background: surface, borderColor: border }}>
                         <option>담당자: 홍길동 (현장관리자)</option>
                      </select>
-                     <select className="rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none w-32 border border-[#334155]" style={{ background: surface }}>
+                     <select className="rounded-lg px-3 py-1.5 text-xs outline-none w-32 border" style={{ color: textStrong, background: surface, borderColor: border }}>
                         <option>미조치</option>
                         <option>조치 중</option>
                         <option>완료</option>
@@ -415,7 +426,7 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
 
           {/* Biometric Trend */}
           <div className="rounded-xl flex flex-col w-full xl:w-1/3 border" style={{ background: surface, borderColor: border }}>
-            <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+            <div className="px-4 py-3 border-b flex items-center justify-between text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                생체 상태 추이
                <div className="flex gap-1">
                  <button className="px-2 py-0.5 text-white text-[10px] rounded" style={{ background: primary }}>1시간</button>
@@ -426,11 +437,11 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
             <div className="p-3 flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={mockTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={th.chartGrid} vertical={false} />
                   <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 10 }} tickMargin={10} axisLine={false} tickLine={false} />
                   <YAxis yAxisId="left" stroke="#64748b" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} width={30} />
                   <YAxis yAxisId="right" orientation="right" stroke="#64748b" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} width={30} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
+                  <Tooltip contentStyle={{ backgroundColor: th.tooltipBg, borderColor: th.tooltipBd, fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
                   <Line yAxisId="left" type="monotone" dataKey="spo2" name={"SpO2 (%)"} stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }} />
                   <Line yAxisId="right" type="monotone" dataKey="heartRate" name={"심박수 (bpm)"} stroke="#ef4444" strokeWidth={1.5} dot={{ r: 3, fill: '#ef4444', strokeWidth: 0 }} />
                 </LineChart>
@@ -440,9 +451,9 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
 
           {/* Location / Zone */}
           <div className="rounded-xl flex flex-col w-full xl:w-1/3 p-4 border" style={{ background: surface, borderColor: border }}>
-             <div className="text-sm font-bold text-slate-300 mb-4">위치/구역 정보</div>
+             <div className="text-sm font-bold mb-4" style={{ color: textStrong }}>위치/구역 정보</div>
              <div className="flex-1 flex flex-col gap-4">
-                <div className="p-3 rounded-lg flex justify-between items-center border" style={{ background: bg, borderColor: border }}>
+                <div className="p-3 rounded-lg flex justify-between items-center border" style={{ background: surface, borderColor: border }}>
                   <div>
                     <div className="text-xs text-slate-500 mb-1">현재 구역</div>
                     <div className="text-base font-bold text-slate-200">보일러동 B-102</div>
@@ -489,10 +500,10 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
 
           {/* History */}
           <div className="rounded-xl flex flex-col w-full xl:w-1/3 border" style={{ background: surface, borderColor: border }}>
-             <div className="px-4 py-3 border-b text-sm font-bold text-slate-300" style={{ borderColor: border }}>
+             <div className="px-4 py-3 border-b text-sm font-bold" style={{ borderColor: border, color: textStrong }}>
                안전 알림 이력
              </div>
-             <div className="p-3 flex-1" style={{ background: bg }}>
+             <div className="p-3 flex-1" style={{ background: surface }}>
                 <table className="w-full text-left whitespace-nowrap">
                    <thead className="text-[10px] text-slate-500 border-b" style={{ borderColor: border }}>
                      <tr>
@@ -504,10 +515,10 @@ export default function WorkerSafety({ brand }: WorkerSafetyProps) {
                         <th className="pb-2 font-medium text-center">조치 상태</th>
                      </tr>
                    </thead>
-                   <tbody className="text-[11px] text-slate-300">
+                   <tbody className="text-[11px]" style={{ color: textStrong }}>
                       {mockHistory.map(row => (
-                        <tr key={row.id} className="border-b border-[#1f2937]/50">
-                           <td className="py-2 text-slate-400">{row.date.split(' ')[1]}</td>
+                        <tr key={row.id} style={{ borderBottom: `1px solid ${th.rowDivider}` }}>
+                           <td className="py-2" style={{ color: textMuted }}>{row.date.split(' ')[1]}</td>
                            <td className="py-2">{row.name}</td>
                            <td className="py-2">{row.issue}</td>
                            <td className="py-2">{row.value}</td>

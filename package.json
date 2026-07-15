@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "qa": "npm run qa:static && npm run qa:layout && npm run qa:smoke && npm run qa:visual",
+    "qa:static": "tsc --noEmit && node scripts/qa/static-audit.mjs",
+    "qa:layout": "playwright test tests/qa/monitoring-layout-engine.spec.ts",
+    "qa:smoke": "playwright test tests/qa/smoke.spec.ts",
+    "qa:visual": "playwright test tests/qa/visual.spec.ts",
+    "qa:visual:update": "playwright test tests/qa/visual.spec.ts --update-snapshots",
+    "qa:report": "playwright show-report"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
@@ -28,6 +35,7 @@
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.1.6",
+    "@types/react-grid-layout": "^1.3.6",
     "antd": "^6.3.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -37,6 +45,7 @@
     "next": "14.2.29",
     "react": "^18",
     "react-dom": "^18",
+    "react-grid-layout": "^2.2.3",
     "react-router-dom": "^7.14.0",
     "reactflow": "^11.11.4",
     "recharts": "^2.15.3",
@@ -46,6 +55,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

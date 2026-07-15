@@ -30,3 +30,10 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+.vercel
+.vercel.bak/
+.claude/
+
+# QA artifacts
+playwright-report/
+test-results/

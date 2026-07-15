@@ -7,8 +7,7 @@ import { ArrowRight, Loader2, Lock } from "lucide-react";
 import { useHomeStore } from "@/store/homeStore";
 import { HarnessLoader } from "@/components/shared/AIMILoader";
 
-// EditorLayout과 동일한 키
-const LS_KEY = "aimnis_harness_draft";
+const LS_KEY_BASE = "aimnis_harness_draft";
 
 export default function CreateHarnessBtn() {
   const { isComplete, selectedSolution, selectedScenario, blueprintMd, selectedSpecs } = useHomeStore();
@@ -34,6 +33,7 @@ export default function CreateHarnessBtn() {
     const solutionId = selectedSolution ?? "guard";
 
     // MD + 메타데이터 sessionStorage 저장 (EditorLayout 복원용)
+    const lsKey = `${LS_KEY_BASE}_${solutionId}`;
     try {
       const payload = JSON.stringify({
         solution: solutionId,
@@ -42,8 +42,8 @@ export default function CreateHarnessBtn() {
         specs: selectedSpecs,
         savedAt: Date.now(),
       });
-      sessionStorage.setItem(LS_KEY, payload);
-      localStorage.setItem(LS_KEY, payload);
+      sessionStorage.setItem(lsKey, payload);
+      localStorage.setItem(lsKey, payload);
     } catch {
       // 스토리지 접근 불가 시 무시
     }

@@ -80,6 +80,8 @@ function ChatInput() {
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: typeof userContent === "string" ? userContent : text }],
           solution: selectedSolution ?? "guard",
+          keepTurns: 3,
+          chatMode: "design",
         }),
       });
 
@@ -205,17 +207,15 @@ function LeftPanel({ onMagicTrigger }: { onMagicTrigger: () => void }) {
         </div>
       </div>
     </div>
-    {/* 1px 드래그 핸들 */}
+    {/* 드래그 핸들 — 1px 레이아웃, ±5px 히트영역 */}
     <div
       onMouseDown={onMouseDown}
-      style={{
-        width: 1, flexShrink: 0, cursor: "col-resize",
-        background: "var(--border)",
-        transition: "background 0.15s",
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = "var(--primary)")}
-      onMouseLeave={e => (e.currentTarget.style.background = "var(--border)")}
-    />
+      className="group relative flex-shrink-0 cursor-col-resize"
+      style={{ width: 1 }}
+    >
+      <div className="absolute inset-0 bg-white/[0.07] transition-colors duration-150 group-hover:bg-violet-500/60" />
+      <div className="absolute inset-y-0" style={{ left: -5, right: -5 }} />
+    </div>
     </div>
   );
 }

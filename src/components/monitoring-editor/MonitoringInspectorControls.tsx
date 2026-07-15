@@ -2,6 +2,7 @@
 
 import type { ComponentType, ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
+import ColorTokenPicker from "@/components/editor/ColorTokenPicker";
 
 export function MonitoringInspectorHeader({
   icon: Icon,
@@ -190,6 +191,8 @@ export function MonitoringColorControl({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const normalized = /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000";
+
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2">
       <span className="flex-shrink-0 text-xs text-white/60">{label}</span>
@@ -200,12 +203,7 @@ export function MonitoringColorControl({
           onChange={(event) => onChange(event.target.value)}
           className="w-[96px] rounded-md border border-white/[0.08] bg-black/20 px-2 py-1 text-right font-mono text-[10px] uppercase text-white/55 focus:border-cyan-300/35 focus:outline-none"
         />
-        <input
-          type="color"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-7 w-7 rounded-md border border-white/[0.08] bg-black/20 p-1"
-        />
+        <ColorTokenPicker label={label} value={normalized} onChange={onChange} />
       </div>
     </div>
   );

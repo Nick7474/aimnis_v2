@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { Activity, Bell, Info, MoreVertical, Triangle, UserCheck, Wind } from "lucide-react";
+import { motion } from "framer-motion";
+import { Activity, Bell, Database, Info, MoreVertical, Triangle, UserCheck, Wind } from "lucide-react";
 import type { BrandSettings } from "@/lib/brandPresets";
 import type { SolutionWidget } from "@/lib/solutionLoader";
+import { resolveMonitoringGrid } from "@/lib/monitoringLayoutEngine";
 import Sidebar from "@/monitoring-app/components/Sidebar";
 import Header from "@/monitoring-app/components/Header";
 import MainChartSection from "@/monitoring-app/components/MainChartSection";
@@ -22,6 +24,7 @@ import Report from "@/monitoring-app/pages/Report";
 import SettingsPage from "@/monitoring-app/pages/Settings";
 
 type WidgetOptionValue = string | number | boolean;
+export type MonitoringDataReadiness = "none" | "source-connected" | "mapped";
 
 export interface MonitoringCanvasWidgetInstance {
   instanceId: string;
@@ -47,6 +50,13 @@ export interface MonitoringHeaderConfig {
   timestampLabel: string;
   operatorName: string;
   operatorRole: string;
+  logoUrl?: string;
+  logoSize?: number;
+  bgColor?: string;
+  borderColor?: string;
+  accentColor?: string;
+  textStrongColor?: string;
+  textSoftColor?: string;
 }
 
 export interface MonitoringSidebarConfig {
@@ -55,6 +65,12 @@ export interface MonitoringSidebarConfig {
   menuDensity: "comfortable" | "compact";
   showFooter: boolean;
   footerText: string;
+  bgColor?: string;
+  borderColor?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  textColor?: string;
+  textSoftColor?: string;
 }
 
 export interface MonitoringDefaultWidgetConfig {
@@ -62,6 +78,17 @@ export interface MonitoringDefaultWidgetConfig {
   dataBinding: string;
   accentColor: string;
   visible: boolean;
+  bgColor?: string;
+  borderColor?: string;
+  textStrongColor?: string;
+  textSoftColor?: string;
+  successColor?: string;
+  warningColor?: string;
+  dangerColor?: string;
+  series1Color?: string;
+  series2Color?: string;
+  series3Color?: string;
+  series4Color?: string;
   /* 사용자가 이동/크기조절한 경우 저장 — 없으면 기본값 사용 */
   x?: number;
   y?: number;
@@ -82,10 +109,14 @@ interface MonitoringLayoutCanvasProps {
   widgetLiveData?: Record<string, Record<string, unknown>>;
   elementConfigs: MonitoringElementConfigs;
   brand?: BrandSettings;
+  isConnected?: boolean;
+  dataReadiness?: MonitoringDataReadiness;
+  mappedTargetIds?: Set<string>;
   selectedWidgetId: string | null;
   selectedElementId: string | null;
   isDraggingWidget: boolean;
   interactionActive: boolean;
+  layoutPriorityId?: string | null;
   onDragOver: (event: DragEvent<HTMLDivElement>) => void;
   onDrop: (event: DragEvent<HTMLDivElement>) => void;
   onSelectWidget: (instanceId: string) => void;
@@ -105,6 +136,7 @@ interface MonitoringLayoutCanvasProps {
   ) => void;
   onHideDefaultWidget?: (id: string) => void;
   addedPages?: import("@/store/monitoringPagesStore").MonitoringPage[];
+  hidePageManagement?: boolean;
   onOpenPageBuilder?: () => void;
   onRemovePage?: (key: string) => void;
   navigateToPage?: string | null;
@@ -212,28 +244,15 @@ const CATEGORY_LABELS: Record<string, string> = {
   "field-validation": "실증",
 };
 
-function intersects(a: LayoutItem, b: LayoutItem) {
-  return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-}
-
-function resolveLayout(items: LayoutItem[]) {
-  const placed: LayoutItem[] = [];
-  const sorted = [...items].sort((a, b) => {
-    if (a.y !== b.y) return a.y - b.y;
-    if (a.x !== b.x) return a.x - b.x;
-    if (a.source !== b.source) return a.source === "widget-library" ? -1 : 1;
-    return a.id.localeCompare(b.id);
+// priorityId: 드래그 중인 위젯 ID — 같은 y 위치에서 이 위젯이 항상 먼저 배치됨
+// → 기존 위젯들이 드래그된 위젯에게 자리를 양보하는 "자연스러운 배치" 구현
+function resolveLayout(items: LayoutItem[], priorityId?: string) {
+  return resolveMonitoringGrid(items, {
+    columns: GRID_COLUMNS,
+    mode: "push",
+    priorityId,
+    sourceOrder: { "widget-library": 0, "ai-studio-default": 1 },
   });
-
-  sorted.forEach((item) => {
-    const next = { ...item, x: Math.max(0, Math.min(item.x, GRID_COLUMNS - item.w)) };
-    while (placed.some((placedItem) => intersects(next, placedItem))) {
-      next.y += 1;
-    }
-    placed.push(next);
-  });
-
-  return placed.sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
 }
 
 function SummaryCard({
@@ -251,11 +270,14 @@ function SummaryCard({
   value: string;
   unit?: string;
   sub: string;
-  tone?: "white" | "yellow";
+  tone?: "white" | "yellow" | "danger";
   accentColor?: string;
   brand: typeof DEFAULT_MONITORING_BRAND_TOKENS;
 }) {
-  const lineColor = tone === "yellow" ? "#eab308" : accentColor ?? "#3b82f6";
+  const lineColor =
+    tone === "yellow" ? (brand.warningColor ?? "#eab308") :
+    tone === "danger" ? (brand.dangerColor ?? "#ef4444") :
+    (accentColor ?? "#3b82f6");
 
   return (
     <div
@@ -279,7 +301,7 @@ function SummaryCard({
           <div className="flex items-baseline gap-1">
             <span
               className="text-[28px] font-bold leading-none"
-              style={{ color: tone === "yellow" ? brand.warningColor : brand.textStrongColor }}
+              style={{ color: tone === "yellow" ? brand.warningColor : tone === "danger" ? brand.dangerColor : brand.textStrongColor }}
             >
               {value}
             </span>
@@ -289,17 +311,122 @@ function SummaryCard({
             <Triangle
               size={10}
               style={{
-                color: tone === "yellow" ? brand.warningColor : brand.successColor,
-                fill: tone === "yellow" ? brand.warningColor : brand.successColor,
+                color: tone === "yellow" ? brand.warningColor : tone === "danger" ? brand.dangerColor : brand.successColor,
+                fill: tone === "yellow" ? brand.warningColor : tone === "danger" ? brand.dangerColor : brand.successColor,
               }}
             />
-            <span className="font-medium" style={{ color: tone === "yellow" ? brand.warningColor : brand.successColor }}>{sub}</span>
+            <span className="font-medium" style={{ color: tone === "yellow" ? brand.warningColor : tone === "danger" ? brand.dangerColor : brand.successColor }}>{sub}</span>
             <span>(어제 대비)</span>
           </div>
         </div>
         <svg viewBox="0 0 120 36" preserveAspectRatio="none" className="h-8 w-28">
           <polyline points="0,24 12,21 24,23 36,18 48,21 60,15 72,19 84,14 96,18 108,15 120,17" fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round" />
         </svg>
+      </div>
+    </div>
+  );
+}
+
+function dataReadinessCopy(readiness: MonitoringDataReadiness) {
+  if (readiness === "none") {
+    return { badge: "미연결", title: "None", caption: "DB 수집 연결 전" };
+  }
+  if (readiness === "source-connected") {
+    return { badge: "매핑 대기", title: "None", caption: "데이터 매핑 후 표시" };
+  }
+  return { badge: "Live", title: "Live", caption: "연결됨" };
+}
+
+function NoneSummaryCard({
+  title,
+  icon: Icon,
+  brand,
+  accentColor,
+  readiness,
+}: {
+  title: string;
+  icon: typeof Activity;
+  brand: typeof DEFAULT_MONITORING_BRAND_TOKENS;
+  accentColor?: string;
+  readiness: MonitoringDataReadiness;
+}) {
+  const copy = dataReadinessCopy(readiness);
+  const color = accentColor ?? brand.accentColor;
+
+  return (
+    <div
+      className="flex h-full flex-col justify-between rounded-lg border p-5 shadow-sm"
+      style={{ backgroundColor: brand.surfaceColor, borderColor: brand.borderColor, color: brand.textColor }}
+    >
+      <div className="mb-2 flex shrink-0 items-center justify-between">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium" style={{ color: brand.textColor }}>
+          <Icon size={16} style={{ color: brand.textSoftColor }} strokeWidth={1.5} />
+          <span className="truncate">{title}</span>
+          <Info size={14} className="ml-1 shrink-0" style={{ color: brand.textSoftColor }} />
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold" style={{ borderColor: `${color}40`, color }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: color, display: "inline-block", opacity: 0.7, flexShrink: 0 }} />
+          {copy.badge}
+        </span>
+      </div>
+      <div className="flex flex-1 items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-mono text-[28px] font-bold leading-none" style={{ color: brand.textSoftColor }}>
+            {copy.title}
+          </div>
+          <div className="mt-2 text-xs" style={{ color: brand.textSoftColor }}>
+            {copy.caption}
+          </div>
+        </div>
+        <div className="flex h-10 w-28 shrink-0 items-end gap-1 opacity-35">
+          {[34, 22, 29, 18, 26, 14, 21].map((height, index) => (
+            <span
+              key={index}
+              className="flex-1 rounded-t"
+              style={{ height, backgroundColor: index % 3 === 0 ? color : brand.borderColor }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NonePanel({
+  title,
+  brand,
+  accentColor,
+  readiness,
+}: {
+  title: string;
+  brand: typeof DEFAULT_MONITORING_BRAND_TOKENS;
+  accentColor?: string;
+  readiness: MonitoringDataReadiness;
+}) {
+  const copy = dataReadinessCopy(readiness);
+  const color = accentColor ?? brand.accentColor;
+
+  return (
+    <div
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border p-5 shadow-sm"
+      style={{ backgroundColor: brand.surfaceColor, borderColor: brand.borderColor, color: brand.textColor }}
+    >
+      <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Database className="h-4 w-4 shrink-0" style={{ color: brand.textSoftColor }} />
+          <span className="truncate text-sm font-semibold" style={{ color: brand.textStrongColor }}>{title}</span>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: `${color}40`, color }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: color, display: "inline-block", opacity: 0.7, flexShrink: 0 }} />
+          {copy.badge}
+        </span>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-lg border border-dashed" style={{ borderColor: brand.borderColor }}>
+        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}14`, border: `1px solid ${color}28` }}>
+          <Database className="h-4 w-4" style={{ color }} />
+        </div>
+        <div className="font-mono text-xl font-bold" style={{ color: brand.textSoftColor }}>None</div>
+        <div className="mt-1 text-xs" style={{ color: brand.textSoftColor }}>{copy.caption}</div>
       </div>
     </div>
   );
@@ -385,6 +512,7 @@ export default function MonitoringLayoutCanvas({
   selectedElementId,
   isDraggingWidget,
   interactionActive,
+  layoutPriorityId = null,
   onDragOver,
   onDrop,
   onSelectWidget,
@@ -393,10 +521,14 @@ export default function MonitoringLayoutCanvas({
   onStartDefaultWidgetInteraction,
   onHideDefaultWidget,
   addedPages = [],
+  hidePageManagement = false,
   onOpenPageBuilder,
   onRemovePage,
   navigateToPage,
   onNavigated,
+  isConnected = true,
+  dataReadiness = isConnected ? "mapped" : "none",
+  mappedTargetIds,
 }: MonitoringLayoutCanvasProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState("홈");
@@ -407,10 +539,6 @@ export default function MonitoringLayoutCanvas({
       onNavigated?.();
     }
   }, [navigateToPage]);
-  const sidebarBaseWidth =
-    elementConfigs.sidebar.expandMode === "fixed" ? 220 :
-    elementConfigs.sidebar.expandMode === "collapsed" ? 72 :
-    isSidebarOpen ? 220 : 72;
   const brandTokens = useMemo(
     () => ({
       ...DEFAULT_MONITORING_BRAND_TOKENS,
@@ -422,6 +550,27 @@ export default function MonitoringLayoutCanvas({
     [brand]
   );
   const isLightTheme = hexLuminance(brandTokens.backgroundColor) > 0.5;
+
+  const headerBrand = useMemo(() => ({
+    ...brandTokens,
+    ...(elementConfigs.header.bgColor ? { surfaceColor: elementConfigs.header.bgColor, backgroundColor: elementConfigs.header.bgColor } : {}),
+    ...(elementConfigs.header.borderColor ? { borderColor: elementConfigs.header.borderColor } : {}),
+    ...(elementConfigs.header.accentColor ? { accentColor: elementConfigs.header.accentColor } : {}),
+    ...(elementConfigs.header.textStrongColor ? { textStrongColor: elementConfigs.header.textStrongColor } : {}),
+    ...(elementConfigs.header.textSoftColor ? { textSoftColor: elementConfigs.header.textSoftColor } : {}),
+  }), [brandTokens, elementConfigs.header]);
+
+  const sidebarBrand = useMemo(() => ({
+    ...brandTokens,
+    ...(brand?.sidebarColor ? { sidebarColor: brand.sidebarColor } : {}),
+    ...(elementConfigs.sidebar.bgColor ? { surfaceColor: elementConfigs.sidebar.bgColor, sidebarColor: elementConfigs.sidebar.bgColor } : {}),
+    ...(elementConfigs.sidebar.borderColor ? { borderColor: elementConfigs.sidebar.borderColor } : {}),
+    ...(elementConfigs.sidebar.primaryColor ? { primaryColor: elementConfigs.sidebar.primaryColor } : {}),
+    ...(elementConfigs.sidebar.accentColor ? { accentColor: elementConfigs.sidebar.accentColor } : {}),
+    ...(elementConfigs.sidebar.textColor ? { textColor: elementConfigs.sidebar.textColor } : {}),
+    ...(elementConfigs.sidebar.textSoftColor ? { textSoftColor: elementConfigs.sidebar.textSoftColor } : {}),
+  }), [brand, brandTokens, elementConfigs.sidebar]);
+
   const rootStyle: CSSProperties = {
     backgroundColor: brandTokens.backgroundColor,
     color: brandTokens.textColor,
@@ -432,6 +581,7 @@ export default function MonitoringLayoutCanvas({
     fontFamily: `${brandTokens.fontFamily}, var(--font), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`,
   };
   const getDefaultConfig = (id: string) => elementConfigs.defaultWidgets[id] ?? DEFAULT_MONITORING_ELEMENT_CONFIGS.defaultWidgets[id];
+  const isTargetLive = (targetId: string) => dataReadiness === "mapped" && (!mappedTargetIds || mappedTargetIds.has(targetId));
 
   const defaultItems = useMemo<LayoutItem[]>(
     () => {
@@ -441,6 +591,17 @@ export default function MonitoringLayoutCanvas({
           config,
           title: config?.title ?? fallbackTitle,
           accentColor: config?.accentColor ?? "#3b82f6",
+          bgColor: config?.bgColor,
+          borderColor: config?.borderColor,
+          textStrongColor: config?.textStrongColor,
+          textSoftColor: config?.textSoftColor,
+          successColor: config?.successColor,
+          warningColor: config?.warningColor,
+          dangerColor: config?.dangerColor,
+          series1Color: config?.series1Color,
+          series2Color: config?.series2Color,
+          series3Color: config?.series3Color,
+          series4Color: config?.series4Color,
           visible: config?.visible ?? true,
           x: config?.x ?? fallbackX,
           y: config?.y ?? fallbackY,
@@ -448,6 +609,17 @@ export default function MonitoringLayoutCanvas({
           h: config?.h ?? fallbackH,
         };
       };
+      const wb = (cfg: { bgColor?: string; borderColor?: string; textStrongColor?: string; textSoftColor?: string; accentColor?: string; successColor?: string; warningColor?: string; dangerColor?: string }) => ({
+        ...brandTokens,
+        ...(cfg.bgColor ? { surfaceColor: cfg.bgColor } : {}),
+        ...(cfg.borderColor ? { borderColor: cfg.borderColor } : {}),
+        ...(cfg.textStrongColor ? { textStrongColor: cfg.textStrongColor } : {}),
+        ...(cfg.textSoftColor ? { textSoftColor: cfg.textSoftColor } : {}),
+        ...(cfg.accentColor ? { accentColor: cfg.accentColor, primaryColor: cfg.accentColor } : {}),
+        ...(cfg.successColor ? { successColor: cfg.successColor } : {}),
+        ...(cfg.warningColor ? { warningColor: cfg.warningColor } : {}),
+        ...(cfg.dangerColor ? { dangerColor: cfg.dangerColor } : {}),
+      });
       const equipment    = item("summary-equipment-status", "전체 설비 상태",  0, 0,  3, 3);
       const environment  = item("summary-environment-risk", "환경 위험 상태",   3, 0,  3, 3);
       const worker       = item("summary-worker-safety",    "작업자 안전 상태", 6, 0,  3, 3);
@@ -458,6 +630,20 @@ export default function MonitoringLayoutCanvas({
       const realtime     = item("realtime-alerts",          "실시간 알림",      3, 13, 3, 5);
       const action       = item("action-progress",          "점검·조치 현황",   6, 13, 3, 5);
       const system       = item("system-status",            "시스템 상태",      9, 13, 3, 5);
+      const renderSummary = (
+        id: string,
+        cfg: typeof equipment,
+        icon: typeof Activity,
+        value: string,
+        unit: string | undefined,
+        sub: string,
+        tone?: "white" | "yellow" | "danger"
+      ) => isTargetLive(id)
+        ? <SummaryCard title={cfg.title} icon={icon} value={value} unit={unit} sub={sub} tone={tone} accentColor={cfg.accentColor} brand={wb(cfg)} />
+        : <NoneSummaryCard title={cfg.title} icon={icon} accentColor={cfg.accentColor} brand={wb(cfg)} readiness={dataReadiness} />;
+      const renderPanel = (id: string, cfg: typeof chart, node: React.ReactNode) => isTargetLive(id)
+        ? node
+        : <NonePanel title={cfg.title} accentColor={cfg.accentColor} brand={wb(cfg)} readiness={dataReadiness} />;
 
       const items: LayoutItem[] = [
         {
@@ -465,76 +651,76 @@ export default function MonitoringLayoutCanvas({
         source: "ai-studio-default",
         title: equipment.title,
         x: equipment.x, y: equipment.y, w: equipment.w, h: equipment.h,
-        render: () => <SummaryCard title={equipment.title} icon={Activity} value="128" unit="/ 154 대" sub="6 대" accentColor={equipment.accentColor} brand={brandTokens} />,
+        render: () => renderSummary("summary-equipment-status", equipment, Activity, "128", "/ 154 대", "6 대"),
       },
       {
         id: "summary-environment-risk",
         source: "ai-studio-default",
         title: environment.title,
         x: environment.x, y: environment.y, w: environment.w, h: environment.h,
-        render: () => <SummaryCard title={environment.title} icon={Wind} value="주의" unit="(Yellow)" sub="1 단계" tone="yellow" accentColor={environment.accentColor} brand={brandTokens} />,
+        render: () => renderSummary("summary-environment-risk", environment, Wind, "주의", "(Yellow)", "1 단계", "yellow"),
       },
       {
         id: "summary-worker-safety",
         source: "ai-studio-default",
         title: worker.title,
         x: worker.x, y: worker.y, w: worker.w, h: worker.h,
-        render: () => <SummaryCard title={worker.title} icon={UserCheck} value="주의" unit="(Yellow)" sub="2 명" tone="yellow" accentColor={worker.accentColor} brand={brandTokens} />,
+        render: () => renderSummary("summary-worker-safety", worker, UserCheck, "주의", "(Yellow)", "2 명", "yellow"),
       },
       {
         id: "summary-alert-count",
         source: "ai-studio-default",
         title: alerts.title,
         x: alerts.x, y: alerts.y, w: alerts.w, h: alerts.h,
-        render: () => <SummaryCard title={alerts.title} icon={Bell} value="26" unit="건" sub="10 건" accentColor={alerts.accentColor} brand={brandTokens} />,
+        render: () => renderSummary("summary-alert-count", alerts, Bell, "26", "건", "10 건", "danger"),
       },
       {
         id: "equipment-anomaly-chart",
         source: "ai-studio-default",
         title: chart.title,
         x: chart.x, y: chart.y, w: chart.w, h: chart.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: brandTokens.surfaceColor, borderColor: brandTokens.borderColor }}><MainChartSection /></div>,
+        render: () => renderPanel("equipment-anomaly-chart", chart, <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(chart).surfaceColor, borderColor: wb(chart).borderColor }}><MainChartSection brand={wb(chart)} title={chart.title} seriesColors={{ vibration: chart.series1Color ?? "#f97316", temp: chart.series2Color ?? "#ef4444", thermal: chart.series3Color ?? "#a855f7", gas: chart.series4Color ?? "#06b6d4" }} /></div>),
       },
       {
         id: "worker-safety-overview",
         source: "ai-studio-default",
         title: safety.title,
         x: safety.x, y: safety.y, w: safety.w, h: safety.h,
-        render: () => <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: brandTokens.surfaceColor, borderColor: brandTokens.borderColor }}><WorkerSafetySection /></div>,
+        render: () => renderPanel("worker-safety-overview", safety, <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border shadow-sm" style={{ backgroundColor: wb(safety).surfaceColor, borderColor: wb(safety).borderColor }}><WorkerSafetySection brand={wb(safety)} title={safety.title} /></div>),
       },
       {
         id: "environment-diagnosis",
         source: "ai-studio-default",
         title: envDiagnosis.title,
         x: envDiagnosis.x, y: envDiagnosis.y, w: envDiagnosis.w, h: envDiagnosis.h,
-        render: () => <EnvironmentStatusWidget setCurrentPage={setCurrentPage} brand={brandTokens} />,
+        render: () => renderPanel("environment-diagnosis", envDiagnosis, <EnvironmentStatusWidget setCurrentPage={setCurrentPage} brand={wb(envDiagnosis)} />),
       },
       {
         id: "realtime-alerts",
         source: "ai-studio-default",
         title: realtime.title,
         x: realtime.x, y: realtime.y, w: realtime.w, h: realtime.h,
-        render: () => <RealtimeAlertList brand={brandTokens} />,
+        render: () => renderPanel("realtime-alerts", realtime, <RealtimeAlertList brand={wb(realtime)} />),
       },
       {
         id: "action-progress",
         source: "ai-studio-default",
         title: action.title,
         x: action.x, y: action.y, w: action.w, h: action.h,
-        render: () => <ActionProgressWidget brand={brandTokens} />,
+        render: () => renderPanel("action-progress", action, <ActionProgressWidget brand={wb(action)} />),
       },
       {
         id: "system-status",
         source: "ai-studio-default",
         title: system.title,
         x: system.x, y: system.y, w: system.w, h: system.h,
-        render: () => <SystemStatusWidget brand={brandTokens} />,
+        render: () => renderPanel("system-status", system, <SystemStatusWidget brand={wb(system)} />),
       },
       ];
 
       return items.filter((layoutItem) => getDefaultConfig(layoutItem.id)?.visible ?? true);
     },
-    [brandTokens, elementConfigs.defaultWidgets]
+    [brandTokens, dataReadiness, elementConfigs.defaultWidgets, mappedTargetIds]
   );
 
   const layoutItems = useMemo<LayoutItem[]>(() => {
@@ -559,18 +745,26 @@ export default function MonitoringLayoutCanvas({
             }
             selected={selectedWidgetId === instance.instanceId}
             brandPrimaryColor={brandTokens.primaryColor}
-            brandSurfaceColor={brandTokens.surfaceColor}
-            brandBorderColor={brandTokens.borderColor}
-            brandTextStrongColor={brandTokens.textStrongColor}
+            brandSurfaceColor={(instance.options.bgColor as string | undefined) ?? brandTokens.surfaceColor}
+            brandBorderColor={(instance.options.borderColor as string | undefined) ?? brandTokens.borderColor}
+            brandTextStrongColor={(instance.options.textStrongColor as string | undefined) ?? brandTokens.textStrongColor}
+            brandTextSoftColor={(instance.options.textSoftColor as string | undefined) ?? brandTokens.textSoftColor}
+            brandAccentColor={(instance.options.accentColor as string | undefined) ?? brandTokens.accentColor}
+            brandAccentSecondaryColor={(instance.options.accentSecondaryColor as string | undefined) ?? brandTokens.secondaryColor}
+            brandSuccessColor={(instance.options.successColor as string | undefined) ?? brandTokens.successColor}
+            brandWarningColor={(instance.options.warningColor as string | undefined) ?? brandTokens.warningColor}
+            brandDangerColor={(instance.options.dangerColor as string | undefined) ?? brandTokens.dangerColor}
             isLight={isLightTheme}
             liveData={widgetLiveData[instance.instanceId]}
+            isConnected={isTargetLive(instance.instanceId)}
           />
         ),
       };
     });
 
-    return resolveLayout([...customItems, ...defaultItems]);
-  }, [customWidgets, defaultItems, selectedWidgetId, widgetById, widgetLiveData]);
+    // 기본/신규 위젯을 하나의 12-column 배치 엔진에서 해석한다.
+    return resolveLayout([...defaultItems, ...customItems], layoutPriorityId ?? undefined);
+  }, [customWidgets, dataReadiness, defaultItems, layoutPriorityId, mappedTargetIds, selectedWidgetId, widgetById, widgetLiveData]);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden font-sans" style={rootStyle}>
@@ -599,10 +793,9 @@ export default function MonitoringLayoutCanvas({
           timestampLabel={elementConfigs.header.timestampLabel}
           operatorName={elementConfigs.header.operatorName}
           operatorRole={elementConfigs.header.operatorRole}
-          logoUrl={brand?.logoUrl}
-          logoSize={brand?.logoSize}
-          sidebarWidth={sidebarBaseWidth}
-          brand={brandTokens}
+          logoUrl={elementConfigs.header.logoUrl ?? brand?.logoUrl}
+          logoSize={elementConfigs.header.logoSize ?? brand?.logoSize}
+          brand={headerBrand}
         />
       </div>
       {/* ── Sidebar + Canvas: 헤더 아래 ── */}
@@ -637,12 +830,13 @@ export default function MonitoringLayoutCanvas({
             toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            brand={brandTokens}
+            brand={sidebarBrand}
             expandMode={elementConfigs.sidebar.expandMode}
             menuDensity={elementConfigs.sidebar.menuDensity}
             showFooter={elementConfigs.sidebar.showFooter}
             footerText={elementConfigs.sidebar.footerText}
             addedPages={addedPages}
+            hidePageManagement={hidePageManagement}
             onOpenPageBuilder={onOpenPageBuilder}
             onRemovePage={onRemovePage ? (key) => {
               const page = addedPages.find((p) => p.key === key);
@@ -676,21 +870,21 @@ export default function MonitoringLayoutCanvas({
                   case "integrated":
                     return (
                       <div className={wrapClass}>
-                        <IntegratedDashboard setCurrentPage={setCurrentPage} brand={brand} />
+                        <IntegratedDashboard setCurrentPage={setCurrentPage} brand={brandTokens as unknown as typeof brand} />
                       </div>
                     );
                   case "equipment":
-                    return <div className={wrapClass}><EquipmentDiagnosis brand={brand} /></div>;
+                    return <div className={wrapClass}><EquipmentDiagnosis brand={brandTokens as unknown as typeof brand} /></div>;
                   case "environment":
-                    return <div className={wrapClass}><EnvironmentDiagnosis brand={brand} /></div>;
+                    return <div className={wrapClass}><EnvironmentDiagnosis brand={brandTokens as unknown as typeof brand} /></div>;
                   case "worker":
-                    return <div className={wrapClass}><WorkerSafety brand={brand} /></div>;
+                    return <div className={wrapClass}><WorkerSafety brand={brandTokens as unknown as typeof brand} /></div>;
                   case "alerts":
-                    return <div className={wrapClass}><AlertsEvents brand={brand} /></div>;
+                    return <div className={wrapClass}><AlertsEvents brand={brandTokens as unknown as typeof brand} /></div>;
                   case "report":
-                    return <div className={wrapClass}><Report brand={brand} /></div>;
+                    return <div className={wrapClass}><Report brand={brandTokens as unknown as typeof brand} /></div>;
                   case "settings":
-                    return <div className={wrapClass}><SettingsPage brand={brand} /></div>;
+                    return <div className={wrapClass}><SettingsPage brand={brandTokens as unknown as typeof brand} /></div>;
                 }
               }
               return (
@@ -746,15 +940,29 @@ export default function MonitoringLayoutCanvas({
               >
                 {layoutItems.map((item) => {
                   const isCustom = item.source === "widget-library" && item.widgetInstance;
+                  const isBeingDragged = isCustom && item.id === selectedWidgetId;
                   const isSelected = isCustom ? selectedWidgetId === item.id : selectedElementId === item.id;
 
+                  // 드래그되지 않는 커스텀 위젯에만 layout 애니메이션 적용
+                  // → 다른 위젯이 밀려날 때 자연스럽게 슬라이드 이동 (FLIP 기법)
+                  const shouldAnimate = isCustom && !isBeingDragged;
+
                   return (
-                    <div
+                    <motion.div
                       key={`${item.source}-${item.id}`}
                       className="min-h-0"
+                      layout={shouldAnimate ? "position" : false}
+                      transition={
+                        shouldAnimate
+                          ? interactionActive
+                            ? { type: "tween", duration: 0.1, ease: "easeOut" }
+                            : { type: "spring", damping: 30, stiffness: 400 }
+                          : { duration: 0 }
+                      }
                       style={{
                         gridColumn: `${item.x + 1} / span ${item.w}`,
                         gridRow: `${item.y + 1} / span ${item.h}`,
+                        ...(isCustom ? { position: "relative" } : {}),
                       }}
                     >
                       {isCustom && item.widgetInstance ? (
@@ -886,7 +1094,7 @@ export default function MonitoringLayoutCanvas({
                           )}
                         </div>
                       )}
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>

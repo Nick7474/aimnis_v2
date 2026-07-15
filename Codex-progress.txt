@@ -1,0 +1,35 @@
+# AIMNIS Demo progress
+
+## 2026-06-21
+
+- AIM Monitoring 기본/신규 위젯을 단일 12-column 충돌 엔진으로 통합
+- 드래그·리사이즈 종료 좌표를 스냅샷에 확정하도록 수정
+- 에디터 확대와 `/monitoring` 런타임이 저장된 동일 캔버스를 렌더하도록 통일
+- 검증: `npx tsc --noEmit`, `npm run build`, editor/monitoring HTTP 200
+
+## 2026-06-22
+
+- AIM Monitoring 확대·실행 화면의 좌측 페이지 추가 버튼 숨김
+- 좌측 메뉴 접기 전·후에도 상단 로고 영역을 220px로 고정
+- 검증: `npx tsc --noEmit`, `npm run build`, editor/monitoring HTTP 200
+- 데모 로그인의 브라우저 이메일 형식 검사를 제거하고 `/home` 전체 페이지 이동으로 진입 안정화
+- 검증: `npx tsc --noEmit`, `npm run build`
+- Playwright 기반 QA/QC 하네스 구축: 정적 검사, 11개 브라우저 스모크, 4개 1280px 시각 기준선
+- QA 발견 수정: AIM ECO 필수 패키지, 프로젝트 카드 ref 경고, Monitoring 사이드바 접기 hover 회귀
+- Monitoring 패널 라인·개별 패널 톤·헤더·사이드바 스타일 반영을 자동 검증
+- 검증: `npm run qa` 11/11, `npm run qa:visual` 4/4, `npm run build`
+
+## 2026-06-24
+
+- AIM Monitoring 레이아웃 엔진에 확정 시점 자동 압축(compaction) 추가
+- 드래그 중 충돌 회피(push)는 유지하고, 드롭·삭제·숨김·저장 시 빈 세로 공간을 자동 정렬
+- 렌더러/에디터의 중복 배치 로직을 공통 순수 유틸로 통합하고 단위 QA를 `npm run qa`에 포함
+- 검증: `npx tsc --noEmit`, `npm run qa`, `npm run build`
+
+## 2026-07-04
+
+- AIM Monitoring 에디터 최초 모니터 탭을 DB 수집·데이터 매핑 전 `None` 데이터 상태로 전환
+- 기본 대시보드 위젯과 커스텀 위젯을 유지한 채 개별 매핑 완료 타겟만 현재 데모 값으로 표시
+- 데이터 연결/매핑 상태를 스냅샷에 저장하고 `/monitoring` 런타임도 저장된 상태를 존중하도록 확장
+- 검증: `npx tsc --noEmit`, `npm run build`, `QA_PORT=3001 npm run qa:visual:update` 4/4
+- 참고: `QA_PORT=3001 npm run qa:smoke`는 Monitoring 관련 3개 포함 10/11 통과, 인트로 영상 오버레이로 기존 데모 로그인 빈값 진입 테스트 1개 실패

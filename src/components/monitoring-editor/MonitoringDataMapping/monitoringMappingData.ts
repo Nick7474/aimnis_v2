@@ -105,6 +105,10 @@ export const MONITORING_CORE_BINDINGS: Array<{
   { source: "alerts-events", field: "severity",  target: "realtime-alerts",    property: "severity" },
   { source: "alerts-events", field: "source",    target: "realtime-alerts",    property: "source" },
   { source: "alerts-events", field: "alertid",   target: "summary-alert-count", property: "critical" },
+  // 알림/작업자 → 점검·조치 현황
+  { source: "alerts-events", field: "alertid",   target: "action-progress", property: "tasks" },
+  { source: "alerts-events", field: "severity",  target: "action-progress", property: "status" },
+  { source: "worker-safety", field: "workerid",  target: "action-progress", property: "assignee" },
   // 시스템 → 시스템 상태
   { source: "system-monitor", field: "serverhealth",      target: "system-status", property: "serverHealth" },
   { source: "system-monitor", field: "networklatency",    target: "system-status", property: "latency" },
@@ -116,11 +120,40 @@ export const MONITORING_CORE_BINDINGS: Array<{
 export const MONITORING_WIDGET_DEFAULT_BINDINGS: Record<string, {
   source: string; field: string; property: string;
 }> = {
+  // 제네릭 타입
   "aim-line-chart": { source: "equipment-sensor",   field: "timeseries",   property: "timeSeries" },
   "aim-bar-chart":  { source: "equipment-sensor",   field: "timeseries",   property: "chartData" },
   "aim-gauge":      { source: "environment-sensor", field: "pm25",         property: "value" },
   "aim-kpi":        { source: "equipment-sensor",   field: "anomalyscore", property: "value" },
   "aim-alert-list": { source: "alerts-events",      field: "recentalerts", property: "alerts" },
+
+  // 설비 이상 감지
+  "autoencoder-anomaly":     { source: "equipment-sensor",   field: "anomalyscore", property: "anomalyScore" },
+  "rul-lstm-forecast":       { source: "equipment-sensor",   field: "timeseries",   property: "timeSeries" },
+  "ultrasonic-arc-risk":     { source: "equipment-sensor",   field: "anomalyscore", property: "value" },
+  "vibration-fft-spectrum":  { source: "equipment-sensor",   field: "vibration",    property: "vibration" },
+  "thermal-delta-map":       { source: "equipment-sensor",   field: "temperature",  property: "temperature" },
+  "gas-decomposition-panel": { source: "environment-sensor", field: "gaslevel",     property: "gasLevel" },
+  "cnn-lstm-spectrogram":    { source: "equipment-sensor",   field: "vibration",    property: "vibration" },
+  "fault-progression-stage": { source: "equipment-sensor",   field: "anomalyscore", property: "stage" },
+
+  // AI 모델 / 예측
+  "predictive-report":          { source: "equipment-sensor", field: "status",       property: "normalCount" },
+  "multi-sensor-health":        { source: "equipment-sensor", field: "status",       property: "normalCount" },
+  "fscore-model-tuning":        { source: "equipment-sensor", field: "anomalyscore", property: "f1Score" },
+  "field-validation-progress":  { source: "equipment-sensor", field: "anomalyscore", property: "progress" },
+
+  // 환경 / 작업자
+  "worker-spo2-status":    { source: "worker-safety",      field: "onsitecount",  property: "onSiteCount" },
+  "worker-context-fusion": { source: "worker-safety",      field: "onsitecount",  property: "onSiteCount" },
+  "worker-fall-detection": { source: "worker-safety",      field: "recentalerts", property: "alerts" },
+  "hazard-zone-map":       { source: "environment-sensor", field: "pm25",         property: "pm25" },
+
+  // 시스템 / 디바이스
+  "gateway-communication":  { source: "system-monitor",   field: "serverhealth",      property: "serverHealth" },
+  "sop-auto-execution":     { source: "alerts-events",    field: "severity",           property: "severity" },
+  "device-power-battery":   { source: "equipment-sensor", field: "anomalyscore",       property: "value" },
+  "fleet-device-inventory": { source: "system-monitor",   field: "activeconnections",  property: "value" },
 };
 
 export const MONITORING_WIDGET_PROPERTIES: Record<string, string[]> = {

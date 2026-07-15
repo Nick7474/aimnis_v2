@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronRight, Terminal, Sparkles, Palette, Check } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
+import type { WidgetData } from "@/store/editorStore";
 import AiChatInput from "@/components/shared/AiChatInput";
 import { cn } from "@/lib/utils";
 import { computeNextPosition, getWidgetSize } from "./SmartGridEngine";
-import type { WidgetData } from "@/store/editorStore";
 import { detectBrandSuggestion, encodeBrandSuggestion, parseBrandSuggestion } from "@/lib/brandAgent";
 import type { BrandAgentSuggestion } from "@/lib/brandAgent";
 import { parseIntent } from "@/lib/intentParser";
@@ -16,19 +16,23 @@ const LOGS = [
   "✓ solution loader initialized",
   "✓ harness-schema.json loaded",
   "✓ SmartGridEngine ready",
-  "✓ Gemini widget engine ready",
+  "✓ intent engine v2 ready (API-free)",
   "✓ Sonnet+Opus advisor connected",
   "→ waiting for user input...",
 ];
 
+// 빠른 예시 버튼 — 단어 하나로도 작동함을 보여주는 예시
 const QUICK_HINTS = [
-  { label: "POSCO 납품 톤", prompt: "포스코 납품 톤으로 바꿔줘" },
-  { label: "KEPCO 화이트 톤", prompt: "KEPCO 화이트 톤으로 바꿔줘" },
-  { label: "그레이 설비 관제 톤", prompt: "그레이 설비 관제 톤으로 바꿔줘" },
-  { label: "알람 패널", prompt: "알람 패널 추가" },
-  { label: "KPI 카드 추가", prompt: "생산 효율 KPI 카드 추가" },
-  { label: "라인 차트 추가", prompt: "실시간 라인 차트 추가" },
-  { label: "게이지 추가", prompt: "위험도 게이지 추가" },
+  { label: "KPI",       prompt: "kpi" },
+  { label: "라인 차트", prompt: "라인차트" },
+  { label: "게이지",    prompt: "게이지" },
+  { label: "알람 패널", prompt: "알람" },
+  { label: "바 차트",   prompt: "바차트" },
+  { label: "도넛 차트", prompt: "도넛" },
+  { label: "테이블",    prompt: "테이블" },
+  { label: "POSCO 톤",  prompt: "포스코" },
+  { label: "KEPCO 화이트", prompt: "kepco" },
+  { label: "데이터 매핑",  prompt: "매핑" },
 ];
 
 interface ChatPanelProps {
@@ -37,8 +41,8 @@ interface ChatPanelProps {
 
 function extractDisplayText(content: string): string {
   const widgetIdx = content.indexOf("__WIDGET_JSON__");
-  const brandIdx = content.indexOf("__BRAND_SUGGESTION__");
-  const markers = [widgetIdx, brandIdx].filter((idx) => idx !== -1);
+  const brandIdx  = content.indexOf("__BRAND_SUGGESTION__");
+  const markers   = [widgetIdx, brandIdx].filter((idx) => idx !== -1);
   if (markers.length === 0) return content;
   return content.slice(0, Math.min(...markers)).trim();
 }
@@ -59,15 +63,7 @@ function WidgetBadge({ type, title }: { type: string; title: string }) {
   );
 }
 
-function BrandSuggestionCard({
-  suggestion,
-  applied,
-  onApply,
-}: {
-  suggestion: BrandAgentSuggestion;
-  applied: boolean;
-  onApply: () => void;
-}) {
+function BrandSuggestionCard({ suggestion, applied, onApply }: { suggestion: BrandAgentSuggestion; applied: boolean; onApply: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -111,42 +107,30 @@ function BrandSuggestionCard({
 
 export default function ChatPanel({ solutionId }: ChatPanelProps) {
   const {
-    messages,
-    isStreaming,
-    addMessage,
-    updateLastMessage,
-    setStreaming,
-    setLastCommand,
-    overlayWidgets,
-    addOverlayWidget,
-    canvasSize,
-    selectBrandPreset,
-    setRightPanel,
+    messages, isStreaming, addMessage, updateLastMessage, setStreaming,
+    setLastCommand, overlayWidgets, addOverlayWidget, canvasSize,
+    selectBrandPreset, setRightPanel,
   } = useEditorStore();
 
-  const [input, setInput] = useState("");
+  const [input, setInput]                   = useState("");
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
-  const [logsOpen, setLogsOpen] = useState(false);
-  const [widgetBadges, setWidgetBadges] = useState<
-    Record<string, { type: string; title: string }>
-  >({});
-  const [appliedBrandSuggestionIds, setAppliedBrandSuggestionIds] = useState<Set<string>>(new Set());
-  const messageScrollRef = useRef<HTMLDivElement>(null);
-  const processedJsonIds = useRef<Set<string>>(new Set());
+  const [logsOpen, setLogsOpen]             = useState(false);
+  const [widgetBadges, setWidgetBadges]     = useState<Record<string, { type: string; title: string }>>({});
+  const [appliedBrandIds, setAppliedBrandIds] = useState<Set<string>>(new Set());
+  const messageScrollRef  = useRef<HTMLDivElement>(null);
+  const processedJsonIds  = useRef<Set<string>>(new Set());
 
-  // 첫 방문 시에만 상세 인사 + 기능 안내 삽입
+  // 첫 방문 안내
   useEffect(() => {
-    const KEY = "aimi_editor_welcomed";
-    const isFirstVisit = !localStorage.getItem(KEY);
-    if (isFirstVisit) {
+    const KEY = "aimi_editor_welcomed_v2";
+    if (!localStorage.getItem(KEY)) {
       localStorage.setItem(KEY, "1");
-      // 기존 "준비됐습니다" 메시지 뒤에 상세 안내 추가
       setTimeout(() => {
         addMessage({
-          id: `welcome-detail-${Date.now()}`,
+          id: `welcome-${Date.now()}`,
           role: "assistant",
           content:
-            "안녕하세요! 저는 에임이입니다.\n자연어로 말씀하시면 바로 실행해 드립니다.\n\n이런 명령도 가능합니다\n• '에너지 KPI 카드 추가해줘'\n• '고객사를 포스코로 바꿔줘'\n• '실시간 라인 차트 보여줘'\n• '포스코 스타일로 변경해줘'",
+            "안녕하세요! 저는 에임이입니다.\n단어 하나만 입력해도 바로 실행됩니다.\n\n위젯 추가\n• kpi / 게이지 / 라인차트\n• 알람 / 바차트 / 도넛 / 테이블\n\n브랜드\n• 포스코 / kepco / 그레이 / 다크\n\n화면\n• 매핑 / 모니터\n\n그 외 복잡한 요청은 자연어로 말씀해 주세요!",
         });
       }, 400);
     }
@@ -154,47 +138,27 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
   }, []);
 
   useEffect(() => {
-    const scroller = messageScrollRef.current;
-    if (!scroller) return;
-    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+    const el = messageScrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // SmartGridEngine으로 위치 계산 후 오버레이 위젯 추가
-  const addWidgetOverlay = (payload: {
-    widgetId: string;
-    type: string;
-    title: string;
-    data: WidgetData;
-  }) => {
+  // 위젯 캔버스에 추가
+  const addWidgetOverlay = useCallback((payload: { widgetId: string; type: string; title: string; data: WidgetData }) => {
     const { w, h } = getWidgetSize(payload.type);
-    const existing = overlayWidgets.map((ow) => ({
-      x: ow.x, y: ow.y, w: ow.w, h: ow.h,
-    }));
-    const { x, y } = computeNextPosition(
-      canvasSize.w,
-      canvasSize.h,
-      existing,
-      payload.type
-    );
-    addOverlayWidget({
-      id: payload.widgetId,
-      type: payload.type,
-      title: payload.title,
-      data: payload.data,
-      x, y, w, h,
-    });
-  };
+    const existing = overlayWidgets.map(ow => ({ x: ow.x, y: ow.y, w: ow.w, h: ow.h }));
+    const { x, y } = computeNextPosition(canvasSize.w, canvasSize.h, existing, payload.type);
+    addOverlayWidget({ id: payload.widgetId, type: payload.type, title: payload.title, data: payload.data, x, y, w, h });
+  }, [overlayWidgets, canvasSize, addOverlayWidget]);
 
-  const handleSend = async () => {
-    const text = input.trim();
-    if ((!text && attachedImages.length === 0) || isStreaming) return;
-    setInput("");
-    setAttachedImages([]);
+  // ── 공통 메시지 처리 (빠른 경로 → API) ───────────────────────
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || isStreaming) return;
 
     const userMsg = { id: Date.now().toString(), role: "user" as const, content: text };
     addMessage(userMsg);
+    const aiId = (Date.now() + 1).toString();
 
-    // ── Intent Parser — 즉시 실행 (API 불필요) ──────────────
+    // ── 빠른 경로: intentParser (API 불필요) ──────────────────
     const intent = parseIntent(text);
     if (intent.type !== "unknown") {
       const store = useEditorStore.getState();
@@ -219,15 +183,30 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         case "clear_widgets":
           store.overlayWidgets.forEach(w => store.removeOverlayWidget(w.id));
           break;
+        // 위젯 생성 (7종) — 즉시 실행
+        case "add_kpi":
+        case "add_chart_line":
+        case "add_chart_bar":
+        case "add_chart_donut":
+        case "add_gauge":
+        case "add_alert_panel":
+        case "add_table": {
+          if (intent.widgetTemplate) {
+            const tpl = intent.widgetTemplate;
+            const wId = `w-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+            addWidgetOverlay({ widgetId: wId, type: tpl.type, title: tpl.title, data: tpl.data as WidgetData });
+            setWidgetBadges(prev => ({ ...prev, [aiId]: { type: tpl.type, title: tpl.title } }));
+          }
+          break;
+        }
       }
-      const aiId = (Date.now() + 1).toString();
       addMessage({ id: aiId, role: "assistant", content: intent.ackMessage });
       return;
     }
 
+    // ── 브랜드 제안 카드 ──────────────────────────────────────
     const brandSuggestion = detectBrandSuggestion(text);
     if (brandSuggestion) {
-      const aiId = (Date.now() + 1).toString();
       const response = [
         `${brandSuggestion.tenantName} 납품형 브랜드 프리셋을 찾았습니다.`,
         "아래 항목을 확인한 뒤 적용하면 중앙 프리뷰와 우측 설정이 함께 전환됩니다.",
@@ -239,24 +218,18 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
       return;
     }
 
-    const aiId = (Date.now() + 1).toString();
+    // ── API 경로 (복잡한 요청) ────────────────────────────────
     addMessage({ id: aiId, role: "assistant", content: "", streaming: true });
     setStreaming(true);
-
     try {
-      // 현재 입력한 메시지 1개만 API에 전송 (과거 대화 기록 전송 금지)
-      const apiMessages = [{ role: "user", content: text }];
-
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, solution: solutionId }),
+        body: JSON.stringify({ messages: [{ role: "user", content: text }], solution: solutionId }),
       });
-
-      const reader = res.body?.getReader();
+      const reader  = res.body?.getReader();
       const decoder = new TextDecoder();
       let full = "";
-
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
@@ -265,49 +238,29 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
           updateLastMessage(full);
         }
       }
-
       setLastCommand({ userText: text, aiResponse: full, timestamp: Date.now() });
 
-      // ─── 위젯 JSON 파싱: 무조건 1개만 추출 ───
+      // __WIDGET_JSON__ 파싱 (API 경로 위젯 생성)
       if (!processedJsonIds.current.has(aiId)) {
-        let widgetJson: any = null;
-
-        // 방법1: __WIDGET_JSON__ 마커 이후 파싱
+        let widgetJson: Record<string, unknown> | null = null;
         const markerIdx = full.indexOf("__WIDGET_JSON__");
         if (markerIdx !== -1) {
-          const afterMarker = full.slice(markerIdx + "__WIDGET_JSON__".length).trim();
-          try {
-            const m = afterMarker.match(/\{[\s\S]*\}/);
-            if (m) widgetJson = JSON.parse(m[0]);
-          } catch { /* 파싱 실패 무시 */ }
+          const after = full.slice(markerIdx + "__WIDGET_JSON__".length).trim();
+          try { const m = after.match(/\{[\s\S]*\}/); if (m) widgetJson = JSON.parse(m[0]); } catch { /* ignore */ }
         }
-
-        // 방법2: 마커 없이 action 키워드로 탐색
         if (!widgetJson) {
-          try {
-            const m = full.match(/\{\s*"action"\s*:\s*"add_widget[s]?"[\s\S]*?\}[\s\S]*?\}/);
-            if (m) widgetJson = JSON.parse(m[0]);
-          } catch { /* 파싱 실패 무시 */ }
+          try { const m = full.match(/\{\s*"action"\s*:\s*"add_widget[s]?"[\s\S]*?\}[\s\S]*?\}/); if (m) widgetJson = JSON.parse(m[0]); } catch { /* ignore */ }
         }
-
-        // 위젯 추출 (무조건 1개만)
         if (widgetJson) {
           processedJsonIds.current.add(aiId);
-          let singleWidget: any = null;
-
-          if (widgetJson.action === "add_widget" && widgetJson.widget) {
-            singleWidget = widgetJson.widget;
-          } else if (widgetJson.action === "add_widgets" && Array.isArray(widgetJson.widgets) && widgetJson.widgets.length > 0) {
-            singleWidget = widgetJson.widgets[0]; // 배열이 와도 첫 번째 1개만
-          }
-
-          if (singleWidget) {
-            singleWidget.widgetId = `w-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-            addWidgetOverlay(singleWidget);
-            setWidgetBadges((prev) => ({
-              ...prev,
-              [aiId]: { type: singleWidget.type, title: singleWidget.title },
-            }));
+          let single: Record<string, unknown> | null = null;
+          if (widgetJson.action === "add_widget" && widgetJson.widget) single = widgetJson.widget as Record<string, unknown>;
+          else if (widgetJson.action === "add_widgets" && Array.isArray(widgetJson.widgets) && widgetJson.widgets.length > 0) single = widgetJson.widgets[0];
+          if (single) {
+            const wId = `w-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+            single.widgetId = wId;
+            addWidgetOverlay({ widgetId: wId, type: single.type as string, title: single.title as string, data: single.data as WidgetData });
+            setWidgetBadges(prev => ({ ...prev, [aiId]: { type: single!.type as string, title: single!.title as string } }));
           }
         }
       }
@@ -316,138 +269,23 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
     } finally {
       setStreaming(false);
     }
+  }, [isStreaming, addMessage, addWidgetOverlay, setLastCommand, setRightPanel, setStreaming, updateLastMessage, solutionId]);
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text && attachedImages.length === 0) return;
+    setInput("");
+    setAttachedImages([]);
+    await sendMessage(text);
   };
 
-  const handleSendText = async (text: string) => {
-    if (!text.trim() || isStreaming) return;
+  const handleSendText = (text: string) => {
     setInput("");
-    const userMsg = { id: Date.now().toString(), role: "user" as const, content: text };
-    addMessage(userMsg);
-
-    const intent = parseIntent(text);
-    if (intent.type !== "unknown") {
-      const store = useEditorStore.getState();
-      switch (intent.type) {
-        case "brand_preset":
-          store.selectBrandPreset(intent.params.presetId);
-          if (intent.params.title) store.setSystemTitle(intent.params.title);
-          break;
-        case "tenant_name":
-          store.updateBrand({ tenantName: intent.params.name });
-          break;
-        case "system_title":
-          store.setSystemTitle(intent.params.title);
-          break;
-        case "view_mapping":
-          store.setCenterView("mapping");
-          store.setRightPanel("mapping");
-          break;
-        case "view_monitor":
-          store.setCenterView("monitor");
-          break;
-        case "clear_widgets":
-          store.overlayWidgets.forEach(w => store.removeOverlayWidget(w.id));
-          break;
-      }
-      addMessage({ id: (Date.now() + 1).toString(), role: "assistant", content: intent.ackMessage });
-      return;
-    }
-
-    const brandSuggestion = detectBrandSuggestion(text);
-    if (brandSuggestion) {
-      const aiId = (Date.now() + 1).toString();
-      const response = [
-        `${brandSuggestion.tenantName} 납품형 브랜드 프리셋을 찾았습니다.`,
-        "아래 항목을 확인한 뒤 적용하면 중앙 프리뷰와 우측 설정이 함께 전환됩니다.",
-        encodeBrandSuggestion(brandSuggestion),
-      ].join("\n");
-      addMessage({ id: aiId, role: "assistant", content: response });
-      setLastCommand({ userText: text, aiResponse: response, timestamp: Date.now() });
-      setRightPanel("settings");
-      return;
-    }
-
-    // ── intent/brand 매칭 실패 → API 호출 (위젯 생성 등) ──────────
-    const aiId = (Date.now() + 1).toString();
-    addMessage({ id: aiId, role: "assistant", content: "", streaming: true });
-    setStreaming(true);
-
-    try {
-      const apiMessages = [{ role: "user", content: text }];
-
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, solution: solutionId }),
-      });
-
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let full = "";
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          full += decoder.decode(value, { stream: true });
-          updateLastMessage(full);
-        }
-      }
-
-      setLastCommand({ userText: text, aiResponse: full, timestamp: Date.now() });
-
-      // ─── 위젯 JSON 파싱: 무조건 1개만 추출 ───
-      if (!processedJsonIds.current.has(aiId)) {
-        let widgetJson: any = null;
-
-        const markerIdx = full.indexOf("__WIDGET_JSON__");
-        if (markerIdx !== -1) {
-          const afterMarker = full.slice(markerIdx + "__WIDGET_JSON__".length).trim();
-          try {
-            const m = afterMarker.match(/\{[\s\S]*\}/);
-            if (m) widgetJson = JSON.parse(m[0]);
-          } catch { /* 파싱 실패 무시 */ }
-        }
-
-        if (!widgetJson) {
-          try {
-            const m = full.match(/\{\s*"action"\s*:\s*"add_widget[s]?"[\s\S]*?\}[\s\S]*?\}/);
-            if (m) widgetJson = JSON.parse(m[0]);
-          } catch { /* 파싱 실패 무시 */ }
-        }
-
-        if (widgetJson) {
-          processedJsonIds.current.add(aiId);
-          let singleWidget: any = null;
-
-          if (widgetJson.action === "add_widget" && widgetJson.widget) {
-            singleWidget = widgetJson.widget;
-          } else if (widgetJson.action === "add_widgets" && Array.isArray(widgetJson.widgets) && widgetJson.widgets.length > 0) {
-            singleWidget = widgetJson.widgets[0];
-          }
-
-          if (singleWidget) {
-            singleWidget.widgetId = `w-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-            addWidgetOverlay(singleWidget);
-            setWidgetBadges((prev) => ({
-              ...prev,
-              [aiId]: { type: singleWidget.type, title: singleWidget.title },
-            }));
-          }
-        }
-      }
-    } catch {
-      updateLastMessage("⚠️ API 연결 오류. ANTHROPIC_API_KEY를 확인하세요.");
-    } finally {
-      setStreaming(false);
-    }
+    sendMessage(text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   return (
@@ -456,10 +294,10 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
       <div ref={messageScrollRef} className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
         <AnimatePresence initial={false}>
           {messages.map((msg) => {
-            const displayText = extractDisplayText(msg.content);
-            const badge = widgetBadges[msg.id];
+            const displayText    = extractDisplayText(msg.content);
+            const badge          = widgetBadges[msg.id];
             const brandSuggestion = parseBrandSuggestion(msg.content);
-            const applied = appliedBrandSuggestionIds.has(msg.id);
+            const applied        = appliedBrandIds.has(msg.id);
             return (
               <motion.div
                 key={msg.id}
@@ -468,28 +306,20 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
                 transition={{ duration: 0.25 }}
                 className={cn("flex gap-2", msg.role === "user" ? "justify-end" : "justify-start items-start")}
               >
-                {/* 에임이 아바타 — assistant 메시지 전용 */}
                 {msg.role === "assistant" && (
                   <img src="/img/ch6.png" alt="에임이" className="h-6 w-6 flex-shrink-0 rounded-full object-cover ring-1 ring-violet-500/20 mt-1" />
                 )}
                 <div
                   className={cn(
                     "max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap",
-                    msg.role === "user"
-                      ? "bg-purple-500/20 text-purple-100"
-                      : "bg-white/5 text-white/80"
+                    msg.role === "user" ? "bg-purple-500/20 text-purple-100" : "bg-white/5 text-white/80"
                   )}
                 >
                   {displayText ? (
                     displayText
                   ) : !msg.content ? (
                     <span className="flex items-center gap-1.5 text-white/30">
-                      <motion.span
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{ repeat: Infinity, duration: 1.2 }}
-                      >
-                        ●
-                      </motion.span>
+                      <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2 }}>●</motion.span>
                       생각 중…
                     </span>
                   ) : (
@@ -503,11 +333,7 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
                       onApply={() => {
                         selectBrandPreset(brandSuggestion.presetId);
                         setRightPanel("settings");
-                        setAppliedBrandSuggestionIds((prev) => {
-                          const next = new Set(prev);
-                          next.add(msg.id);
-                          return next;
-                        });
+                        setAppliedBrandIds(prev => { const next = new Set(prev); next.add(msg.id); return next; });
                       }}
                     />
                   )}
@@ -521,16 +347,12 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
       {/* 실행 로그 */}
       <div className="border-t border-white/5">
         <button
-          onClick={() => setLogsOpen((v) => !v)}
+          onClick={() => setLogsOpen(v => !v)}
           className="flex w-full items-center gap-1.5 px-4 py-2 text-[10px] text-white/25 hover:text-white/50 transition-colors"
         >
           <Terminal className="h-3 w-3" />
           실행 로그
-          {logsOpen ? (
-            <ChevronDown className="h-3 w-3 ml-auto" />
-          ) : (
-            <ChevronRight className="h-3 w-3 ml-auto" />
-          )}
+          {logsOpen ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronRight className="h-3 w-3 ml-auto" />}
         </button>
         <AnimatePresence>
           {logsOpen && (
@@ -541,9 +363,7 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
               className="overflow-hidden px-4 pb-2"
             >
               {LOGS.map((log, i) => (
-                <p key={i} className="font-mono text-[10px] text-white/20">
-                  {log}
-                </p>
+                <p key={i} className="font-mono text-[10px] text-white/20">{log}</p>
               ))}
             </motion.div>
           )}
@@ -563,14 +383,14 @@ export default function ChatPanel({ solutionId }: ChatPanelProps) {
         ))}
       </div>
 
-      {/* 입력창 — AiChatInput (이미지 첨부 + 음성 인식) */}
+      {/* 입력창 */}
       <div className="border-t border-white/5 p-3">
         <AiChatInput
           value={input}
           onChange={setInput}
           onSubmit={handleSend}
           isLoading={isStreaming}
-          placeholder="위젯 추가, 차트 생성, 알람 패널 등 자연어로 요청하세요"
+          placeholder="단어 하나로도 OK — kpi, 게이지, 알람, 포스코..."
           attachedImages={attachedImages}
           onImagesChange={setAttachedImages}
         />

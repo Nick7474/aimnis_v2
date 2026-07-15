@@ -293,5 +293,101 @@
     "passes": true,
     "completedAt": "2026-04-12",
     "notes": "전체 라우트 200 확인(/,/home,/editor,/projects,/guard), eco→/home 307, AIM ECO coming-soon 칩 확인"
+  },
+  {
+    "id": "F-018",
+    "category": "monitoring",
+    "priority": 19,
+    "description": "AIM Monitoring 12그리드 배치·풀스크린·런타임 일관성 회귀 수정",
+    "steps": [
+      "기본 위젯과 신규 위젯을 동일한 12그리드 충돌 엔진으로 배치",
+      "드래그·리사이즈 종료 시 확정 좌표를 editor state에 반영",
+      "상단 확대 화면에서 동일한 스냅샷 배치 유지",
+      "저장·퍼블리시 후 /monitoring에서 동일한 캔버스 렌더",
+      "TypeScript 검사, production build, editor/monitoring route 200 확인"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-21",
+    "notes": "레이아웃 기준을 editor state/snapshot 하나로 통합하고 기본·커스텀 위젯 오버레이 회귀를 제거함"
+  },
+  {
+    "id": "F-019",
+    "category": "monitoring",
+    "priority": 20,
+    "description": "AIM Monitoring 확대·실행 화면 사이드바 및 헤더 회귀 수정",
+    "steps": [
+      "확대 화면에서 좌측 메뉴 하단 페이지 추가 버튼 숨김",
+      "/monitoring 실행 화면에서 페이지 추가 버튼 숨김",
+      "좌측 메뉴 접기 전·후 상단 로고 영역을 220px로 유지",
+      "TypeScript 검사, production build, editor/monitoring route 200 확인"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-22",
+    "notes": "페이지 관리 UI 표시 여부를 캔버스 prop으로 분리하고 헤더 로고 크기를 사이드바 열림 상태와 분리함"
+  },
+  {
+    "id": "F-020",
+    "category": "auth",
+    "priority": 21,
+    "description": "데모 로그인 홈 진입 차단 회귀 수정",
+    "steps": [
+      "이메일 형식과 관계없이 데모 로그인 허용",
+      "폼 기본 유효성 검사가 제출을 차단하지 않도록 수정",
+      "로그인 후 /home을 전체 페이지 이동으로 로드",
+      "TypeScript 검사 및 production build 확인"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-22",
+    "notes": "데모 안내와 다르게 브라우저 email 검증에 막히던 흐름을 제거하고 window.location.assign으로 안정적인 홈 진입을 보장함"
+  },
+  {
+    "id": "F-021",
+    "category": "quality",
+    "priority": 22,
+    "description": "AIMNIS 전체 QA/QC 하네스 및 UI 회귀 수정",
+    "steps": [
+      "솔루션 패키지·TypeScript 정적 검사",
+      "7개 핵심 경로 런타임·콘솔 오류 스모크",
+      "로그인·Monitoring 사이드바·확대·패널 라인 계약 검사",
+      "4개 핵심 화면 1280px 시각 회귀 기준선",
+      "AIM ECO 필수 솔루션 패키지 보완",
+      "프로젝트 카드 ref 경고와 Monitoring 메뉴 접기 회귀 수정",
+      "전체 QA, 시각 회귀, production build 통과"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-22",
+    "notes": "Playwright 기반 재현 가능한 QA 하네스를 구축하고 첫 전수 검사에서 발견한 구조·콘솔·사이드바 회귀를 수정함"
+  },
+  {
+    "id": "F-022",
+    "category": "monitoring",
+    "priority": 23,
+    "description": "AIM Monitoring 위젯 빈공간 자동 압축 정렬",
+    "steps": [
+      "드래그 중 기존 충돌 회피 동작 유지",
+      "드롭·삭제·숨김·저장 확정 시점에 세로 빈공간 자동 압축",
+      "기본 위젯과 라이브러리 위젯을 동일한 12컬럼 엔진으로 정렬",
+      "레이아웃 압축 단위 테스트를 QA 하네스에 포함",
+      "전체 QA와 production build 통과"
+    ],
+    "passes": true,
+    "completedAt": "2026-06-24",
+    "notes": "공통 monitoringLayoutEngine을 추가해 push/compact 모드를 분리하고, 빈 슬롯 발생 시 하단 위젯이 자연스럽게 위로 올라오도록 확정 좌표를 정규화함"
+  },
+  {
+    "id": "F-023",
+    "category": "monitoring",
+    "priority": 24,
+    "description": "AIM Monitoring DB 수집·데이터 매핑 전 None 데이터 연출",
+    "steps": [
+      "최초 모니터 탭에서 기본/커스텀 위젯을 제거하지 않고 None 데이터 상태로 표시",
+      "DB 소스 연결과 데이터 매핑 상태를 분리해 상단 안내와 위젯 표시를 전환",
+      "매핑된 타겟 위젯만 현재 데모 값으로 렌더링",
+      "연결/매핑 상태를 Monitoring 스냅샷에 저장하고 런타임에서도 반영",
+      "의도된 모니터링 에디터 화면 변화에 맞춰 비주얼 기준선 갱신"
+    ],
+    "passes": true,
+    "completedAt": "2026-07-04",
+    "notes": "DB 수집 전은 미연결, DB 연결 후 매핑 전은 매핑 대기, 매핑 완료 타겟은 Live 상태로 개별 전환되도록 구현함"
   }
 ]

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Sparkles, Paperclip, X, CheckCircle2, ExternalLink, Bot, Zap, Camera, Building2 } from "lucide-react";
+import { ArrowUp, Sparkles, Paperclip, X, CheckCircle2, ExternalLink, Bot, Zap, Camera, Building2, Factory } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SolutionManifest, AnalysisStep } from "@/lib/solutionLoader";
 import * as LucideIcons from "lucide-react";
@@ -12,7 +12,7 @@ import { useHomeStore } from "@/store/homeStore";
 import { useLLMStore } from "@/store/llmStore";
 import { useProjectStore } from "@/store/projectStore";
 import { captureUsageFromResponse } from "@/store/usageStore";
-import { scenarios } from "@/data/scenarios";
+import { scenarios, monitoringScenarios } from "@/data/scenarios";
 import type { ScenarioId } from "@/data/scenarios";
 import ParticleWaves from "./ParticleWaves";
 
@@ -21,7 +21,16 @@ interface HomeHeroProps {
   analysisStepsMap: Record<string, AnalysisStep[]>;
 }
 
-const SCENARIO_ICONS = { Zap, Camera, Building2 } as Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>>;
+const SCENARIO_ICONS = { Zap, Camera, Building2, Factory } as Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>>;
+
+type SolutionId = "guard" | "monitoring";
+
+/** AI 응답에서 __SOLUTION__{"id":"..."} 마커 파싱 */
+function parseSolution(text: string): SolutionId | null {
+  const m = text.match(/__SOLUTION__\{"id":"([^"]+)"\}/);
+  if (!m) return null;
+  return (m[1] === "guard" || m[1] === "monitoring") ? (m[1] as SolutionId) : null;
+}
 
 /** AI 응답에서 __SCENARIO__{"id":"..."} 마커 파싱 */
 function parseScenario(text: string): ScenarioId | null {
@@ -31,10 +40,18 @@ function parseScenario(text: string): ScenarioId | null {
   return ["energy", "manufacturing", "smartcity"].includes(id) ? id : null;
 }
 
-/** AI 응답에서 __SCENARIO__ 마커 제거한 표시용 텍스트 */
+/** AI 응답에서 마커 제거한 표시용 텍스트 */
 function cleanResponse(text: string): string {
-  return text.replace(/__SCENARIO__\{[^}]+\}/g, "").trim();
+  return text
+    .replace(/__SOLUTION__\{[^}]+\}/g, "")
+    .replace(/__SCENARIO__\{[^}]+\}/g, "")
+    .trim();
 }
+
+const SOLUTION_META: Record<string, { name: string; color: string }> = {
+  guard:      { name: "AIM Guard",      color: "#06b6d4" },
+  monitoring: { name: "AIM Monitoring", color: "#8b5cf6" },
+};
 
 export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps) {
   const router = useRouter();
@@ -42,6 +59,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
 
   const [input, setInput] = useState("");
   const [activeSolution, setActiveSolution] = useState<string | null>(null);
+  const [recommendedSolution, setRecommendedSolution] = useState<SolutionId | null>(null);
   const [showSolutionHint, setShowSolutionHint] = useState(false);
 
   const { selectedSolution, setSelectedSolution, setIsWorking, setSelectedScenario } = useHomeStore();
@@ -61,8 +79,9 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
   };
 
   const handleScenarioChip = (sc: typeof scenarios[number]) => {
-    if (!activeSolution) { triggerSolutionHint(); return; }
-    setSelectedSolution(activeSolution);
+    const finalSol = activeSolution ?? recommendedSolution;
+    if (!finalSol) { triggerSolutionHint(); return; }
+    setSelectedSolution(finalSol);
     setSelectedScenario(sc.id);
     setIsWorking(true);
   };
@@ -77,7 +96,12 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
   const [aiState, setAiState] = useState<"idle" | "streaming" | "done">("idle");
   const [aiResponse, setAiResponse] = useState("");
   const [pendingSolution, setPendingSolution] = useState<string | null>(null);
-  const [chatHistory, setChatHistory] = useState<{ role: "user" | "ai"; text: string }[]>([]);
+  const [chatHistory, setChatHistory] = useState<{
+    role: "user" | "ai";
+    text: string;
+    solutionId?: string | null;
+    scenarioId?: string | null;
+  }[]>([]);
   const historyScrollRef = useRef<HTMLDivElement>(null);
 
   // ─── AI 하네스 생성 ────────────────────────────────────────────
@@ -86,7 +110,6 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     e.preventDefault();
     const text = input.trim();
     if (!text || aiState === "streaming") return;
-    if (!activeSolution) { triggerSolutionHint(); return; }
 
     const solId = activeSolution;
     setSelectedSolution(solId);
@@ -98,10 +121,15 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     setInput("");
 
     try {
+      // 최근 4개(2턴) 히스토리를 API에 전달 → 루프 방지
+      const historyForApi = chatHistory.slice(-4).map(m => ({
+        role: m.role === "ai" ? "assistant" : "user",
+        content: m.text,
+      }));
       const res = await fetch("/api/home", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, solution: solId }),
+        body: JSON.stringify({ prompt: text, solution: solId, history: historyForApi }),
       });
 
       // usage 캡처 (헤더는 body 스트림 전에 도착)
@@ -128,11 +156,23 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
     }
   };
 
-  // streaming 완료 시 히스토리 저장 (__SCENARIO__ 마커는 제거해서 저장)
+  // streaming 완료 시 히스토리 저장 (마커 파싱 → 솔루션 자동 설정)
   const prevAiState = useRef(aiState);
   useEffect(() => {
     if (prevAiState.current === "streaming" && aiState === "done" && aiResponse) {
-      setChatHistory(prev => [...prev, { role: "ai" as const, text: cleanResponse(aiResponse) }]);
+      const parsedSolId = parseSolution(aiResponse);
+      const parsedScenarioId = parseScenario(aiResponse);
+      if (parsedSolId) {
+        setRecommendedSolution(parsedSolId);
+        setActiveSolution(parsedSolId);
+        setSelectedSolution(parsedSolId);
+      }
+      setChatHistory(prev => [...prev, {
+        role: "ai" as const,
+        text: cleanResponse(aiResponse),
+        solutionId: parsedSolId,
+        scenarioId: parsedScenarioId,
+      }]);
     }
     prevAiState.current = aiState;
   }, [aiState, aiResponse]);
@@ -145,7 +185,7 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
   }, [chatHistory, aiResponse]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSubmit(e as unknown as React.FormEvent);
     }
@@ -331,8 +371,9 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                   >
                   {chatHistory.map((msg, i) => {
                     const isLastAi = msg.role === "ai" && i === chatHistory.length - 1 && aiState !== "streaming";
-                    const recommendId = isLastAi ? parseScenario(aiResponse || "") : null;
-                    const sc = recommendId ? scenarios.find(s => s.id === recommendId) : null;
+                    const cardSolId = isLastAi ? (msg.solutionId ?? null) : null;
+                    const scenarioList = cardSolId === "monitoring" ? monitoringScenarios : scenarios;
+                    const sc = (isLastAi && msg.scenarioId) ? scenarioList.find(s => s.id === msg.scenarioId) : null;
                     return (
                       <div key={i}>
                         <div className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -347,21 +388,17 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                             {msg.text}
                           </div>
                         </div>
-                        {sc && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3, duration: 0.35 }}
-                            className="mt-2 ml-8"
-                          >
-                            <button
-                              onClick={() => { setSelectedSolution(activeSolution ?? selectedSolution ?? "guard"); setSelectedScenario(sc.id); setIsWorking(true); }}
-                              className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
-                              style={{ background: `${sc.color}22`, border: `1px solid ${sc.color}55`, color: sc.color }}
-                            >
-                              {sc.label}로 시작하기 →
-                            </button>
-                          </motion.div>
+                        {isLastAi && sc && cardSolId && (
+                          <SolutionRecommendCard
+                            solutionId={cardSolId}
+                            scenario={sc}
+                            onStart={() => {
+                              setSelectedSolution(cardSolId);
+                              setActiveSolution(cardSolId);
+                              setSelectedScenario(sc.id as ScenarioId);
+                              setIsWorking(true);
+                            }}
+                          />
                         )}
                       </div>
                     );
@@ -408,11 +445,11 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
               onChange={(e) => { setInput(e.target.value); if (showSolutionHint) setShowSolutionHint(false); }}
               onKeyDown={handleKeyDown}
               placeholder={
-                !activeSolution
-                  ? "하단에서 솔루션을 먼저 선택해주세요"
-                  : activeSolution === "guard"
+                activeSolution === "guard"
                   ? "예: 배터리공장 화재 감지 + 에너지 모니터링 대시보드 만들어줘"
-                  : "예: 압연 설비 이상 감지 + 작업자 안전 모니터링 구성해줘"
+                  : activeSolution === "monitoring"
+                  ? "예: 압연 설비 이상 감지 + 작업자 안전 모니터링 구성해줘"
+                  : "어떤 현장을 모니터링하고 싶으신가요?"
               }
               rows={3}
               className="w-full resize-none bg-transparent text-sm text-white placeholder:text-white/20 focus:outline-none"
@@ -449,20 +486,21 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
                     const next = id === activeSolution ? null : id;
                     setActiveSolution(next);
                     setSelectedSolution(next);
+                    if (next) setRecommendedSolution(next as SolutionId);
                   }}
+                  recommended={recommendedSolution}
                 />
               </div>
 
               {/* 전송 버튼 */}
               <motion.button
                 type="submit"
-                whileHover={activeSolution && input.trim() ? { scale: 1.05 } : {}}
-                whileTap={activeSolution && input.trim() ? { scale: 0.95 } : {}}
-                disabled={!input.trim() || aiState === "streaming" || !activeSolution}
-                onClick={!activeSolution ? (e) => { e.preventDefault(); triggerSolutionHint(); } : undefined}
+                whileHover={input.trim() ? { scale: 1.05 } : {}}
+                whileTap={input.trim() ? { scale: 0.95 } : {}}
+                disabled={!input.trim() || aiState === "streaming"}
                 className={cn(
                   "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl transition-all",
-                  activeSolution && input.trim() && aiState !== "streaming"
+                  input.trim() && aiState !== "streaming"
                     ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/30"
                     : "bg-white/5 text-white/20"
                 )}
@@ -511,11 +549,12 @@ export default function HomeHero({ solutions, analysisStepsMap }: HomeHeroProps)
 // ─── 솔루션 칩 ───────────────────────────────────────────────
 
 function SolutionChips({
-  solutions, active, onSelect,
+  solutions, active, onSelect, recommended,
 }: {
   solutions: SolutionManifest[];
   active: string | null;
   onSelect: (id: string) => void;
+  recommended?: string | null;
 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -525,6 +564,7 @@ function SolutionChips({
           LucideIcons.Box
         ) as React.FC<LucideProps>;
         const isActive = active === sol.id;
+        const isRecommended = recommended === sol.id && !isActive;
         const isComingSoon = sol.status === "coming-soon";
 
         return (
@@ -538,12 +578,24 @@ function SolutionChips({
               "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-all",
               isActive
                 ? "border-purple-400/40 bg-purple-500/20 text-purple-200"
+                : isRecommended
+                ? "border-violet-400/50 bg-violet-500/15 text-violet-300"
                 : "border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:text-white/70",
               isComingSoon && "cursor-not-allowed opacity-50"
             )}
           >
             <IconComp className="h-3 w-3" color={sol.color} />
             <span>{sol.name}</span>
+            {isRecommended && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="rounded-full px-1 py-0.5 text-[9px] font-bold"
+                style={{ background: "rgba(139,92,246,0.3)", color: "#c4b5fd" }}
+              >
+                AI 추천
+              </motion.span>
+            )}
             {isComingSoon && (
               <span className="rounded-full bg-white/10 px-1 py-0.5 text-[9px] text-white/40">예정</span>
             )}
@@ -563,6 +615,60 @@ const SOLUTION_LOGOS: Record<string, string> = {
   eco:        "/img/01_AimEco.png",
   monitoring: "/img/AIM%20Mornitering.svg",
 };
+
+// ─── AI 솔루션 추천 카드 ──────────────────────────────────────
+
+function SolutionRecommendCard({
+  solutionId,
+  scenario,
+  onStart,
+}: {
+  solutionId: string;
+  scenario: { id: string; label: string; color: string };
+  onStart: () => void;
+}) {
+  const meta = SOLUTION_META[solutionId] ?? { name: solutionId, color: "#8b5cf6" };
+  const logo = SOLUTION_LOGOS[solutionId];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3, duration: 0.35 }}
+      className="mt-2.5 ml-8 rounded-xl border p-3.5"
+      style={{ borderColor: meta.color + "40", background: meta.color + "0d" }}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {logo && (
+            <img src={logo} alt={meta.name} style={{ height: 20, width: "auto", objectFit: "contain" }} />
+          )}
+          <span className="text-xs font-semibold" style={{ color: meta.color }}>{meta.name}</span>
+        </div>
+        <motion.span
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+          style={{ background: meta.color + "25", color: meta.color }}
+        >
+          AI 추천
+        </motion.span>
+      </div>
+      <div className="mb-2.5 flex items-center gap-1.5">
+        <span className="text-[11px]" style={{ color: scenario.color }}>⚡</span>
+        <span className="text-xs text-white/60">{scenario.label} 시나리오</span>
+      </div>
+      <button
+        onClick={onStart}
+        className="w-full rounded-lg py-2 text-xs font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+        style={{ background: meta.color + "22", border: `1px solid ${meta.color}55`, color: meta.color }}
+      >
+        {meta.name}으로 시작하기 →
+      </button>
+    </motion.div>
+  );
+}
 
 // ─── 솔루션 카드 ─────────────────────────────────────────────
 
@@ -603,7 +709,10 @@ const ROADMAP_SOLUTIONS = [
 
 function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
   const router = useRouter();
-  const { setSelectedSolution, setIsWorking, setSelectedScenario } = useHomeStore();
+  const {
+    selectedSolution, solutionSlots, blueprintMd, isComplete,
+    setSelectedSolution, setIsWorking, setSelectedScenario,
+  } = useHomeStore();
 
   return (
     <motion.div
@@ -619,6 +728,19 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
         {solutions.map((sol, i) => {
           const isAvailable = sol.status === "available";
           const logoSrc = SOLUTION_LOGOS[sol.id];
+
+          // 현재 활성 솔루션은 flat state에서, 나머지는 슬롯에서 읽기
+          const isActiveSol = selectedSolution === sol.id;
+          const slotBlueprintMd = isActiveSol ? blueprintMd : (solutionSlots[sol.id]?.blueprintMd ?? "");
+          const slotIsComplete  = isActiveSol ? isComplete  : (solutionSlots[sol.id]?.isComplete  ?? false);
+          const hasWork = !!slotBlueprintMd || !!solutionSlots[sol.id]?.selectedScenario;
+
+          // 뱃지 계산
+          const workBadge = slotIsComplete
+            ? { label: "설계 완료", cls: "bg-violet-500/20 text-violet-300" }
+            : hasWork
+            ? { label: "작업 중", cls: "bg-amber-500/15 text-amber-400" }
+            : null;
 
           return (
             <motion.div
@@ -653,12 +775,19 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
                     <p className="text-[10px] text-white/40 capitalize">{sol.category}</p>
                   </div>
                 </div>
-                <span className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  isAvailable ? "bg-emerald-500/15 text-emerald-400" : "bg-white/5 text-white/30"
-                )}>
-                  {isAvailable ? "구독 중" : "출시 예정"}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    isAvailable ? "bg-emerald-500/15 text-emerald-400" : "bg-white/5 text-white/30"
+                  )}>
+                    {isAvailable ? "구독 중" : "출시 예정"}
+                  </span>
+                  {workBadge && (
+                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", workBadge.cls)}>
+                      {workBadge.label}
+                    </span>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-white/40 leading-relaxed">{sol.description}</p>
               <div className="flex flex-wrap gap-1">
@@ -669,13 +798,20 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
               <button
                 onClick={() => {
                   if (!isAvailable) return;
+                  // setSelectedSolution이 기존 슬롯을 저장하고 목표 슬롯을 복원
                   setSelectedSolution(sol.id);
-                  const scenarioId = SOLUTION_TO_SCENARIO[sol.id];
-                  if (scenarioId) {
-                    setSelectedScenario(scenarioId as "energy" | "manufacturing" | "smartcity");
+                  const existingSlot = solutionSlots[sol.id];
+                  if (existingSlot?.selectedScenario || existingSlot?.blueprintMd) {
+                    // 이전 작업 있음 → 그대로 복원하고 작업 뷰로
                     setIsWorking(true);
                   } else {
-                    router.push(`/editor?solution=${sol.id}`);
+                    const scenarioId = SOLUTION_TO_SCENARIO[sol.id];
+                    if (scenarioId) {
+                      setSelectedScenario(scenarioId as "energy" | "manufacturing" | "smartcity");
+                      setIsWorking(true);
+                    } else {
+                      router.push(`/editor?solution=${sol.id}`);
+                    }
                   }
                 }}
                 disabled={!isAvailable}
@@ -686,7 +822,7 @@ function SolutionCards({ solutions }: { solutions: SolutionManifest[] }) {
                     : "cursor-not-allowed bg-white/5 text-white/20"
                 )}
               >
-                {isAvailable ? "시작하기" : "출시 예정"}
+                {isAvailable ? (hasWork ? "계속하기" : "시작하기") : "출시 예정"}
               </button>
             </motion.div>
           );

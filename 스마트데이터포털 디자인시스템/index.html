@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>광명 스마트데이터포털 · 디자인 시스템</title>
+<link rel="stylesheet" href="portal_tokens.css">
+<link rel="stylesheet" href="portal_ds.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+/* ===== Guide chrome (documentation-only) ===== */
+.ds-shell{display:grid;grid-template-columns:276px 1fr;min-height:100vh;}
+.ds-topbar{grid-column:1/-1;position:sticky;top:0;z-index:var(--z-sticky);display:flex;align-items:center;
+  gap:16px;height:68px;padding:0 28px;background:#fff;border-bottom:1px solid var(--border-1);}
+.ds-logo{display:flex;align-items:center;gap:12px;}
+.ds-logomark{width:40px;height:40px;flex:none;display:grid;place-items:center;}
+.ds-logomark img{width:100%;height:100%;object-fit:contain;display:block;}
+.gp-ico-circle img.mi,.ds-mile-ico img{width:100%;height:100%;object-fit:contain;display:block;}
+.ds-logo b{font:800 18px/1 var(--font-sans);color:var(--fg-1);}
+.ds-logo small{font:var(--type-label-s);color:var(--gp-point);}
+.ds-topbar__meta{margin-left:auto;display:flex;align-items:center;gap:16px;font:var(--type-label-s);color:var(--fg-3);}
+.ds-topbar__ver{padding:5px 12px;border:1px solid var(--border-1);border-radius:var(--radius-pill);color:var(--fg-2);}
+.ds-topbar__switch{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-pill);
+  background:var(--gp-primary-soft);color:var(--gp-primary);font:var(--type-label-s);text-decoration:none;}
+.ds-topbar__switch:hover{background:var(--gp-primary);color:#fff;}
+
+.ds-nav{position:sticky;top:68px;align-self:start;height:calc(100vh - 68px);overflow-y:auto;
+  padding:22px 16px 80px;background:var(--bg-subtle);border-right:1px solid var(--border-1);}
+.ds-nav__group{font:var(--type-label-s);color:var(--fg-4);letter-spacing:.04em;text-transform:uppercase;padding:18px 12px 6px;}
+.ds-nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);
+  color:var(--fg-2);text-decoration:none;font:var(--type-body-s);transition:all var(--dur-fast);}
+.ds-nav a:hover{background:#fff;color:var(--gp-primary);}
+.ds-nav a.active{background:var(--gp-primary-soft);color:var(--gp-primary);font-weight:700;}
+.ds-nav a .gp-ico{width:16px;height:16px;}
+
+.ds-main{padding:0 56px 140px;max-width:1180px;}
+.ds-section{padding-top:64px;scroll-margin-top:88px;}
+.ds-eyebrow{font:var(--type-label-m);color:var(--gp-point);letter-spacing:.06em;text-transform:uppercase;}
+.ds-title{font:var(--type-h1);color:var(--fg-1);margin:8px 0 12px;letter-spacing:var(--tracking-tight);}
+.ds-desc{font:var(--type-body-l);color:var(--fg-3);max-width:760px;margin:0 0 28px;text-wrap:pretty;}
+.ds-sub{font:var(--type-h3);color:var(--fg-1);margin:44px 0 18px;padding-bottom:10px;
+  border-bottom:1px solid var(--border-2);display:flex;align-items:center;gap:10px;}
+.ds-sub .gp-ico{width:18px;height:18px;color:var(--gp-primary);}
+.ds-note{font:var(--type-body-s);color:var(--fg-3);margin:14px 0 0;}
+
+.ds-grid{display:grid;gap:16px;}
+.ds-c2{grid-template-columns:repeat(2,1fr);}
+.ds-c3{grid-template-columns:repeat(3,1fr);}
+.ds-c4{grid-template-columns:repeat(4,1fr);}
+.ds-auto{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}
+
+.swatch{border:1px solid var(--border-1);border-radius:var(--radius-lg);overflow:hidden;background:#fff;box-shadow:var(--elev-1);}
+.swatch__chip{height:92px;display:flex;align-items:flex-end;padding:12px;}
+.swatch__body{padding:12px 14px;}
+.swatch__name{font:var(--type-label-m);color:var(--fg-1);}
+.swatch__meta{font:var(--type-body-s);color:var(--fg-3);margin-top:4px;display:flex;justify-content:space-between;gap:8px;}
+.swatch__meta>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.swatch__meta>span:last-child{flex:none;}
+.swatch__meta .mono{font-family:var(--font-mono);font-size:12px;}
+.swatch__use{font:var(--type-body-s);color:var(--fg-3);margin-top:6px;display:block;}
+.swatch__ratio{font:var(--type-label-s);padding:2px 7px;border-radius:4px;}
+.ratio-pass{color:var(--status-success);background:var(--status-success-soft);}
+.ratio-large{color:#B86A05;background:var(--status-warning-soft);}
+
+.ds-spec{width:100%;border-collapse:collapse;font:var(--type-body-s);margin-top:8px;}
+.ds-spec th{text-align:left;font:var(--type-label-s);color:var(--fg-3);padding:11px 14px;border-bottom:1px solid var(--border-1);}
+.ds-spec td{padding:13px 14px;border-bottom:1px solid var(--border-2);color:var(--fg-2);vertical-align:middle;}
+.mono,code.tok{font-family:var(--font-mono);font-size:13px;color:var(--gp-primary);background:var(--gp-primary-tint);padding:2px 7px;border-radius:5px;}
+
+.ds-demo{border:1px solid var(--border-1);border-radius:var(--radius-lg);padding:28px;background:var(--bg-subtle);
+  display:flex;flex-wrap:wrap;gap:16px;align-items:center;}
+.ds-demo--col{flex-direction:column;align-items:stretch;}
+.ds-demo__label{width:100%;font:var(--type-label-s);color:var(--fg-4);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+
+.specimen{border-bottom:1px solid var(--border-2);padding:18px 0;display:grid;grid-template-columns:160px 1fr;gap:24px;align-items:baseline;}
+.specimen__tag{font-family:var(--font-mono);font-size:12px;color:var(--fg-3);}
+.specimen__tag b{display:block;color:var(--fg-1);font:var(--type-label-m);margin-bottom:3px;}
+.specimen__demo{color:var(--fg-1);}
+
+.ds-dd{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+.ds-dd__card{border:1px solid var(--border-1);border-radius:var(--radius-lg);padding:18px;background:#fff;}
+.ds-dd__tag{display:inline-flex;align-items:center;gap:6px;font:var(--type-label-m);margin-bottom:12px;}
+.ds-dd__tag--do{color:var(--status-success);}
+.ds-dd__tag--dont{color:var(--status-danger);}
+
+.ds-callout{display:flex;gap:12px;padding:16px 18px;border-radius:var(--radius-lg);background:var(--gp-point-soft);
+  border:1px solid #BBDCF7;margin-top:22px;}
+.ds-callout .gp-ico{color:var(--gp-point);flex:none;width:20px;height:20px;margin-top:2px;}
+.ds-callout p{margin:0;font:var(--type-body-s);color:var(--fg-2);}
+.ds-callout b{color:var(--fg-1);}
+
+@media (max-width:1100px){
+  .ds-shell{grid-template-columns:1fr;}
+  .ds-nav{display:none;}
+  .ds-main{padding:0 24px 80px;}
+  .ds-c3,.ds-c4{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<a href="#overview" class="gp-skip-link">본문 바로가기</a>
+<div class="ds-shell">
+
+  <!-- TOP BAR -->
+  <header class="ds-topbar">
+    <div class="ds-logo">
+      <div class="ds-logomark"><img src="assets/bi-portal.svg" alt="스마트데이터포털 로고"></div>
+      <div><b>스마트데이터포털</b> <small>SmartDataPortal</small></div>
+    </div>
+    <div class="ds-topbar__meta">
+      <span>광명 스마트데이터포털 · 통합 디자인 시스템</span>
+      <span class="ds-topbar__ver">Design System v2.0 · White</span>
+    </div>
+  </header>
+
+  <!-- SIDE NAV -->
+  <nav class="ds-nav" aria-label="디자인 시스템 목차">
+    <div class="ds-nav__group">시작하기</div>
+    <a href="#overview" class="active"><i data-lucide="compass"></i>개요 &amp; 원칙</a>
+    <a href="#architecture"><i data-lucide="layers-3"></i>플랫폼 구조</a>
+    <div class="ds-nav__group">파운데이션</div>
+    <a href="#color"><i data-lucide="palette"></i>색상</a>
+    <a href="#mile"><i data-lucide="route"></i>4대 마일 시스템</a>
+    <a href="#typography"><i data-lucide="type"></i>타이포그래피</a>
+    <a href="#grid"><i data-lucide="layout-grid"></i>그리드 &amp; 레이아웃</a>
+    <a href="#spacing"><i data-lucide="ruler"></i>간격 · 반경 · 그림자</a>
+    <a href="#icon"><i data-lucide="shapes"></i>아이콘 &amp; 일러스트</a>
+    <div class="ds-nav__group">컴포넌트</div>
+    <a href="#header"><i data-lucide="panel-top"></i>헤더 &amp; 배너</a>
+    <a href="#buttons"><i data-lucide="square-mouse-pointer"></i>버튼 &amp; 칩</a>
+    <a href="#status"><i data-lucide="badge-check"></i>배지 &amp; 상태</a>
+    <a href="#cards"><i data-lucide="layout-dashboard"></i>카드 &amp; KPI</a>
+    <a href="#forms"><i data-lucide="text-cursor-input"></i>검색 &amp; 폼</a>
+    <a href="#table"><i data-lucide="table"></i>테이블 &amp; 페이지네이션</a>
+    <a href="#dataviz"><i data-lucide="chart-pie"></i>데이터 시각화</a>
+    <a href="#map"><i data-lucide="map-pin"></i>지도 &amp; 마커</a>
+    <a href="#cta"><i data-lucide="megaphone"></i>CTA &amp; 푸터</a>
+    <div class="ds-nav__group">품질 기준</div>
+    <a href="#a11y"><i data-lucide="accessibility"></i>웹 접근성 2.2</a>
+    <a href="#krds"><i data-lucide="landmark"></i>KRDS 준수</a>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="ds-main" id="overview">
+
+    <!-- OVERVIEW -->
+    <section class="ds-section" style="padding-top:44px">
+      <div class="ds-eyebrow">광명 스마트데이터포털 디자인 시스템</div>
+      <h1 class="ds-title" style="font:var(--type-display)">광명 스마트데이터포털 디자인 시스템</h1>
+      <p class="ds-desc">
+        광명 스마트데이터포털의 <b style="color:var(--fg-2)">단일 화이트 디자인 시스템</b>입니다.
+        대시민 <b style="color:var(--fg-2)">스마트데이터포털</b>과 행정용 <b style="color:var(--fg-2)">스마트데이터보드</b>가 하나의 밝고 신뢰감 있는
+        디자인 언어를 공유하며(주컬러/주컬러2로 구분), KRDS(대한민국 정부 디자인 시스템)·12 그리드·웹 접근성 2.2를 준수합니다.
+      </p>
+      <div class="ds-grid ds-c4">
+        <div class="gp-card"><div class="gp-ico-circle gp-ico-circle--primary" style="width:44px;height:44px;margin-bottom:14px"><i data-lucide="hand-heart" class="gp-ico" style="width:22px;height:22px"></i></div><div class="t-h4" style="color:var(--fg-1);margin-bottom:6px">시민 친화</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">전문용어보다 쉬운 말로. 누구나 데이터를 이해하고 활용하도록.</p></div>
+        <div class="gp-card"><div class="gp-ico-circle gp-ico-circle--mobility" style="width:44px;height:44px;margin-bottom:14px"><i data-lucide="sun" class="gp-ico" style="width:22px;height:22px"></i></div><div class="t-h4" style="color:var(--fg-1);margin-bottom:6px">밝고 신뢰</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">공공의 신뢰를 주는 딥블루 + 환한 화이트. 정돈된 여백과 카드.</p></div>
+        <div class="gp-card"><div class="gp-ico-circle gp-ico-circle--safety" style="width:44px;height:44px;margin-bottom:14px"><i data-lucide="sparkles" class="gp-ico" style="width:22px;height:22px"></i></div><div class="t-h4" style="color:var(--fg-1);margin-bottom:6px">스토리 중심</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">데이터를 일러스트·지도·차트로 풀어 도시의 이야기를 전합니다.</p></div>
+        <div class="gp-card"><div class="gp-ico-circle gp-ico-circle--data" style="width:44px;height:44px;margin-bottom:14px"><i data-lucide="accessibility" class="gp-ico" style="width:22px;height:22px"></i></div><div class="t-h4" style="color:var(--fg-1);margin-bottom:6px">모두의 접근</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">KRDS와 접근성 2.2로 고령자·저시력 시민까지 동등하게.</p></div>
+      </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section class="ds-section" id="architecture">
+      <div class="ds-eyebrow">Platform Context</div>
+      <h2 class="ds-title">플랫폼 구조</h2>
+      <p class="ds-desc">
+        <b style="color:var(--fg-2)">광명 스마트데이터포털</b>은 도시 데이터를 수집·관리·공개하는 통합 체계입니다.
+        같은 데이터를 두 채널이 각자의 사용자에게 맞추어 보여주며, 둘 다 <b style="color:var(--fg-2)">동일한 화이트 디자인 시스템</b>을 공유합니다 —
+        공무원용 <b style="color:var(--fg-2)">스마트데이터보드</b>(주컬러2 #006FEF), 시민용 <b style="color:var(--fg-2)">스마트데이터포털</b>(주컬러 #044E9E).
+      </p>
+      <div class="ds-grid ds-c2">
+        <div class="gp-card" style="border-color:var(--border-primary);box-shadow:var(--elev-2),0 0 0 2px var(--gp-primary-soft)">
+          <span class="gp-badge gp-badge--success" style="margin-bottom:12px">현재 문서 · 대시민</span>
+          <div class="t-h3" style="color:var(--gp-primary)">광명 스마트데이터포털</div>
+          <p style="font:var(--type-body-s);color:var(--fg-3);margin:8px 0 0">시민이 4대 마일·탄소 데이터를 열람·검색·다운로드하고 탄소중립 활동에 참여하는 <b style="color:var(--fg-2)">공개 웹사이트</b>. 라이트 모드, 홍보·스토리텔링 중심. <span style="color:var(--fg-4)">(구 에코뷰)</span></p>
+        </div>
+        <div class="gp-card">
+          <span class="gp-badge gp-badge--neutral" style="margin-bottom:12px">연계 시스템 · 행정용</span>
+          <div class="t-h3" style="color:var(--fg-1)">광명 스마트데이터보드</div>
+          <p style="font:var(--type-body-s);color:var(--fg-3);margin:8px 0 0">공무원이 데이터를 관리·모니터링·시각화하는 <b style="color:var(--fg-2)">내부 관제 플랫폼</b>. 화이트 모드 · 주컬러2 #006FEF. <span style="color:var(--fg-4)">(구 그린보드)</span> · <a href="SmartData Board 홈.html">홈 화면 보기 →</a></p>
+        </div>
+      </div>
+      <div class="ds-callout">
+        <i data-lucide="git-compare-arrows" class="gp-ico"></i>
+        <p><b>두 채널의 관계:</b> 스마트데이터포털과 스마트데이터보드는 <b>동일한 화이트 디자인 시스템</b>(색·타이포·그리드·컴포넌트·접근성)을 공유합니다. 구분은 <b>주컬러</b>뿐 — 포털은 주컬러(<code class="tok">#044E9E</code>), 보드는 주컬러2(<code class="tok">#006FEF</code>). 더 이상 다크 모드는 없습니다.</p>
+      </div>
+    </section>
+
+    <!-- COLOR -->
+    <section class="ds-section" id="color">
+      <div class="ds-eyebrow">Foundations</div>
+      <h2 class="ds-title">색상</h2>
+      <p class="ds-desc">신뢰감 있는 딥블루를 주컬러로, 밝은 포인트 블루를 강조색으로 사용합니다. 화면은 화이트를 기본으로 연한 블루 틴트가 면을 구분합니다. 모든 텍스트·UI 색은 배경 대비 명도비를 검증해 접근성 2.2 AA를 만족합니다.</p>
+
+      <h3 class="ds-sub"><i data-lucide="star"></i>브랜드 코어</h3>
+      <div class="ds-grid ds-c3">
+        <div class="swatch"><div class="swatch__chip" style="background:var(--gp-primary)"><span class="t-label-s" style="color:#fff">ON-FILL · #FFFFFF</span></div><div class="swatch__body"><div class="swatch__name">주컬러 · Primary</div><div class="swatch__meta"><span class="mono">--gp-primary</span><span class="mono">#044E9E</span></div><span class="swatch__use">광명 스마트데이터포털(대시민) 주 액션·헤더·링크</span></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--gp-primary2)"><span class="t-label-s" style="color:#fff">ON-FILL · #FFFFFF</span></div><div class="swatch__body"><div class="swatch__name">주컬러2 · Primary 2</div><div class="swatch__meta"><span class="mono">--gp-primary2</span><span class="mono">#006FEF</span></div><span class="swatch__use">광명 스마트데이터보드(행정용) 주 액션·헤더</span></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--gp-point)"><span class="t-label-s" style="color:#fff">ON-FILL · #FFFFFF</span></div><div class="swatch__body"><div class="swatch__name">포인트 · Point</div><div class="swatch__meta"><span class="mono">--gp-point</span><span class="mono">#0C8AE5</span></div><span class="swatch__use">보조 강조·정보·에너지 마일·인터랙션</span></div></div>
+      </div>
+      <div class="ds-grid ds-c4" style="margin-top:16px">
+        <div class="swatch"><div class="swatch__chip" style="background:var(--gp-primary-strong)"></div><div class="swatch__body"><div class="swatch__name">Primary Strong</div><div class="swatch__meta"><span class="mono">hover</span><span class="mono">#033B79</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--gp-primary-soft);border-bottom:1px solid var(--border-1)"></div><div class="swatch__body"><div class="swatch__name">Primary Soft</div><div class="swatch__meta"><span class="mono">칩/탭 배경</span><span class="mono">#E5EDF8</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--gp-primary-darker)"></div><div class="swatch__body"><div class="swatch__name">Primary Darker</div><div class="swatch__meta"><span class="mono">CTA 그라데</span><span class="mono">#022B57</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--gp-point-soft);border-bottom:1px solid var(--border-1)"></div><div class="swatch__body"><div class="swatch__name">Point Soft</div><div class="swatch__meta"><span class="mono">정보 배경</span><span class="mono">#E3F2FD</span></div></div></div>
+      </div>
+
+      <div class="ds-callout" style="margin-top:16px"><i data-lucide="palette" class="gp-ico"></i><p><b>주컬러2(#006FEF):</b> 단일 화이트 디자인 시스템 안에서 <b>광명 스마트데이터보드(행정용)</b>가 주 액션·헤더·선택색으로 사용하는 식별색입니다. 대시민 포털은 주컬러(#044E9E)를 쓰고, 나머지 토큰·컴포넌트·그리드는 동일합니다.</p></div>
+
+      <h3 class="ds-sub"><i data-lucide="square"></i>표면 &amp; 배경</h3>
+      <div class="ds-grid ds-c4">
+        <div class="swatch"><div class="swatch__chip" style="background:var(--bg-page);border-bottom:1px solid var(--border-1)"></div><div class="swatch__body"><div class="swatch__name">Page</div><div class="swatch__meta"><span class="mono">기본 배경</span><span class="mono">#FFFFFF</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--bg-subtle);border-bottom:1px solid var(--border-1)"></div><div class="swatch__body"><div class="swatch__name">Subtle</div><div class="swatch__meta"><span class="mono">섹션 교차</span><span class="mono">#F5F8FC</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--hero-banner);border-bottom:1px solid var(--border-1)"></div><div class="swatch__body"><div class="swatch__name">Hero Banner</div><div class="swatch__meta"><span class="mono">서브 배너</span><span class="mono">blue tint</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--footer-bg)"><span class="t-label-s" style="color:var(--footer-fg)">FOOTER</span></div><div class="swatch__body"><div class="swatch__name">Footer</div><div class="swatch__meta"><span class="mono">--footer-bg</span><span class="mono">#3B3E43</span></div></div></div>
+      </div>
+      <div class="ds-callout"><i data-lucide="droplet" class="gp-ico"></i><p><b>히어로 그라데이션:</b> 홈 상단은 연블루→라벤더→연핑크의 은은한 파스텔 그라데이션(<code class="tok">--hero-grad</code>)을 사용합니다. 채도를 낮게 유지해 텍스트 가독을 해치지 않습니다. 강한 풀-블리드 그라데이션 배경은 본문 영역에 쓰지 않습니다.</p></div>
+
+      <h3 class="ds-sub"><i data-lucide="type"></i>텍스트 명도 단계</h3>
+      <p class="ds-note">배경 <code class="tok">#FFFFFF</code> 기준 명도비(WCAG 2.2). 본문 4.5:1↑, 라벨/플레이스홀더는 큰 텍스트 3:1↑에서만.</p>
+      <table class="ds-spec">
+        <thead><tr><th>토큰</th><th>HEX</th><th>명도비</th><th>등급</th><th>샘플</th><th>용도</th></tr></thead>
+        <tbody>
+          <tr><td><code class="mono">--fg-1</code></td><td>#16243B</td><td>14.8:1</td><td><span class="swatch__ratio ratio-pass">AAA</span></td><td style="color:#16243B" class="t-label-l">제목·핵심 수치</td><td>제목, KPI 값</td></tr>
+          <tr><td><code class="mono">--fg-2</code></td><td>#36445A</td><td>9.2:1</td><td><span class="swatch__ratio ratio-pass">AAA</span></td><td style="color:#36445A" class="t-label-l">기본 본문</td><td>본문, 표 셀</td></tr>
+          <tr><td><code class="mono">--fg-3</code></td><td>#5A6878</td><td>5.6:1</td><td><span class="swatch__ratio ratio-pass">AA</span></td><td style="color:#5A6878" class="t-label-l">보조·캡션</td><td>설명, 단위</td></tr>
+          <tr><td><code class="mono">--fg-4</code></td><td>#7C8896</td><td>4.0:1</td><td><span class="swatch__ratio ratio-large">AA Large</span></td><td style="color:#7C8896" class="t-label-l">라벨·플레이스홀더</td><td>입력 힌트, 축</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="ds-sub"><i data-lucide="activity"></i>시맨틱 · 상태 색상</h3>
+      <p class="ds-note">시민이 읽는 상태 언어(정상·관심·공개·요청가능·마감 등)에 매핑. 색은 항상 점·아이콘·텍스트와 함께 사용합니다(색만으로 의미 전달 금지).</p>
+      <div class="ds-grid ds-c3">
+        <div class="swatch"><div class="swatch__chip" style="background:var(--status-success)"><span class="gp-badge" style="background:#fff;color:var(--status-success)">정상 · 공개</span></div><div class="swatch__body"><div class="swatch__name">Success</div><div class="swatch__meta"><span class="mono">--status-success</span><span class="mono">#1AAA5E</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--status-info)"><span class="gp-badge" style="background:#fff;color:var(--status-info)">정보 · 진행</span></div><div class="swatch__body"><div class="swatch__name">Info</div><div class="swatch__meta"><span class="mono">--status-info</span><span class="mono">#0C8AE5</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--status-warning)"><span class="gp-badge" style="background:#fff;color:#B86A05">관심 · 요청가능</span></div><div class="swatch__body"><div class="swatch__name">Warning</div><div class="swatch__meta"><span class="mono">--status-warning</span><span class="mono">#ED8B16</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--status-danger)"><span class="gp-badge" style="background:#fff;color:var(--status-danger)">위험 · 마감</span></div><div class="swatch__body"><div class="swatch__name">Danger</div><div class="swatch__meta"><span class="mono">--status-danger</span><span class="mono">#E0483D</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--status-pending)"><span class="gp-badge" style="background:#fff;color:var(--status-pending)">검토중 · 제한</span></div><div class="swatch__body"><div class="swatch__name">Pending</div><div class="swatch__meta"><span class="mono">--status-pending</span><span class="mono">#6E74D6</span></div></div></div>
+        <div class="swatch"><div class="swatch__chip" style="background:var(--status-neutral)"><span class="gp-badge" style="background:#fff;color:var(--status-neutral)">비활성 · 기타</span></div><div class="swatch__body"><div class="swatch__name">Neutral</div><div class="swatch__meta"><span class="mono">--status-neutral</span><span class="mono">#5E6B7D</span></div></div></div>
+      </div>
+    </section>
+
+    <!-- MILE -->
+    <section class="ds-section" id="mile">
+      <div class="ds-eyebrow">Foundations</div>
+      <h2 class="ds-title">4대 마일 시스템</h2>
+      <p class="ds-desc">포털 콘텐츠의 핵심 분류 축입니다. 각 마일은 고유 색·아이콘을 가지며 지도 마커·차트·태그·바로가기 카드 전반에서 일관되게 쓰입니다. 시민이 색만 보고도 마일을 떠올리도록 합니다.</p>
+      <div class="ds-grid ds-c4">
+        <div class="gp-mile-card gp-mile-card--energy">
+          <div class="gp-ico-circle gp-ico-circle--energy" style="width:52px;height:52px;margin-bottom:16px"><img class="mi" src="assets/mile-energy.svg" alt=""></div>
+          <div class="t-h3" style="color:var(--fg-1)">에너지 마일</div>
+          <p style="font:var(--type-body-s);color:var(--fg-3);margin:6px 0 14px">신재생에너지 생산·상계·거래, 탄소저감량</p>
+          <div class="swatch__meta"><span class="mono" style="color:var(--mile-energy)">--mile-energy</span><span class="mono">#0C8AE5</span></div>
+        </div>
+        <div class="gp-mile-card gp-mile-card--mobility">
+          <div class="gp-ico-circle gp-ico-circle--mobility" style="width:52px;height:52px;margin-bottom:16px"><img class="mi" src="assets/mile-mobility.svg" alt=""></div>
+          <div class="t-h3" style="color:var(--fg-1)">모빌리티 마일</div>
+          <p style="font:var(--type-body-s);color:var(--fg-3);margin:6px 0 14px">DRT·친환경 이동·BSS 배달·공유 모빌리티</p>
+          <div class="swatch__meta"><span class="mono" style="color:var(--mile-mobility)">--mile-mobility</span><span class="mono">#1AAA5E</span></div>
+        </div>
+        <div class="gp-mile-card gp-mile-card--safety">
+          <div class="gp-ico-circle gp-ico-circle--safety" style="width:52px;height:52px;margin-bottom:16px"><img class="mi" src="assets/mile-safety.svg" alt=""></div>
+          <div class="t-h3" style="color:var(--fg-1)">세이프티 마일</div>
+          <p style="font:var(--type-body-s);color:var(--fg-3);margin:6px 0 14px">미세먼지·침수 위험·기후위기 대응 알림</p>
+          <div class="swatch__meta"><span class="mono" style="color:#B86A05">--mile-safety</span><span class="mono">#ED8B16</span></div>
+        </div>
+        <div class="gp-mile-card gp-mile-card--data">
+          <div class="gp-ico-circle gp-ico-circle--data" style="width:52px;height:52px;margin-bottom:16px"><img class="mi" src="assets/mile-data.svg" alt=""></div>
+          <div class="t-h3" style="color:var(--fg-1)">데이터 마일</div>
+          <p style="font:var(--type-body-s);color:var(--fg-3);margin:6px 0 14px">탄소감축 프로젝트·MRV·데이터 연계 현황</p>
+          <div class="swatch__meta"><span class="mono" style="color:var(--mile-data)">--mile-data</span><span class="mono">#6E74D6</span></div>
+        </div>
+      </div>
+      <h3 class="ds-sub"><i data-lucide="tags"></i>마일 태그 &amp; 바로가기</h3>
+      <div class="ds-demo">
+        <span class="gp-tag gp-tag--energy">에너지 마일</span>
+        <span class="gp-tag gp-tag--mobility">모빌리티 마일</span>
+        <span class="gp-tag gp-tag--safety">세이프티 마일</span>
+        <span class="gp-tag gp-tag--data">데이터 마일</span>
+      </div>
+    </section>
+
+    <!-- TYPOGRAPHY -->
+    <section class="ds-section" id="typography">
+      <div class="ds-eyebrow">Foundations</div>
+      <h2 class="ds-title">타이포그래피</h2>
+      <p class="ds-desc">KRDS 표준 <b style="color:var(--fg-2)">Pretendard GOV</b>(대체: Pretendard)를 사용합니다. 대시민 채널인 만큼 본문 기준을 16px로 두어 가독을 우선하고, 히어로 타이틀은 굵고 큼직하게 시각적 무게를 줍니다.</p>
+      <div class="gp-card gp-card--flush" style="padding:8px 28px">
+        <div class="specimen"><div class="specimen__tag"><b>Hero L</b>800 · 52 / 1.18</div><div class="specimen__demo t-hero-m">광명 스마트데이터포털</div></div>
+        <div class="specimen"><div class="specimen__tag"><b>Display</b>800 · 34 / 1.25</div><div class="specimen__demo t-display">데이터 목록</div></div>
+        <div class="specimen"><div class="specimen__tag"><b>Heading 1</b>700 · 30 / 1.32</div><div class="specimen__demo t-h1">오늘의 핵심 도시지표</div></div>
+        <div class="specimen"><div class="specimen__tag"><b>Heading 2</b>700 · 24 / 1.38</div><div class="specimen__demo t-h2">마일별 데이터 바로가기</div></div>
+        <div class="specimen"><div class="specimen__tag"><b>Heading 3</b>700 · 20 / 1.45</div><div class="specimen__demo t-h3">신재생 에너지 자원 발전소</div></div>
+        <div class="specimen"><div class="specimen__tag"><b>Body L</b>400 · 18 / 1.65</div><div class="specimen__demo t-body-l">광명시 스마트도시·탄소중립 데이터를 쉽게 확인하세요.</div></div>
+        <div class="specimen"><div class="specimen__tag"><b>Body M</b>400 · 16 / 1.65</div><div class="specimen__demo t-body-m">에너지, 교통·이동, 환경·기후 데이터를 한곳에서 검색합니다.</div></div>
+        <div class="specimen"><div class="specimen__tag"><b>Label M</b>600 · 14</div><div class="specimen__demo t-label-m">상세보기 · 데이터 다운로드</div></div>
+        <div class="specimen"><div class="specimen__tag"><b>Number L</b>800 · 40</div><div class="specimen__demo t-num-l" style="color:var(--gp-primary)">1,245.8<span style="font:var(--type-label-l);color:var(--fg-3)"> tCO₂eq</span></div></div>
+      </div>
+      <div class="ds-dd">
+        <div class="ds-dd__card"><div class="ds-dd__tag ds-dd__tag--do"><i data-lucide="check" class="gp-ico"></i>권장</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">대시민 본문은 16px 이상. 행간 1.6↑로 긴 안내문도 편안하게.</p></div>
+        <div class="ds-dd__card"><div class="ds-dd__tag ds-dd__tag--dont"><i data-lucide="x" class="gp-ico"></i>지양</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">제목에 과한 자간·전부 대문자(한글 가독 저해). 12px 이하 본문.</p></div>
+      </div>
+    </section>
+
+    <!-- GRID -->
+    <section class="ds-section" id="grid">
+      <div class="ds-eyebrow">Foundations</div>
+      <h2 class="ds-title">그리드 &amp; 레이아웃</h2>
+      <p class="ds-desc">KRDS 데스크톱 <b style="color:var(--fg-2)">12 컬럼 그리드</b>를 사용합니다. 콘텐츠는 최대 1480px 폭으로 중앙 정렬되고, 거터 24px·좌우 여백 40px을 둡니다. 대시민 웹의 표준 골격은 상단 GNB → (서브)배너 → 12분할 콘텐츠 → 다크 푸터입니다.</p>
+      <div class="gp-card" style="padding:20px">
+        <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:var(--grid-gutter)">
+          <div style="grid-column:span 12;height:30px;border-radius:6px;background:var(--gp-primary-soft);display:grid;place-items:center;font:var(--type-label-s);color:var(--gp-primary)">12 · 풀폭 섹션</div>
+          <div style="grid-column:span 8;height:46px;border-radius:6px;background:var(--gp-point-soft);display:grid;place-items:center;font:var(--type-label-s);color:var(--gp-point)">8 · 본문</div>
+          <div style="grid-column:span 4;height:46px;border-radius:6px;background:var(--surface-inset);display:grid;place-items:center;font:var(--type-label-s);color:var(--fg-3)">4 · 사이드</div>
+          <div style="grid-column:span 4;height:46px;border-radius:6px;background:var(--surface-inset);display:grid;place-items:center;font:var(--type-label-s);color:var(--fg-3)">4</div>
+          <div style="grid-column:span 4;height:46px;border-radius:6px;background:var(--surface-inset);display:grid;place-items:center;font:var(--type-label-s);color:var(--fg-3)">4</div>
+          <div style="grid-column:span 4;height:46px;border-radius:6px;background:var(--surface-inset);display:grid;place-items:center;font:var(--type-label-s);color:var(--fg-3)">4 · 카드 3분할</div>
+        </div>
+      </div>
+      <table class="ds-spec">
+        <thead><tr><th>속성</th><th>값</th><th>토큰</th></tr></thead>
+        <tbody>
+          <tr><td>컬럼 수</td><td>12</td><td><code class="mono">--grid-cols</code></td></tr>
+          <tr><td>거터</td><td>24px</td><td><code class="mono">--grid-gutter</code></td></tr>
+          <tr><td>콘텐츠 최대 폭</td><td>1480px (중앙 정렬)</td><td><code class="mono">--content-max</code></td></tr>
+          <tr><td>좌우 여백</td><td>40px</td><td><code class="mono">--content-pad</code></td></tr>
+        </tbody>
+      </table>
+      <h3 class="ds-sub"><i data-lucide="panels-top-left"></i>페이지 골격 (Page Shell)</h3>
+      <div class="gp-card" style="padding:0;overflow:hidden">
+        <div style="height:48px;border-bottom:1px solid var(--border-1);display:flex;align-items:center;gap:14px;padding:0 18px"><div style="width:24px;height:24px;border-radius:50%;background:var(--gp-primary)"></div><span style="font:var(--type-label-s);color:var(--gp-primary)">GNB · 상단 헤더 (로고 · 메뉴 · 로그인/알림)</span></div>
+        <div style="background:var(--hero-banner);padding:22px 18px;display:flex;justify-content:space-between"><span style="font:var(--type-label-s);color:var(--fg-3)">서브페이지 배너 · 타이틀 + 설명</span><span style="font:var(--type-label-s);color:var(--fg-4)">일러스트</span></div>
+        <div style="padding:18px;display:flex;flex-direction:column;gap:10px">
+          <div style="font:var(--type-label-s);color:var(--fg-4)">검색 · 필터바</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div style="height:70px;border-radius:8px;background:var(--surface-inset);border:1px solid var(--border-1)"></div><div style="height:70px;border-radius:8px;background:var(--surface-inset);border:1px solid var(--border-1)"></div><div style="height:70px;border-radius:8px;background:var(--surface-inset);border:1px solid var(--border-1)"></div></div>
+        </div>
+        <div style="background:var(--footer-bg);padding:18px;font:var(--type-label-s);color:var(--footer-muted)">다크 푸터 · 광명시 로고 · 주소 · 저작권</div>
+      </div>
+    </section>
+
+    <!-- SPACING -->
+    <section class="ds-section" id="spacing">
+      <div class="ds-eyebrow">Foundations</div>
+      <h2 class="ds-title">간격 · 반경 · 그림자</h2>
+      <p class="ds-desc">간격은 4px 배수 그리드를 따릅니다. 반경은 친근한 인상을 위해 카드 16px·버튼 8px로 넉넉히, 그림자는 라이트 환경에 맞게 은은하고 부드럽게 사용합니다.</p>
+      <h3 class="ds-sub"><i data-lucide="ruler"></i>간격 스케일</h3>
+      <div class="ds-grid ds-auto">
+        <div class="gp-card" style="padding:14px"><div style="height:8px;background:var(--gp-point);border-radius:2px;margin-bottom:10px"></div><div class="swatch__meta"><span class="mono">--sp-2</span><span>8</span></div></div>
+        <div class="gp-card" style="padding:14px"><div style="height:12px;background:var(--gp-point);border-radius:2px;margin-bottom:10px"></div><div class="swatch__meta"><span class="mono">--sp-3</span><span>12</span></div></div>
+        <div class="gp-card" style="padding:14px"><div style="height:16px;background:var(--gp-point);border-radius:2px;margin-bottom:10px"></div><div class="swatch__meta"><span class="mono">--sp-4</span><span>16</span></div></div>
+        <div class="gp-card" style="padding:14px"><div style="height:24px;background:var(--gp-point);border-radius:2px;margin-bottom:10px"></div><div class="swatch__meta"><span class="mono">--sp-6</span><span>24</span></div></div>
+        <div class="gp-card" style="padding:14px"><div style="height:32px;background:var(--gp-point);border-radius:2px;margin-bottom:10px"></div><div class="swatch__meta"><span class="mono">--sp-8</span><span>32</span></div></div>
+        <div class="gp-card" style="padding:14px"><div style="height:48px;background:var(--gp-point);border-radius:2px;margin-bottom:10px"></div><div class="swatch__meta"><span class="mono">--sp-12</span><span>48</span></div></div>
+      </div>
+      <h3 class="ds-sub"><i data-lucide="frame"></i>반경 &amp; 그림자</h3>
+      <div class="ds-grid ds-c4">
+        <div class="gp-card" style="text-align:center"><div style="height:60px;background:var(--surface-inset);border:1px solid var(--border-1);border-radius:var(--radius-sm);margin-bottom:12px"></div><div class="swatch__meta" style="justify-content:center;gap:6px"><span class="mono">sm</span><span>8 · 버튼/입력</span></div></div>
+        <div class="gp-card" style="text-align:center"><div style="height:60px;background:var(--surface-inset);border:1px solid var(--border-1);border-radius:var(--radius-md);margin-bottom:12px"></div><div class="swatch__meta" style="justify-content:center;gap:6px"><span class="mono">md</span><span>12 · 작은카드</span></div></div>
+        <div class="gp-card" style="text-align:center"><div style="height:60px;background:var(--surface-inset);border:1px solid var(--border-1);border-radius:var(--radius-lg);margin-bottom:12px"></div><div class="swatch__meta" style="justify-content:center;gap:6px"><span class="mono">lg</span><span>16 · 카드</span></div></div>
+        <div class="gp-card" style="text-align:center"><div style="height:60px;background:var(--surface-inset);border:1px solid var(--border-1);border-radius:var(--radius-xl);margin-bottom:12px"></div><div class="swatch__meta" style="justify-content:center;gap:6px"><span class="mono">xl</span><span>20 · 히어로</span></div></div>
+      </div>
+      <div class="ds-grid ds-c3" style="margin-top:16px">
+        <div style="background:#fff;border:1px solid var(--border-1);border-radius:var(--radius-lg);box-shadow:var(--elev-1);padding:22px"><div class="t-label-l" style="color:var(--fg-1);margin-bottom:4px">Elevation 1</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">기본 카드·인풋</p><code class="mono" style="display:inline-block;margin-top:10px">--elev-1</code></div>
+        <div style="background:#fff;border:1px solid var(--border-1);border-radius:var(--radius-lg);box-shadow:var(--elev-2);padding:22px"><div class="t-label-l" style="color:var(--fg-1);margin-bottom:4px">Elevation 2</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">주요 카드·패널</p><code class="mono" style="display:inline-block;margin-top:10px">--elev-2</code></div>
+        <div style="background:#fff;border:1px solid var(--border-1);border-radius:var(--radius-lg);box-shadow:var(--elev-3);padding:22px"><div class="t-label-l" style="color:var(--fg-1);margin-bottom:4px">Elevation 3</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">호버·드롭다운·모달</p><code class="mono" style="display:inline-block;margin-top:10px">--elev-3</code></div>
+      </div>
+    </section>
+
+    <!-- ICON -->
+    <section class="ds-section" id="icon">
+      <div class="ds-eyebrow">Foundations</div>
+      <h2 class="ds-title">아이콘 &amp; 일러스트</h2>
+      <p class="ds-desc">UI 아이콘은 <b style="color:var(--fg-2)">Lucide</b> 라인 아이콘(스트로크 2px, 24px 그리드)을 표준으로 합니다. 마일·기능별로 연한 색 원형 배경에 담아 친근함과 식별성을 함께 줍니다. 히어로·배너의 큰 장면은 일관된 스타일의 일러스트(아이소메트릭 도시·라인아트)를 사용합니다.</p>
+      <div class="gp-card">
+        <div class="ds-grid" style="grid-template-columns:repeat(6,1fr);gap:18px">
+          <div style="text-align:center"><div class="gp-ico-circle gp-ico-circle--energy" style="width:52px;height:52px;margin:0 auto"><img class="mi" src="assets/mile-energy.svg" alt=""></div><div class="swatch__meta" style="justify-content:center;margin-top:8px">에너지</div></div>
+          <div style="text-align:center"><div class="gp-ico-circle gp-ico-circle--mobility" style="width:52px;height:52px;margin:0 auto"><img class="mi" src="assets/mile-mobility.svg" alt=""></div><div class="swatch__meta" style="justify-content:center;margin-top:8px">모빌리티</div></div>
+          <div style="text-align:center"><div class="gp-ico-circle gp-ico-circle--safety" style="width:52px;height:52px;margin:0 auto"><img class="mi" src="assets/mile-safety.svg" alt=""></div><div class="swatch__meta" style="justify-content:center;margin-top:8px">세이프티</div></div>
+          <div style="text-align:center"><div class="gp-ico-circle gp-ico-circle--data" style="width:52px;height:52px;margin:0 auto"><img class="mi" src="assets/mile-data.svg" alt=""></div><div class="swatch__meta" style="justify-content:center;margin-top:8px">데이터</div></div>
+          <div style="text-align:center"><div class="gp-ico-circle gp-ico-circle--primary" style="width:52px;height:52px;margin:0 auto"><i data-lucide="leaf" class="gp-ico"></i></div><div class="swatch__meta" style="justify-content:center;margin-top:8px">탄소중립</div></div>
+          <div style="text-align:center"><div class="gp-ico-circle gp-ico-circle--primary" style="width:52px;height:52px;margin:0 auto"><i data-lucide="search" class="gp-ico"></i></div><div class="swatch__meta" style="justify-content:center;margin-top:8px">검색</div></div>
+        </div>
+        <hr class="gp-divider">
+        <div class="ds-grid" style="grid-template-columns:repeat(8,1fr);gap:18px;text-align:center">
+          <div><i data-lucide="map-pin" class="gp-ico" style="color:var(--gp-primary);width:24px;height:24px"></i><div class="swatch__meta" style="justify-content:center">map-pin</div></div>
+          <div><i data-lucide="download" class="gp-ico" style="color:var(--fg-2);width:24px;height:24px"></i><div class="swatch__meta" style="justify-content:center">download</div></div>
+          <div><i data-lucide="chart-column" class="gp-ico" style="color:var(--fg-2);width:24px;height:24px"></i><div class="swatch__meta" style="justify-content:center">chart</div></div>
+          <div><i data-lucide="bell" class="gp-ico" style="color:var(--fg-2);width:24px;height:24px"></i><div class="swatch__meta" style="justify-content:center">bell</div></div>
+          <div><i data-lucide="link" class="gp-ico" style="color:var(--fg-2);width:24px;height:24px"></i><div class="swatch__meta" style="justify-content:center">link</div></div>
+          <div><i data-lucide="file-text" class="gp-ico" style="color:var(--fg-2);width:24px;height:24px"></i><div class="swatch__meta" style="justify-content:center">file</div></div>
+          <div><i data-lucide="recycle" class="gp-ico" style="color:var(--fg-2);width:24px;height:24px"></i><div class="swatch__meta" style="justify-content:center">recycle</div></div>
+          <div><i data-lucide="users" class="gp-ico" style="color:var(--fg-2);width:24px;height:24px"></i><div class="swatch__meta" style="justify-content:center">users</div></div>
+        </div>
+      </div>
+      <div class="ds-callout"><i data-lucide="image" class="gp-ico"></i><p><b>일러스트 가이드:</b> 홈·배너의 큰 일러스트는 본 시스템 범위 밖의 별도 에셋입니다. 채택 시 — ① 블루 계열 + 마일 포인트 색, ② 부드러운 라운드·라인아트, ③ 과한 사실주의 지양 — 의 일관 스타일을 유지하고, 모든 의미 전달 이미지에는 대체텍스트(alt)를 제공합니다. 로고마크(원형 e)는 공식 에셋 확보 전 임시 재현입니다.</p></div>
+    </section>
+
+    <!-- HEADER -->
+    <section class="ds-section" id="header">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">헤더 &amp; 배너</h2>
+      <p class="ds-desc">전역 헤더(GNB)는 화이트 배경에 로고·가로 메뉴·이용자 영역으로 구성됩니다. 서브페이지는 연블루 배너에 타이틀·설명·일러스트를 배치하고 그 아래 브레드크럼으로 위치를 알립니다.</p>
+      <div class="gp-card gp-card--flush">
+        <div class="gp-header" style="position:static">
+          <div class="gp-header__inner" style="height:68px">
+            <a class="gp-logo" href="#header"><div class="gp-logomark"><img src="assets/bi-portal.svg" alt=""></div><div class="gp-logo__txt"><b>광명 스마트데이터포털</b><small>SMART DATA PORTAL</small></div></a>
+            <nav class="gp-gnb"><a href="#header" aria-current="page">강소형스마트도시</a><a href="#header">데이터 지도</a><a href="#header">데이터목록</a><a href="#header">개인탄소저감활동</a><a href="#header">연관플랫폼</a><a href="#header">공지사항</a></nav>
+            <div class="gp-header__util"><i data-lucide="user" class="gp-ico"></i><i data-lucide="bell" class="gp-ico"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="gp-card gp-card--flush" style="margin-top:16px">
+        <div class="gp-banner" style="border-radius:0">
+          <div class="gp-banner__inner" style="padding:40px var(--content-pad)">
+            <div>
+              <div class="gp-banner__eyebrow">DATA CATALOG</div>
+              <h1 style="font:var(--type-h1)">데이터 목록</h1>
+              <p style="font:var(--type-body-m)">광명시 스마트도시·탄소중립 데이터를 검색하고 다운로드하거나 요청할 수 있습니다.</p>
+            </div>
+            <div class="gp-ico-circle gp-ico-circle--primary" style="width:84px;height:84px"><i data-lucide="layout-list" class="gp-ico" style="width:40px;height:40px"></i></div>
+          </div>
+        </div>
+        <div style="padding:16px var(--content-pad)"><nav class="gp-crumbs" aria-label="위치"><a href="#"><i data-lucide="house" class="gp-ico" style="width:15px;height:15px"></i></a><span class="sep">›</span><a href="#">강소형스마트도시 광명</a><span class="sep">›</span><span aria-current="page">데이터 목록</span></nav></div>
+      </div>
+    </section>
+
+    <!-- BUTTONS -->
+    <section class="ds-section" id="buttons">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">버튼 &amp; 칩</h2>
+      <p class="ds-desc">최소 터치 영역 48px(접근성 2.2 · 2.5.8)를 보장합니다. 위계는 Primary(딥블루) → Point → Secondary(외곽선) → Ghost 순이며, 필터 칩은 알약형 토글로 선택 시 딥블루로 채웁니다.</p>
+      <div class="ds-demo">
+        <div class="ds-demo__label">버튼 위계</div>
+        <button class="gp-btn gp-btn--primary"><i data-lucide="download" class="gp-ico"></i>데이터 다운로드</button>
+        <button class="gp-btn gp-btn--point"><i data-lucide="search" class="gp-ico"></i>검색</button>
+        <button class="gp-btn gp-btn--secondary">상세보기</button>
+        <button class="gp-btn gp-btn--ghost"><i data-lucide="filter" class="gp-ico"></i>상세검색</button>
+        <button class="gp-btn gp-btn--quiet"><i data-lucide="rotate-ccw" class="gp-ico"></i>필터 초기화</button>
+        <button class="gp-btn gp-btn--primary" disabled>비활성</button>
+      </div>
+      <div class="ds-demo">
+        <div class="ds-demo__label">크기</div>
+        <button class="gp-btn gp-btn--primary gp-btn--lg">Large 56px</button>
+        <button class="gp-btn gp-btn--primary">Medium 48px</button>
+        <button class="gp-btn gp-btn--primary gp-btn--sm">Small 38px</button>
+        <button class="gp-btn gp-btn--secondary gp-btn--icon" aria-label="다음"><i data-lucide="chevron-right" class="gp-ico"></i></button>
+      </div>
+      <div class="ds-demo">
+        <div class="ds-demo__label">필터 칩 (토글)</div>
+        <button class="gp-chip gp-chip--active">전체</button>
+        <button class="gp-chip">에너지</button>
+        <button class="gp-chip">교통 · 이동</button>
+        <button class="gp-chip">환경 · 기후</button>
+        <button class="gp-chip">안전 · 재난</button>
+        <button class="gp-chip">탄소중립</button>
+      </div>
+      <div class="ds-demo">
+        <div class="ds-demo__label">추천 검색어 칩</div>
+        <span class="gp-suggest">탄소배출</span><span class="gp-suggest">태양광 발전량</span><span class="gp-suggest">DRT</span><span class="gp-suggest">미세먼지</span><span class="gp-suggest">침수위험</span><span class="gp-suggest">광명역세권</span>
+      </div>
+    </section>
+
+    <!-- STATUS -->
+    <section class="ds-section" id="status">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">배지 &amp; 상태</h2>
+      <p class="ds-desc">데이터의 공개범위·상태, 공지의 분류를 한눈에 보여줍니다. 색 + 텍스트(필요 시 점·아이콘)를 함께 써서 색만으로 의미를 전달하지 않습니다(접근성 1.4.1).</p>
+      <div class="ds-demo">
+        <div class="ds-demo__label">상태 배지</div>
+        <span class="gp-badge gp-badge--success gp-badge--dot">정상</span>
+        <span class="gp-badge gp-badge--info gp-badge--dot">진행</span>
+        <span class="gp-badge gp-badge--warning gp-badge--dot">관심</span>
+        <span class="gp-badge gp-badge--danger gp-badge--dot">위험</span>
+        <span class="gp-badge gp-badge--pending gp-badge--dot">검토중</span>
+        <span class="gp-badge gp-badge--neutral gp-badge--dot">기타</span>
+      </div>
+      <div class="ds-demo">
+        <div class="ds-demo__label">공개범위 (외곽선)</div>
+        <span class="gp-badge gp-badge--open">공개</span>
+        <span class="gp-badge gp-badge--request">요청가능</span>
+        <span class="gp-badge gp-badge--limited">제한</span>
+      </div>
+      <div class="ds-demo">
+        <div class="ds-demo__label">공지 분류 &amp; 강조</div>
+        <span class="gp-badge gp-badge--important">중요</span>
+        <span class="gp-badge gp-badge--warning">서비스 점검</span>
+        <span class="gp-badge gp-badge--notice">공지</span>
+        <span class="gp-badge gp-badge--info">데이터 갱신</span>
+        <span class="gp-badge gp-badge--new">NEW</span>
+      </div>
+      <div class="ds-demo">
+        <div class="ds-demo__label">분야 · 마일 태그 · 파일형식</div>
+        <span class="gp-tag gp-tag--field">탄소중립</span>
+        <span class="gp-tag gp-tag--energy">에너지</span>
+        <span class="gp-tag gp-tag--mobility">모빌리티</span>
+        <span class="gp-filetag gp-filetag--pdf">PDF</span>
+        <span class="gp-filetag gp-filetag--csv">CSV</span>
+        <span class="gp-filetag gp-filetag--xlsx">XLSX</span>
+      </div>
+    </section>
+
+    <!-- CARDS / KPI -->
+    <section class="ds-section" id="cards">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">카드 &amp; KPI</h2>
+      <p class="ds-desc">화이트 라운드 카드가 기본 컨테이너입니다. 클릭 가능한 카드는 호버 시 살짝 떠오릅니다. KPI 블록은 아이콘(연한 원형) + 라벨 + 큰 수치 + 기준일/증감으로 구성합니다.</p>
+      <div class="ds-grid ds-c4">
+        <div class="gp-card"><div class="gp-kpi" style="flex-direction:column;align-items:flex-start;gap:12px"><div class="gp-ico-circle gp-ico-circle--primary" style="width:56px;height:56px"><i data-lucide="users" class="gp-ico"></i></div><div><div class="gp-kpi__label">누적 참여 활동</div><div class="gp-kpi__value">12,480<span class="unit">건</span></div><span class="gp-kpi__delta" style="color:var(--fg-4)">2026.05 기준</span></div></div></div>
+        <div class="gp-card"><div class="gp-kpi" style="flex-direction:column;align-items:flex-start;gap:12px"><div class="gp-ico-circle gp-ico-circle--mobility" style="width:56px;height:56px"><i data-lucide="leaf" class="gp-ico"></i></div><div><div class="gp-kpi__label">예상 탄소저감량</div><div class="gp-kpi__value" style="color:var(--mile-mobility)">38.6<span class="unit">tCO₂eq</span></div><span class="gp-kpi__delta" style="color:var(--fg-4)">2026.05 기준</span></div></div></div>
+        <div class="gp-card"><div class="gp-kpi" style="flex-direction:column;align-items:flex-start;gap:12px"><div class="gp-ico-circle gp-ico-circle--energy" style="width:56px;height:56px"><i data-lucide="calendar-check" class="gp-ico"></i></div><div><div class="gp-kpi__label">이번 달 참여</div><div class="gp-kpi__value">1,245<span class="unit">건</span></div><span class="gp-kpi__delta gp-kpi__delta--up">전월 대비 +18.4%</span></div></div></div>
+        <div class="gp-card"><div class="gp-kpi" style="flex-direction:column;align-items:flex-start;gap:12px"><div class="gp-ico-circle gp-ico-circle--data" style="width:56px;height:56px"><i data-lucide="link" class="gp-ico"></i></div><div><div class="gp-kpi__label">연계 프로그램</div><div class="gp-kpi__value">8<span class="unit">개</span></div><span class="gp-kpi__delta" style="color:var(--fg-4)">시민 참여형 활동</span></div></div></div>
+      </div>
+      <h3 class="ds-sub"><i data-lucide="mouse-pointer-click"></i>클릭형 데이터 카드 (호버)</h3>
+      <div class="ds-grid ds-c3">
+        <div class="gp-card gp-card--hover">
+          <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px"><div class="gp-ico-circle gp-ico-circle--mobility" style="width:48px;height:48px"><i data-lucide="leaf" class="gp-ico"></i></div><div><div class="t-h4" style="color:var(--fg-1)">탄소배출 현황 데이터</div><p style="margin:4px 0 0;font:var(--type-body-s);color:var(--fg-3)">광명역세권 탄소배출량과 감축량을 확인하는 핵심 데이터</p></div></div>
+          <hr class="gp-divider" style="margin:14px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;gap:8px"><span class="gp-filetag gp-filetag--api">API</span><span class="gp-filetag gp-filetag--csv">CSV</span></div><span style="font:var(--type-body-s);color:var(--fg-3)"><i data-lucide="eye" class="gp-ico" style="width:14px;height:14px"></i> 1,245</span></div>
+        </div>
+        <div class="gp-card gp-card--hover">
+          <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px"><div class="gp-ico-circle gp-ico-circle--mobility" style="width:48px;height:48px"><i data-lucide="bus" class="gp-ico"></i></div><div><div class="t-h4" style="color:var(--fg-1)">광명역세권 교통량 데이터</div><p style="margin:4px 0 0;font:var(--type-body-s);color:var(--fg-3)">주요 도로와 DRT 운행량을 비교하는 교통 데이터</p></div></div>
+          <hr class="gp-divider" style="margin:14px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="gp-filetag gp-filetag--api">API</span><span style="font:var(--type-body-s);color:var(--fg-3)"><i data-lucide="eye" class="gp-ico" style="width:14px;height:14px"></i> 968</span></div>
+        </div>
+        <div class="gp-card gp-card--hover">
+          <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px"><div class="gp-ico-circle gp-ico-circle--safety" style="width:48px;height:48px"><i data-lucide="building-2" class="gp-ico"></i></div><div><div class="t-h4" style="color:var(--fg-1)">공공건물 에너지 사용 데이터</div><p style="margin:4px 0 0;font:var(--type-body-s);color:var(--fg-3)">공공건물의 월별 에너지 사용량과 절감 현황</p></div></div>
+          <hr class="gp-divider" style="margin:14px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="gp-filetag gp-filetag--csv">CSV</span><span style="font:var(--type-body-s);color:var(--fg-3)"><i data-lucide="eye" class="gp-ico" style="width:14px;height:14px"></i> 1,245</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FORMS -->
+    <section class="ds-section" id="forms">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">검색 &amp; 폼</h2>
+      <p class="ds-desc">검색은 포털의 핵심 진입점입니다. 큰 검색바 + 추천어 + 필터(드롭다운·칩)로 구성합니다. 입력 요소는 화이트 위 또렷한 보더, 포커스 시 딥블루 링으로 상태를 명확히 알립니다(접근성 3.3 · 4.1.2).</p>
+      <div class="gp-card">
+        <div class="gp-searchbar" style="margin-bottom:16px">
+          <div class="gp-searchfield"><input placeholder="데이터명, 키워드, 분야를 입력하세요"><i data-lucide="search" class="gp-ico"></i></div>
+          <button class="gp-btn gp-btn--primary">검색</button>
+          <button class="gp-btn gp-btn--ghost"><i data-lucide="sliders-horizontal" class="gp-ico"></i>상세검색</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font:var(--type-label-m);color:var(--fg-3)">추천 검색어</span><span class="gp-suggest">탄소배출</span><span class="gp-suggest">태양광 발전량</span><span class="gp-suggest">DRT</span><span class="gp-suggest">공공건물 에너지</span></div>
+      </div>
+      <div class="gp-card" style="margin-top:16px">
+        <div class="ds-grid ds-c3" style="gap:24px">
+          <div class="gp-field"><label class="gp-label" for="p1">파일 포맷</label><select class="gp-select" id="p1"><option>전체</option><option>CSV</option><option>XLSX</option><option>JSON</option><option>API</option></select></div>
+          <div class="gp-field"><label class="gp-label" for="p2">공개범위</label><select class="gp-select" id="p2"><option>전체</option><option>공개</option><option>요청가능</option><option>제한</option></select></div>
+          <div class="gp-field"><label class="gp-label" for="p3">정렬</label><select class="gp-select" id="p3"><option>최신순</option><option>조회순</option><option>다운로드순</option></select></div>
+          <div class="gp-field"><label class="gp-label" for="p4">데이터명 <span class="req">*</span></label><input class="gp-input" id="p4" value="광명역세권 건물 에너지"></div>
+          <div class="gp-field"><label class="gp-label" for="p5">좌표계 <span class="req">*</span></label><input class="gp-input" id="p5" aria-invalid="true" value="EPSG:0000"><span class="gp-help gp-help--error"><i data-lucide="circle-alert" class="gp-ico" style="width:14px;height:14px;vertical-align:-2px"></i> 유효한 코드가 아닙니다.</span></div>
+          <div class="gp-field"><label class="gp-label">옵션</label><div style="display:flex;gap:18px;align-items:center;min-height:48px"><label class="gp-check"><input type="checkbox" checked><span class="gp-check__box"></span>API 제공</label><label class="gp-toggle"><input type="checkbox" checked><span class="gp-toggle__track"></span><span style="font:var(--type-body-s);color:var(--fg-2)">공개만</span></label></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABLE -->
+    <section class="ds-section" id="table">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">테이블 &amp; 페이지네이션</h2>
+      <p class="ds-desc">데이터 목록·자료실·공지 목록을 다룹니다. 헤더는 연한 배경, 본문은 넉넉한 행간, 제목+설명 2줄 셀, 상태·공개범위 배지, 우측 액션 버튼을 조합합니다.</p>
+      <div class="gp-card gp-card--flush">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 18px 14px"><span style="font:var(--type-label-l);color:var(--fg-1)">총 <b style="color:var(--gp-primary)">128</b>건</span><div class="gp-tabline" style="border:0;gap:0"><span style="font:var(--type-body-s);color:var(--fg-3)">최신순 ▾</span></div></div>
+        <table class="gp-table">
+          <thead><tr><th>구분</th><th>분야</th><th>형식</th><th>공개범위</th><th>기준일</th><th style="text-align:right">조회수</th><th style="text-align:center">기능</th></tr></thead>
+          <tbody>
+            <tr><td><div class="ttl">광명역세권 건물 에너지 사용량 데이터</div><div class="sub">주요 건축물의 월별 에너지 사용량 및 탄소배출 추정</div></td><td><span class="gp-tag gp-tag--field">탄소중립</span></td><td><span class="gp-filetag gp-filetag--csv">CSV</span></td><td><span class="gp-badge gp-badge--open">공개</span></td><td class="num">2026.05.07</td><td style="text-align:right" class="num">1,245</td><td style="text-align:center"><button class="gp-btn gp-btn--ghost gp-btn--sm">상세</button></td></tr>
+            <tr><td><div class="ttl">광명역세권 DRT 운행 데이터</div><div class="sub">전기버스 기반 친환경 DRT 운행거리·이용량</div></td><td><span class="gp-tag gp-tag--mobility">교통·이동</span></td><td><span class="gp-filetag gp-filetag--api">API</span></td><td><span class="gp-badge gp-badge--limited">제한</span></td><td class="num">2026.05.07</td><td style="text-align:right" class="num">968</td><td style="text-align:center"><button class="gp-btn gp-btn--ghost gp-btn--sm">상세</button></td></tr>
+            <tr><td><div class="ttl">미세먼지 측정 데이터</div><div class="sub">행정동별 초미세먼지·미세먼지 시간대 측정값</div></td><td><span class="gp-tag gp-tag--safety">환경·기후</span></td><td><span class="gp-filetag gp-filetag--csv">CSV</span></td><td><span class="gp-badge gp-badge--request">요청가능</span></td><td class="num">2026.05.07</td><td style="text-align:right" class="num">512</td><td style="text-align:center"><button class="gp-btn gp-btn--ghost gp-btn--sm">상세</button></td></tr>
+          </tbody>
+        </table>
+        <div style="padding:20px"><div class="gp-pager"><button class="nav" aria-label="이전">‹ 이전</button><button aria-current="true">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button class="nav">…</button><button>120</button><button class="nav" aria-label="다음">다음 ›</button></div></div>
+      </div>
+    </section>
+
+    <!-- DATAVIZ -->
+    <section class="ds-section" id="dataviz">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">데이터 시각화</h2>
+      <p class="ds-desc">포털은 시민이 한눈에 이해하도록 막대·도넛·라인·게이지를 적극 사용합니다. 마일 색을 1차 계열로 쓰고, 범례·축·단위를 항상 함께 제공합니다.</p>
+      <h3 class="ds-sub"><i data-lucide="palette"></i>범주형 계열</h3>
+      <div class="gp-card">
+        <div style="display:flex;gap:3px;border-radius:8px;overflow:hidden;height:38px;margin-bottom:14px">
+          <div style="flex:1;background:var(--mile-energy)"></div><div style="flex:1;background:var(--mile-mobility)"></div><div style="flex:1;background:var(--mile-safety)"></div><div style="flex:1;background:var(--mile-data)"></div><div style="flex:1;background:var(--gp-primary)"></div><div style="flex:1;background:#8FA3BC"></div>
+        </div>
+        <div class="gp-legend">
+          <span class="gp-legend__item"><span class="gp-legend__dot" style="background:var(--mile-energy)"></span>에너지</span>
+          <span class="gp-legend__item"><span class="gp-legend__dot" style="background:var(--mile-mobility)"></span>모빌리티</span>
+          <span class="gp-legend__item"><span class="gp-legend__dot" style="background:var(--mile-safety)"></span>세이프티</span>
+          <span class="gp-legend__item"><span class="gp-legend__dot" style="background:var(--mile-data)"></span>데이터</span>
+          <span class="gp-legend__item"><span class="gp-legend__dot" style="background:var(--gp-primary)"></span>종합</span>
+          <span class="gp-legend__item"><span class="gp-legend__dot" style="background:#8FA3BC"></span>기타</span>
+        </div>
+      </div>
+      <div class="ds-grid ds-c3" style="margin-top:16px">
+        <div class="gp-card">
+          <h4 class="t-label-l" style="color:var(--fg-1);margin:0 0 14px">월별 발전량 (막대)</h4>
+          <div style="display:flex;align-items:flex-end;gap:12px;height:120px">
+            <div style="flex:1;background:var(--mile-energy);height:62%;border-radius:6px 6px 0 0"></div>
+            <div style="flex:1;background:var(--mile-energy);height:78%;border-radius:6px 6px 0 0"></div>
+            <div style="flex:1;background:var(--mile-energy);height:46%;border-radius:6px 6px 0 0"></div>
+            <div style="flex:1;background:var(--gp-primary);height:100%;border-radius:6px 6px 0 0"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font:var(--type-label-s);color:var(--fg-4);margin-top:8px"><span>2월</span><span>3월</span><span>4월</span><span>5월</span></div>
+        </div>
+        <div class="gp-card">
+          <h4 class="t-label-l" style="color:var(--fg-1);margin:0 0 14px">분야별 비율 (도넛)</h4>
+          <div style="display:flex;align-items:center;gap:18px">
+            <div style="width:104px;height:104px;border-radius:50%;background:conic-gradient(var(--mile-mobility) 0% 55%,var(--mile-data) 55% 65%,var(--mile-energy) 65% 95%,var(--mile-safety) 95% 100%);display:grid;place-items:center"><div style="width:62px;height:62px;border-radius:50%;background:#fff"></div></div>
+            <div class="gp-legend" style="flex-direction:column;gap:8px"><span class="gp-legend__item"><span class="gp-legend__dot" style="background:var(--mile-mobility)"></span>교통 55%</span><span class="gp-legend__item"><span class="gp-legend__dot" style="background:var(--mile-energy)"></span>에너지 30%</span><span class="gp-legend__item"><span class="gp-legend__dot" style="background:var(--mile-data)"></span>폐기물 10%</span></div>
+          </div>
+        </div>
+        <div class="gp-card">
+          <h4 class="t-label-l" style="color:var(--fg-1);margin:0 0 14px">종합 도시지수 (게이지)</h4>
+          <div style="display:flex;align-items:center;gap:18px">
+            <div style="width:104px;height:104px;border-radius:50%;background:conic-gradient(var(--gp-primary) 0% 72%,var(--bg-sunken) 72% 100%);display:grid;place-items:center"><div style="width:72px;height:72px;border-radius:50%;background:#fff;display:grid;place-items:center"><span class="t-num-m" style="color:var(--fg-1)">72</span></div></div>
+            <div><div class="gp-kpi__label">탄소 배출 지수</div><div class="t-label-l" style="color:var(--status-success)">목표 대비 30.5% 저감</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ds-callout"><i data-lucide="circle-alert" class="gp-ico"></i><p><b>색맹 대응:</b> 빨강↔초록만으로 구분하지 않습니다. 인접 계열은 명도 차를 두고, 직접 라벨·아이콘·수치를 병기해 단색 인쇄·저시력 환경에서도 읽히게 합니다.</p></div>
+    </section>
+
+    <!-- MAP -->
+    <section class="ds-section" id="map">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">지도 &amp; 마커</h2>
+      <p class="ds-desc">데이터 지도는 마일별 마커, 값 클러스터 버블, 정보 팝오버, 우측 마일 선택 다이얼로 구성됩니다. 마커는 마일 색 + 흰 아이콘 + 흰 테두리 핀으로 통일합니다.</p>
+      <div class="ds-grid ds-c2">
+        <div class="gp-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:220px;background:var(--bg-subtle)">
+          <div style="display:flex;gap:22px">
+            <div class="gp-marker gp-marker--energy"><i data-lucide="zap" class="gp-ico"></i></div>
+            <div class="gp-marker gp-marker--mobility"><i data-lucide="bus" class="gp-ico"></i></div>
+            <div class="gp-marker gp-marker--safety"><i data-lucide="shield" class="gp-ico"></i></div>
+            <div class="gp-marker gp-marker--data"><i data-lucide="cloud" class="gp-ico"></i></div>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center"><div class="gp-cluster" style="width:66px;height:66px">440</div><span style="font:var(--type-body-s);color:var(--fg-3)">클러스터 버블<br>값 집계 (MWh)</span></div>
+        </div>
+        <div class="gp-card" style="display:flex;flex-direction:column;gap:16px;justify-content:center">
+          <div style="border:1px solid var(--border-1);border-radius:var(--radius-md);box-shadow:var(--elev-2);padding:14px 16px;background:#fff">
+            <div style="font:var(--type-label-l);color:var(--fg-1);padding-bottom:8px;border-bottom:1px solid var(--border-2);margin-bottom:8px">신재생 에너지 자원 발전소</div>
+            <dl class="gp-meta" style="gap:0"><div class="gp-meta__row" style="padding:6px 0;border:0"><dt>현재출력</dt><dd>168 kW</dd></div><div class="gp-meta__row" style="padding:6px 0;border:0"><dt>누적발전량</dt><dd>1,248 MWh</dd></div><div class="gp-meta__row" style="padding:6px 0;border:0"><dt>상태</dt><dd><span class="gp-badge gp-badge--success gp-badge--dot">정상</span></dd></div></dl>
+          </div>
+          <div><div class="ds-demo__label" style="margin-bottom:8px">마일 선택 다이얼</div><div style="display:flex;gap:10px"><div class="gp-ico-circle gp-ico-circle--energy" style="width:44px;height:44px"><i data-lucide="zap" class="gp-ico" style="width:20px;height:20px"></i></div><div class="gp-ico-circle gp-ico-circle--mobility" style="width:44px;height:44px"><i data-lucide="bus" class="gp-ico" style="width:20px;height:20px"></i></div><div class="gp-ico-circle gp-ico-circle--safety" style="width:44px;height:44px"><i data-lucide="shield" class="gp-ico" style="width:20px;height:20px"></i></div><div class="gp-ico-circle gp-ico-circle--data" style="width:44px;height:44px"><i data-lucide="database" class="gp-ico" style="width:20px;height:20px"></i></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="ds-section" id="cta">
+      <div class="ds-eyebrow">Components</div>
+      <h2 class="ds-title">CTA &amp; 푸터</h2>
+      <p class="ds-desc">페이지 하단에는 행동을 유도하는 딥블루 그라데이션 CTA 배너와, 광명시 로고·주소·저작권을 담은 차분한 다크 푸터를 둡니다.</p>
+      <div class="gp-cta" style="display:flex;align-items:center;justify-content:space-between;gap:24px">
+        <div><h2>데이터로 연결된 광명, 시민과 함께 더 나은 미래로</h2><p>기술과 데이터, 그리고 시민의 참여로 지속가능한 스마트도시를 만들어갑니다.</p></div>
+        <div style="display:flex;gap:12px;flex:none"><button class="gp-btn gp-btn--light">사업소개 자료 다운로드</button><button class="gp-btn gp-btn--secondary">문의하기</button></div>
+      </div>
+      <div class="gp-footer" style="border-radius:var(--radius-lg);margin-top:16px;overflow:hidden">
+        <div class="gp-footer__inner" style="padding:32px 28px">
+          <div style="display:flex;align-items:center;gap:10px;color:#fff;font:var(--type-h4)"><img src="assets/bi-gwangmyeong.png" alt="" style="height:30px;width:auto;">광명시</div>
+          <div class="gp-footer__addr">우)14234 경기도 광명시 시청로 20 · 광명시 민원콜센터 1688-3399<br>COPYRIGHT(C) GWANGMYEONG CITY. ALL RIGHTS RESERVED.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- A11Y -->
+    <section class="ds-section" id="a11y">
+      <div class="ds-eyebrow">Quality Standard</div>
+      <h2 class="ds-title">웹 접근성 2.2</h2>
+      <p class="ds-desc">대시민 공공 웹사이트로서 한국형 웹 콘텐츠 접근성 지침(KWCAG)/WCAG 2.2 AA를 준수합니다. 고령자·저시력·키보드·스크린리더 사용자를 포함한 모든 시민이 동등하게 데이터를 이용하도록 설계 단계에서 기준을 내재화했습니다.</p>
+      <table class="ds-spec">
+        <thead><tr><th>지침</th><th>기준</th><th>포털 적용</th></tr></thead>
+        <tbody>
+          <tr><td>1.4.3 명도 대비</td><td>본문 4.5:1, 큰 텍스트 3:1</td><td>fg-1~fg-3 본문 AA↑ 검증. fg-4는 큰 텍스트·플레이스홀더 한정</td></tr>
+          <tr><td>1.4.1 색에 무관</td><td>색만으로 정보 전달 금지</td><td>상태·공개범위 배지에 텍스트·점·외곽선 병행</td></tr>
+          <tr><td>1.4.11 비텍스트 대비</td><td>UI 요소 3:1</td><td>보더·아이콘·포커스 링 대비 확보</td></tr>
+          <tr><td>1.1.1 대체 텍스트</td><td>의미 이미지 alt 제공</td><td>일러스트·차트·로고에 대체텍스트/요약 제공</td></tr>
+          <tr><td>2.4.7 / 2.4.11 포커스</td><td>포커스 가시성</td><td>3px 블루 포커스 링 전역(focus-visible)</td></tr>
+          <tr><td>2.5.8 타깃 크기</td><td>최소 24×24 (권장 44)</td><td>버튼 48px·칩 42px·입력 48px</td></tr>
+          <tr><td>3.3 입력 지원</td><td>오류 식별·안내</td><td>aria-invalid + 오류 메시지 + 색·아이콘</td></tr>
+          <tr><td>2.4.1 건너뛰기</td><td>반복 영역 건너뛰기</td><td>"본문 바로가기" 스킵 링크 제공</td></tr>
+          <tr><td>2.3.3 모션 감소</td><td>애니메이션 축소</td><td>prefers-reduced-motion 시 전환 제거</td></tr>
+        </tbody>
+      </table>
+      <div class="ds-grid ds-c2" style="margin-top:20px">
+        <div class="gp-card"><div class="t-label-l" style="color:var(--fg-1);margin-bottom:12px">포커스 링 — 직접 확인 (Tab)</div><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><button class="gp-btn gp-btn--primary">버튼</button><input class="gp-input" style="width:150px" placeholder="입력 후 Tab"><label class="gp-check"><input type="checkbox"><span class="gp-check__box"></span>체크</label></div></div>
+        <div class="gp-card"><div class="t-label-l" style="color:var(--fg-1);margin-bottom:12px">건너뛰기 링크</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">페이지 최상단에서 Tab을 누르면 "본문 바로가기"가 나타나 GNB를 건너뜁니다. 매 페이지 반복 메뉴를 건너뛰어 키보드·스크린리더 탐색 부담을 줄입니다.</p></div>
+      </div>
+    </section>
+
+    <!-- KRDS -->
+    <section class="ds-section" id="krds">
+      <div class="ds-eyebrow">Quality Standard</div>
+      <h2 class="ds-title">KRDS 준수</h2>
+      <p class="ds-desc">대한민국 정부 디자인 시스템(KRDS)의 원칙을 대시민 라이트 환경에 맞춰 적용합니다. 서체·그리드·컴포넌트·접근성을 KRDS 체계와 정렬해 타 공공 서비스와 일관된 경험을 제공합니다.</p>
+      <div class="ds-grid ds-c2">
+        <div class="gp-card"><div class="ds-dd__tag ds-dd__tag--do"><i data-lucide="check" class="gp-ico"></i>서체</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">KRDS 표준 Pretendard GOV(대체 Pretendard). Display/Heading/Body/Label 체계 매핑, 대시민 16px 본문.</p></div>
+        <div class="gp-card"><div class="ds-dd__tag ds-dd__tag--do"><i data-lucide="check" class="gp-ico"></i>그리드</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">KRDS 데스크톱 12 컬럼·24 거터, 중앙 정렬 1480px. 모바일 분기 시 단계적 축소.</p></div>
+        <div class="gp-card"><div class="ds-dd__tag ds-dd__tag--do"><i data-lucide="check" class="gp-ico"></i>컴포넌트</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">버튼 위계·폼 상태·테이블·페이지네이션·브레드크럼 등 KRDS 패턴을 라이트 톤으로 구현.</p></div>
+        <div class="gp-card"><div class="ds-dd__tag ds-dd__tag--do"><i data-lucide="check" class="gp-ico"></i>접근성</div><p style="margin:0;font:var(--type-body-s);color:var(--fg-3)">KRDS 접근성 원칙 + KWCAG/WCAG 2.2 AA를 토큰·컴포넌트 단계에서 보장.</p></div>
+      </div>
+      <div class="ds-callout"><i data-lucide="landmark" class="gp-ico"></i><p><b>데이터보드와의 정렬:</b> 스마트데이터포털과 스마트데이터보드는 동일한 화이트 디자인 시스템·KRDS 구조·4대 마일 의미·접근성 기준을 공유합니다. 같은 데이터를 시민용 포털(주컬러 #044E9E)과 공무원용 보드(주컬러2 #006FEF)가 각자의 맥락에 맞춰 보여줄 뿐, 시스템은 하나입니다.</p></div>
+
+      <hr class="gp-divider" style="margin-top:48px">
+      <div style="display:flex;align-items:center;gap:14px;color:var(--fg-4);font:var(--type-body-s)">
+        <div class="ds-logomark" style="width:28px;height:28px"><span style="font-size:15px">e</span></div>
+        광명 스마트데이터포털 디자인 시스템 · v1.0 · 라이트 · KRDS · WCAG 2.2 AA
+      </div>
+    </section>
+
+  </main>
+</div>
+<script>
+  lucide.createIcons();
+  const links=[...document.querySelectorAll('.ds-nav a')];
+  const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+  const obs=new IntersectionObserver((ents)=>{ents.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('active'));const a=map.get(e.target.id);if(a)a.classList.add('active');}});},{rootMargin:'-80px 0px -70% 0px'});
+  document.querySelectorAll('.ds-section[id]').forEach(s=>obs.observe(s));
+</script>
+</body>
+</html>
