@@ -188,13 +188,16 @@ function resetMonitoringLayout() {
     const raw = localStorage.getItem(MONITORING_DRAFT_KEY);
     if (!raw) return;
     const draft = JSON.parse(raw);
-    localStorage.setItem(MONITORING_DRAFT_KEY, JSON.stringify({
+    // 스냅샷 실제 스키마에 맞춰 초기화: widgets.items / elements / brand / editor 선택상태
+    // (데이터 연결 draft.data 는 유지 → "화면 초기화")
+    const next = {
       ...draft,
-      canvasWidgets: [],
-      brand: { name: "AIM Monitoring", primaryColor: "#2563eb", logoUrl: null },
-      elementConfigs: {},
-      addedPages: [],
-    }));
+      widgets: { ...(draft.widgets ?? {}), items: [] },
+      elements: {}, // normalizeElementConfigs 가 기본값으로 채움
+      editor: { ...(draft.editor ?? {}), selectedWidgetId: null, selectedElement: null },
+    };
+    delete next.brand; // brand 제거 → resolveSnapshotBrand 기본값 적용
+    localStorage.setItem(MONITORING_DRAFT_KEY, JSON.stringify(next));
   } catch { /* ignore */ }
 }
 
@@ -203,10 +206,16 @@ function resetMonitoringData() {
     const raw = localStorage.getItem(MONITORING_DRAFT_KEY);
     if (!raw) return;
     const draft = JSON.parse(raw);
+    // 스냅샷 실제 스키마에 맞춰 데이터 연결만 초기화 (위젯 배치 draft.widgets 는 유지)
     localStorage.setItem(MONITORING_DRAFT_KEY, JSON.stringify({
       ...draft,
-      connectedSourceIds: [],
-      monitoringMappingEdges: [],
+      data: {
+        ...(draft.data ?? {}),
+        connectedSourceIds: [],
+        connectedSourceMeta: {},
+        mappingEdges: [],
+        mappingNodePositions: {},
+      },
     }));
   } catch { /* ignore */ }
 }
