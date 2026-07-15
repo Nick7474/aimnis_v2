@@ -1654,6 +1654,23 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
     }
   };
 
+  // 숨긴(X 처리한) 기본 위젯 전체를 배치·크기 유지한 채 다시 표시
+  const restoreAllDefaultWidgets = () => {
+    setElementConfigs((current) => {
+      const next = {
+        ...current,
+        defaultWidgets: Object.fromEntries(
+          Object.entries(current.defaultWidgets).map(([id, config]) => [
+            id,
+            { ...config, visible: true },
+          ])
+        ),
+      };
+      elementConfigsRef.current = next;
+      return next;
+    });
+  };
+
   const startWidgetInteraction = (
     event: ReactPointerEvent<HTMLElement>,
     instance: CanvasWidgetInstance,
@@ -2198,6 +2215,16 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
               />
             ))}
           </div>
+          {Object.values(elementConfigs.defaultWidgets).some((c) => c.visible === false) && (
+            <button
+              type="button"
+              onClick={restoreAllDefaultWidgets}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2.5 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/15"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              숨긴 기본 위젯 모두 다시 표시
+            </button>
+          )}
         </MonitoringInspectorSection>
 
         <MonitoringInspectorSection icon={RotateCcw} title="캔버스 초기화">
@@ -2613,6 +2640,16 @@ export default function MonitoringEditorShell({ solution, widgets }: MonitoringE
                 })
               }
             />
+            {Object.values(elementConfigs.defaultWidgets).some((c) => c.visible === false) && (
+              <button
+                type="button"
+                onClick={restoreAllDefaultWidgets}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2.5 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/15"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                숨긴 기본 위젯 모두 다시 표시
+              </button>
+            )}
           </MonitoringInspectorFrame>
         );
       }
