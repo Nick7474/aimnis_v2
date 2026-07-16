@@ -1,10 +1,16 @@
-# AIMNIS POC 구현·검수 정의서 — 개발 구현 계약서 v1.0
+# AIMNIS POC 구현·검수 정의서 — 개발 구현 계약서 v1.1
 
 > 대상: 백엔드/풀스택 개발자 · QA
 > 목적: 이 문서 하나로 **1차 POC 구현 범위**와 **완료(검수) 기준**을 **계약 수준으로 확정**한다.
 > 작성 근거: 현재 리포지토리의 실제 코드·라우팅·상태관리·목업 데이터 직접 분석 (화면 추측 아님)
-> 작성일: 2026-07-15 · 문서 등급: **구현 계약서 v1.0(확정)** · 기준 브랜치: `main`
+> 작성일: 2026-07-15 · 문서 등급: **구현 계약서 v1.1(확정)** · 기준 브랜치: `main`
 > 표기 원칙: **[현재 코드]** = 리포에서 실측된 사실 / **[POC 목표]** = 이번 계약으로 확정된 구현 목표. 둘을 혼동하지 말 것.
+
+> **v1.1 제품 방향 전환 (필독):** AIMNIS의 핵심 경쟁력은 "사전 정의된 프리셋 위젯"이 아니라 **"고객이 원하는 업무 위젯을 AI가 생성하는 플랫폼"** 이다.
+> - **AIMNIS는 "AI가 React 코드를 생성하는 제품"이 아니다.** 절대 그렇게 정의하지 않는다.
+> - AIMNIS는 **Widget Schema 기반 Enterprise AI Widget Platform** 이다. 등록된 **UI Component · Widget Schema · Data Schema · Rule DSL** 을 AI가 **조합(compose)** 하여 현장 맞춤형 위젯을 생성한다.
+> - 따라서 v1.0의 "10종 위젯 제작"은 **"10종 = 표준 Widget Type"** 으로 재정의된다. 고객은 이 표준 Type을 기반으로 **조합형(custom) Widget** 을 생성한다.
+> - v1.0에서 확정된 모든 범위·검수 기준은 **그대로 유효**하며, v1.1은 그 위에 **Widget Schema Engine** 방향을 추가한다([0.6](#06-widget-schema-engine-아키텍처-v11-신규), [7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규), DoD-11).
 
 ---
 
@@ -49,6 +55,13 @@
 - [ ] **DoD-8** **POC 통합 초기화**: 프로젝트 + 더미 데이터 + 로컬 draft를 한 번에 초기화 ([4.12](#412-poc-데이터-초기화--통합-초기화-item-8))
 - [ ] **DoD-9** [9. E2E 체크리스트](#9-검수-체크리스트-e2e--단일-흐름) 전 항목 통과
 - [ ] **DoD-10** POC 통합 초기화 후 전체 E2E 흐름을 **개발자 개입 없이 3회 연속** 정상 수행([9.1](#91-반복-안정성-기준-dod-10--item-6))
+- [ ] **DoD-11** **Widget Schema Engine** (v1.1 신규 · [0.6](#06-widget-schema-engine-아키텍처-v11-신규), [7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규))
+  - Gemma 4는 **자유 React 코드를 생성하지 않는다.**
+  - Gemma 4는 **Widget Schema JSON을 생성**한다.
+  - 생성된 Schema는 **Backend Validation을 통과**해야 한다(스키마 무결성 + 화이트리스트 검증).
+  - **Preview 가능**해야 한다(저장 전 미리보기 렌더).
+  - **Save 가능**해야 한다(서버 DB `CustomWidget`에 저장).
+  - **재사용 가능**해야 한다(저장된 조합형 위젯을 다른 페이지/프로젝트에서 재배치).
 > ⚠️ **[현재 코드]는 외부 클라우드 LLM(Anthropic Claude / Google Gemini)을 호출**한다. **[POC 목표]** Gemma 4 온프레미스 구성은 **미구현 → 신규 개발 대상**. 상세 차이는 [2·5·8(C9)](#8-상위-원칙-대비-충돌확인-필요) 참조.
 
 ### 0.5 POC 인프라 역할 구분 (논리적 분리)
@@ -74,6 +87,41 @@ ThinkStation PGX 한 대에서 함께 테스트하더라도 아래 3역할을 **
 AIMNIS Frontend → AIMNIS Backend → Gemma 4 Inference API   (위젯 제작/요구 해석)
 AIMNIS Frontend → AIMNIS Backend → 내부 더미 데이터 API/DB → 위젯 데이터 반환   (데이터 바인딩)
 ```
+
+### 0.6 Widget Schema Engine 아키텍처 (v1.1 신규)
+AIMNIS의 위젯 생성은 **AI가 코드를 짜는 것이 아니라, AI가 "위젯 구성(Widget Schema)"을 짜고 엔진이 그것을 조립·렌더**하는 구조다. Gemma 4의 산출물은 **오직 검증 가능한 Widget Schema JSON** 이며, 실행 코드가 아니다.
+
+```text
+                          [사용자 자연어 명령 / Spec]
+                                     │
+                                     ▼
+                                 Gemma 4              ← 온프레미스 추론 (폐쇄망)
+                                     │
+                                     ▼
+                             Intent Parser            ← 의도·대상 데이터·집계·표시형태 추출
+                                     │
+                                     ▼
+                        Widget Schema Generator       ← Widget Schema JSON 생성(코드 아님)
+                                     │
+                                     ▼
+                            Schema Validator           ← 스키마 무결성 + Component/Field/Rule 화이트리스트 검증
+                                     │
+                                     ▼
+                          Component Registry            ← 등록된 UI Component만 참조 허용
+                                     │
+                                     ▼
+                          Data Binding Engine           ← Schema binding ↔ DataSource 필드 연결(백엔드 경유)
+                                     │
+                                     ▼
+                               Preview                  ← 저장 전 미리보기 렌더(격리)
+                                     │
+                                     ▼
+                                Save                    ← 서버 DB CustomWidget 저장(재사용)
+```
+
+- **각 단계는 AIMNIS 백엔드가 오케스트레이션**한다. Gemma 4는 Generator 단계의 산출물(Schema)만 담당하고, **Validator를 통과하지 못한 Schema는 폐기**한다.
+- **자유 React/JS/HTML 생성 경로는 존재하지 않는다.** (2차 범위 — [10.1](#101-2차-poc-범위-v11-명시))
+- 상세 계약은 [7-A. Widget Schema Engine](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규).
 
 ---
 
@@ -196,6 +244,18 @@ AIMNIS Frontend → AIMNIS Backend → 내부 더미 데이터 API/DB → 위젯
   - **🟡 한계**: 홈에서 만든 specs/blueprint가 **monitoring 에디터의 실제 위젯 레이아웃으로 반영되지 않음**(에디터는 기본 대시보드로 시작).
 - **[POC 목표] (신규 구현 · DoD-6)**: Spec Board 완료 → **AIMNIS 백엔드가 specs를 내부 Gemma 4에 전달** → Gemma 4가 **확정 10종([7.1](#71-poc-확정-위젯-10종--gemma-4-제작대상--item-2)) 중 현장 요구에 적합한 초기 위젯 4~6개**를 선택해 **통합 대시보드 1개**에 배치(Tool Call 결과, [5.4](#54-gemma-4-tool-call-화이트리스트--item-3)) → 백엔드 검증 → **에디터에 실제 위젯으로 반영**.
   - MD 텍스트 설계서는 보조 산출물로 유지 가능하나, **핵심 산출물은 "실제 위젯 구성"**이다.
+- **[POC 목표 · v1.1] Widget Schema Engine 경유 (DoD-11)**: 초기 위젯 생성은 **Widget Schema Engine([0.6](#06-widget-schema-engine-아키텍처-v11-신규), [7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규)) 파이프라인**을 통과한다. v1.0의 흐름을 다음과 같이 확장한다:
+
+  | v1.0 (기존) | v1.1 (수정) |
+  |-------------|-------------|
+  | Spec → Gemma 4 → Widget 생성 → DataBinding → Save → Runtime | Spec → Gemma 4 → **Widget Schema Engine** → **Schema Validation** → **Component Composition** → Data Binding → **Preview** → Save → Runtime |
+
+  ```text
+  Spec → Gemma 4 → Widget Schema Engine → Schema Validation
+       → Component Composition → Data Binding → Preview → Save → Runtime
+  ```
+  - Gemma 4는 **Widget Schema JSON** 을 생성하고(코드 아님), 백엔드 **Schema Validator**가 화이트리스트(Component/Field/Rule) 검증 후 **Component Registry**로 조립한다.
+  - 초기 4~6개는 **표준 Widget Type(10종) 조합**으로 구성하되, v1.1에서는 **조합형(custom) Schema** 도 동일 파이프라인으로 생성·검증된다.
 - **초기 위젯 생성 조건(고정)**
   - 생성 페이지: **통합 대시보드 1개**
   - 초기 생성 위젯: **최소 4개, 최대 6개**
@@ -312,7 +372,9 @@ AIMNIS Frontend → AIMNIS Backend → 내부 더미 데이터 API/DB → 위젯
 
 ### 5.1 AI 채팅의 정의 — 위젯 제작 어시스턴트로 한정 (item 1)
 > AIMNIS 1차 POC의 AI 채팅은 **완성된 모니터링 화면에서 설비 상태를 질의·분석하는 운영 분석 채팅이 아니다.**
-> AIMNIS **설계·편집 화면**에서 사용자의 자연어 명령을 해석해 **사전 정의 위젯을 생성·수정·삭제하고 데이터 필드를 연결하는 `위젯 제작 어시스턴트`**다.
+> AIMNIS **설계·편집 화면**에서 사용자의 자연어 명령을 해석해 **위젯을 생성·수정·삭제하고 데이터 필드를 연결하는 `위젯 제작 어시스턴트`**다.
+
+> **v1.1 핵심 수정 — "Widget 생성" → "Widget Schema 생성":** AI가 최종적으로 만들어 내는 것은 **위젯 그 자체(코드)가 아니라 위젯 구성(Widget Schema JSON)** 이다. AI는 **자유 React/JS/HTML 코드를 생성하지 않는다.** 등록된 **UI Component · Widget Schema · Data Schema · Rule DSL** 을 조합한 Schema만 생성하고, 백엔드가 이를 검증·조립·렌더한다([0.6](#06-widget-schema-engine-아키텍처-v11-신규), [7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규)).
 
 | 구분 | **위젯 제작 채팅 (POC 대상)** | 운영 분석 채팅 (POC 제외) |
 |------|------------------------------|---------------------------|
@@ -345,6 +407,8 @@ AIMNIS Frontend → AIMNIS Backend → 내부 더미 데이터 API/DB → 위젯
 
 ### 5.4 Gemma 4 Tool Call 화이트리스트 (item 3)
 Gemma 4에는 **무제한 기능이 아니라 아래 Tool Call만** 제공한다. 백엔드는 화이트리스트 외 호출을 거부한다.
+
+**(A) 표준 Widget Type 편집 Tool (v1.0)** — 10종 표준 Type 대상
 ```text
 add_widget                 # 10종 중 1개 추가
 delete_widget              # 위젯 삭제
@@ -358,7 +422,17 @@ update_widget_sort         # 정렬 기준 변경(해당 위젯만)
 move_widget                # 위치 변경
 resize_widget              # 크기 변경
 ```
-- Tool 인자의 `widgetType`·`dataSource`·`field`는 **10종 카탈로그·데모 커넥터 필드 화이트리스트**로 제한.
+
+**(B) Widget Schema Engine Tool (v1.1 신규)** — 조합형 위젯 대상 ([7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규))
+```text
+generate_widget_schema     # 자연어 → Widget Schema JSON 생성(코드 아님)
+validate_widget_schema     # 생성된 Schema를 백엔드 규칙/화이트리스트로 검증
+preview_widget             # 검증된 Schema를 격리 렌더로 미리보기
+save_custom_widget         # 검증·미리보기 통과한 조합형 위젯을 서버 DB에 저장
+reuse_custom_widget        # 저장된 조합형 위젯을 다른 페이지/프로젝트에 재배치
+```
+- Tool 인자의 `widgetType`·`component`·`dataSource`·`field`·`rule`은 **Component Registry · 데모 커넥터 필드 · Rule DSL 화이트리스트**로 제한([7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규)).
+- `generate_widget_schema`의 산출물은 **오직 Widget Schema JSON**이며, `validate_widget_schema` 실패 시 **폐기**(실행·저장 금지).
 - **경계**: Gemma 4 세부 모델/양자화는 [0.2](#02-장비모델-표기-규칙-문서-전체-통일) 기준 테스트 후 확정(벤치마크로 조정 가능한 것은 **모델 크기·정밀도·양자화·성능**). **Spec 완료 시 초기 위젯 4~6개 생성([4.4](#44-현장-요구spec--gemma-4--실제-위젯-구성-반영-item-4))은 벤치마크와 무관한 필수 범위**다.
 
 ---
@@ -392,10 +466,13 @@ resize_widget              # 크기 변경
 | `Project` | id·name·solution·brand·publishedAt | `aimnis-projects`(localStorage) |
 | `SpecAnswer` | Spec Board 답변(specs) | `homeStore`(zustand)·`aimnis_harness_draft` |
 | `Page` | 통합 대시보드 등 페이지 메타 | `aimnis-monitoring-pages`(localStorage) |
-| `Widget` | 10종 위젯 인스턴스·위치·크기·옵션 | 스냅샷 `widgets.items`(localStorage) |
+| `Widget` | 10종(표준 Widget Type) 인스턴스·위치·크기·옵션 | 스냅샷 `widgets.items`(localStorage) |
+| `CustomWidget` | **조합형 Widget Schema(v1.1)** — title·layout·components·binding·rules([7-A.3](#7-a3-widget-schema-구조-계약)) | (현재 없음, v1.1 신규) |
 | `DataSource` | 내부 데이터 소스 설정(아래 상세) | 정적 JSON·프론트 endpoint 입력(신규 서버화) |
 | `DataBinding` | 위젯↔dataSourceId·필드·mappingEdges | (현재 미저장, 4.7 신규) |
 | `AiAction` | Gemma 4 위젯 제작 명령 처리 이력(아래 상세) | (현재 없음, 신규) |
+
+> **`CustomWidget`(v1.1)**: `generate→validate→preview→save`([7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규))를 통과한 조합형 위젯의 정본 저장소. 최소 필드: `customWidgetId` · `title` · `schema`(Widget Schema JSON) · `schemaVersion` · `validatedAt` · `createdBy` · `reusableScope`(page|project|tenant) · `createdAt` · `updatedAt`. `reuse_custom_widget`은 이 레코드를 다른 페이지/프로젝트에 재배치한다.
 
 **`DataSource`** — POC 내부 데이터 소스 설정(서버에서만 관리, item 5)
 - 최소 필드: `dataSourceId` · `name` · `endpointKey` · `endpoint` · `refreshInterval` · `responseFields` · `status` · `lastFetchedAt` · `lastError` · `createdAt` · `updatedAt`
@@ -412,8 +489,10 @@ resize_widget              # 크기 변경
 
 ## 7. 사전 정의 카탈로그 (구현 계약)
 
-### 7.1 POC 확정 위젯 10종 — Gemma 4 제작대상 (item 2)
+### 7.1 POC 표준 Widget Type 10종 — Gemma 4 제작대상 (item 2)
 > **원칙**: 기존 카탈로그 20종 라이브러리와 사용자 직접 드래그는 **유지**한다. 그러나 **Gemma 4 위젯 제작 채팅의 생성·수정 및 공식 검수 대상은 아래 10종**으로 확정한다. 아래 `대응 컴포넌트`는 [현재 코드]에 실재하는 것만 표기했고, 전용 위젯이 없는 경우 목적이 가장 유사한 실재 위젯으로 **대체(사유 명시)**했다.
+>
+> **v1.1 재정의:** 아래 10종은 "제작 대상 위젯"이 아니라 **표준 Widget Type(Standard Widget Type)** 이다. 실제 고객은 이 표준 Type을 **기반 컴포넌트로 삼아 조합형(custom) Widget** 을 생성한다([7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규)). 즉 10종은 **Component Registry의 표준 컴포넌트 집합**이며, 조합형 Widget은 이들을 Widget Schema로 엮어 만든다.
 
 | # | POC 위젯 유형 | 현재 코드의 대응 위젯·컴포넌트 | 주요 용도 | 허용 데이터 | 지원 상태 |
 |---|---------------|--------------------------------|-----------|-------------|-----------|
@@ -472,6 +551,121 @@ resize_widget              # 크기 변경
 
 ---
 
+## 7-A. Widget Schema Engine (조합형 위젯 아키텍처 — v1.1 신규)
+
+> AIMNIS의 차별점은 "프리셋 위젯 제공"이 아니라 **"고객이 원하는 업무 위젯을 AI가 조합해 생성"** 하는 것이다. 그 조합의 단위·규칙·검증을 정의하는 계층이 **Widget Schema Engine** 이다. 본 장은 개발자가 그대로 구현할 수 있도록 **구성 요소·스키마·규칙·검증·미리보기**를 계약 수준으로 정의한다.
+>
+> **불변 원칙:** ① AI는 **코드가 아니라 Widget Schema(JSON)** 를 만든다. ② Schema는 **등록된 것만** 참조한다(Component/Field/Rule 화이트리스트). ③ **Validator 통과분만** 렌더·저장된다. ④ 자유 코드 경로(React/JS/HTML)는 **1차 POC에 존재하지 않는다**([10.1](#101-2차-poc-범위-v11-명시)).
+
+### 7-A.1 구성 요소 (Engine Components)
+| 구성 요소 | 역할 | 1차 POC 범위 |
+|-----------|------|--------------|
+| **Component Registry** | 조합 가능한 UI Component의 등록소. 각 Component의 props·허용 데이터 타입·바인딩 슬롯 정의 | 표준 10 Component |
+| **Widget Schema** | 하나의 위젯을 기술하는 JSON(제목·레이아웃·컴포넌트·바인딩·규칙) | 필수 |
+| **Data Schema** | 위젯이 소비하는 데이터의 구조(필드·타입·단위·시계열 여부) | 필수 |
+| **Semantic Layer** | 원시 데이터 필드 ↔ 업무 의미(“설비 상태”, “위험도”, “가동률”)를 매핑하는 의미 계층 | 최소 구현 |
+| **Rule DSL** | 임계값·집계·상태 매핑 등 **선언형** 규칙 언어(코드 아님) | 필수(7-A.5 범위) |
+| **Preview Engine** | 저장 전 Schema를 격리 환경에서 렌더해 미리보기 | 필수 |
+
+### 7-A.2 UI Component Registry (표준 10 Component)
+조합에 사용할 수 있는 표준 UI Component. **Widget Schema의 `components[].type`은 반드시 이 목록 중 하나**여야 한다(화이트리스트). 각 Component는 [7.1](#71-poc-표준-widget-type-10종--gemma-4-제작대상-item-2)의 표준 Widget Type과 1:1 대응한다.
+
+| Component `type` | 설명 | 주요 props | 바인딩 슬롯 |
+|------------------|------|-----------|-------------|
+| `Metric` | 단일 지표(KPI) | value, unit, trend | value ← number |
+| `Status` | 상태 요약/뱃지 | states[], mapping | value ← string/enum |
+| `Chart` | 라인/막대/영역 차트 | chartType, series | series ← array/timeSeries |
+| `Gauge` | 게이지 | min, max, value, thresholds | value ← number |
+| `Table` | 데이터 테이블 | columns[], sort, pageSize | rows ← array |
+| `Timeline` | 시간축 이벤트 | events[] | events ← array |
+| `Alert` | 알림·이벤트 목록 | severityField, items | items ← array |
+| `Progress` | 진행률/비율 | value, target | value ← number |
+| `Text` | 라벨·설명 텍스트 | text, variant | (정적/바인딩) |
+| `Divider` | 구분선/레이아웃 | orientation | (없음) |
+
+> 위 목록 외 Component는 **등록되지 않은 것으로 간주하여 Validator가 거부**한다. 신규 Component 추가는 2차 범위([10.1](#101-2차-poc-범위-v11-명시)).
+
+### 7-A.3 Widget Schema (구조 계약)
+하나의 조합형 위젯 = 하나의 Widget Schema JSON. 최상위 필수 키:
+
+| 키 | 타입 | 설명 |
+|----|------|------|
+| `title` | string | 위젯 제목 |
+| `layout` | object | 그리드 배치(`{ w, h }`) + 내부 컴포넌트 배열 배치 방식(`stack`/`grid`) |
+| `components` | array | 조합할 UI Component 목록(각 `type`은 Registry 화이트리스트) |
+| `binding` | object | 각 Component 슬롯 ↔ DataSource 필드 매핑(`dataSourceId`+`field`, 백엔드 경유) |
+| `rules` | array | Rule DSL 규칙(임계값·집계·상태 매핑 등) |
+
+### 7-A.4 Data Schema (데이터 구조 계약)
+위젯이 소비하는 데이터의 형태. `DataSource`([6.2](#62-poc-목표-서버-db-영속화-item-35--dod-5))의 `responseFields`에서 파생.
+- 필드 정의: `{ field, type(number|string|boolean|datetime|array), unit?, timeSeries?(bool) }`
+- 바인딩 규칙: Component 슬롯의 허용 타입과 **필드 타입이 일치**해야 Validator 통과(예: `Metric.value ← number`).
+
+### 7-A.5 Rule DSL (선언형 규칙 언어)
+규칙은 **코드가 아니라 선언형 DSL**로 표현한다. 백엔드가 해석·실행하며, 화이트리스트 밖 표현은 거부한다.
+
+**지원(허용) 연산**
+```text
+threshold        # 값이 임계값을 넘으면 상태/색 지정        예: { op:"threshold", field:"temp", gt:75, then:"danger" }
+average          # 평균                                     예: { op:"average", field:"vibration" }
+sum              # 합                                        예: { op:"sum", field:"count" }
+count            # 개수                                      예: { op:"count", where:{ status:"warning" } }
+compare          # 비교(>, >=, <, <=, ==)                    예: { op:"compare", left:"actual", cmp:">", right:"target" }
+status mapping   # 값 → 상태 매핑                            예: { op:"statusMap", field:"level", map:{ "0":"normal","1":"warning","2":"danger" } }
+formula          # 사칙연산 기반 파생값(선언형 수식)         예: { op:"formula", expr:"(a-b)/b*100", vars:{ a:"actual", b:"target" } }
+```
+
+**미지원(금지) — Validator가 거부**
+```text
+javascript       # 임의 JS 실행
+python           # 임의 Python 실행
+sql              # 임의 SQL
+react code       # JSX/컴포넌트 코드
+```
+> `formula`는 **화이트리스트 연산자(+ - * / 및 괄호)와 등록된 변수만** 허용하는 선언형 수식이다. eval/함수호출/외부참조 불가.
+
+### 7-A.6 Preview Engine
+- 검증된 Schema를 **격리 렌더(iframe/샌드박스 컴포넌트)** 로 미리보기. 실데이터 대신 **DataSource 샘플/더미 데이터** 사용.
+- Preview 성공(렌더 예외 없음) 시에만 **Save 허용**. 렌더 오류 시 원인(어느 Component/바인딩)을 반환.
+
+### 7-A.7 Widget Schema 예제 (JSON)
+"설비별 온도 상태 + 최근 추이 + 위험 알림"을 하나로 묶은 **조합형 위젯** 예시:
+```json
+{
+  "title": "설비 온도 종합 상태",
+  "layout": { "w": 4, "h": 6, "arrange": "stack" },
+  "components": [
+    { "id": "c1", "type": "Metric", "props": { "unit": "°C", "trend": true } },
+    { "id": "c2", "type": "Status", "props": { "states": ["normal", "warning", "danger"] } },
+    { "id": "c3", "type": "Chart", "props": { "chartType": "line" } },
+    { "id": "c4", "type": "Alert", "props": { "severityField": "severity" } }
+  ],
+  "binding": {
+    "c1.value":  { "dataSourceId": "equipment-status", "field": "temperature" },
+    "c2.value":  { "dataSourceId": "equipment-status", "field": "level" },
+    "c3.series": { "dataSourceId": "equipment-status", "field": "tempSeries" },
+    "c4.items":  { "dataSourceId": "alerts-events",    "field": "recentAlerts" }
+  },
+  "rules": [
+    { "op": "threshold", "field": "temperature", "gt": 75, "then": "danger", "target": "c2" },
+    { "op": "statusMap", "field": "level", "map": { "0": "normal", "1": "warning", "2": "danger" }, "target": "c2" },
+    { "op": "average", "field": "tempSeries", "as": "avgTemp" }
+  ]
+}
+```
+- `components[].type`은 전부 [7-A.2](#7-a2-ui-component-registry-표준-10-component) 화이트리스트.
+- `binding.*`은 [6.2](#62-poc-목표-서버-db-영속화-item-35--dod-5) `DataSource` + 필드(백엔드 경유). 프론트에 endpoint 노출 없음.
+- `rules[].op`은 전부 [7-A.5](#7-a5-rule-dsl-선언형-규칙-언어) 허용 연산.
+
+### 7-A.8 검수 기준 (DoD-11 대응)
+- [ ] `generate_widget_schema` 산출물이 **JSON(코드 아님)** 이고 상위 키(title/layout/components/binding/rules) 충족.
+- [ ] `validate_widget_schema`가 **Component/Field/Rule 화이트리스트** 위반을 거부한다(미지원 Rule·미등록 Component·타입 불일치 바인딩 전부 실패 처리).
+- [ ] `preview_widget`가 샘플 데이터로 렌더되고, 렌더 성공 시에만 Save 허용.
+- [ ] `save_custom_widget`로 서버 DB `CustomWidget` 저장 → `reuse_custom_widget`로 다른 페이지/프로젝트 재배치.
+- [ ] 자유 코드(JS/Python/SQL/React) 삽입 시도는 **전부 거부**된다.
+
+---
+
 ## 8. 상위 원칙 대비 충돌·확인 필요
 
 > 코드 분석 결과가 POC 상위 원칙과 충돌하면 **상위 원칙 우선**. 아래는 구현/검수 시 반드시 조정·확인해야 할 지점.
@@ -491,6 +685,7 @@ resize_widget              # 크기 변경
 | **C11** | **AI 채팅 운영분석 혼용** | `/api/chat` 에디터 대화가 자유 텍스트 응답 가능(운영 분석형 답변 여지) | **확정**: 위젯 제작 어시스턴트로 한정, 운영 분석 질문은 안내 반려([5.1](#51-ai-채팅의-정의--위젯-제작-어시스턴트로-한정-item-1)) |
 | **C12** | **위젯 20종 vs POC 10종** | 카탈로그 20종, Gemma 대상 범위 미정 | **확정**: 라이브러리 20종 유지, Gemma 제작·검수 대상 **10종**([7.1](#71-poc-확정-위젯-10종--gemma-4-제작대상--item-2)), #6 데이터테이블만 대체 |
 | **C13** | **폐쇄망 외부 의존성** | guard CSS 폰트 CDN·외부 LLM SDK 등 외부 호출 존재 | **확정(DoD-7)**: 외부 LLM fallback 차단 + 의존성 내재화([2-1](#2-1-폐쇄망-외부-의존성-점검-item-6-7)) |
+| **C14** | **Widget Schema Engine(v1.1)** | 현재 위젯 생성은 프리셋/키워드 기반, 조합형 Schema 생성·검증 엔진 없음 | **확정(DoD-11)**: AI는 코드 아닌 **Widget Schema JSON** 생성 → 검증→미리보기→저장→재사용([7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규)). 자유 코드·신규 컴포넌트는 2차([10.1](#101-2차-poc-범위-v11-명시)) |
 
 ---
 
@@ -513,6 +708,7 @@ resize_widget              # 크기 변경
 - [ ] **11. 오류/차단 처리**: Gemma 4/네트워크 오류 시 메시지만 노출, 크래시 없음, **외부 fallback 미발생**
 - [ ] **12. 통합 초기화(DoD-8, item 8)**: `POC 통합 초기화` 1회 → 프로젝트·더미데이터·로컬 draft **모두 초기 상태**
 - [ ] **13. 반복 안정성(DoD-10)**: 통합 초기화부터 읽기 전용 결과 확인까지 전체 흐름을 **개발자 개입 없이 3회 연속** 정상 수행한다.
+- [ ] **14. Widget Schema Engine(DoD-11 · v1.1)**: 자연어 → `generate_widget_schema`(JSON) → `validate`(화이트리스트) → `preview`(샘플 렌더) → `save_custom_widget`(서버 DB) → `reuse_custom_widget`(재배치)까지 동작하고, **자유 코드 삽입은 거부**된다([7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규)).
 
 ### 9.1 반복 안정성 기준 (DoD-10 · item 6)
 > POC 통합 초기화 후 전체 E2E 흐름을 **개발자의 코드 수정·DB 수동 조작·서버 데이터 직접 수정·브라우저 개발자도구 조작 없이 3회 연속** 정상 수행해야 한다.
@@ -537,6 +733,21 @@ resize_widget              # 크기 변경
 - 실인증·다중 사용자/권한/협업, 배포·CI
 - AIM GUARD 앱·에디터(`/guard`, `?solution=guard`), AIM ECO 및 roadmap 솔루션
 - 파일(PDF/이미지) 실제 파싱(업로드는 애니메이션 연출)
+- **AI 자유 코드 생성 / 신규 UI Component 생성** — 아래 [10.1](#101-2차-poc-범위-v11-명시) 2차 범위
+
+### 10.1 2차 POC 범위 (v1.1 명시)
+> 아래는 **1차 POC 비대상**이며 **2차 POC 범위**로 확정한다. 1차에서 절대 구현·검수하지 않는다.
+
+| 항목 | 2차 범위 내용 |
+|------|--------------|
+| **AI 자유 코드 생성** | Gemma 4가 React/JS/HTML 등 실행 코드를 직접 생성(1차는 Widget Schema JSON만) |
+| **신규 Component 생성** | Component Registry에 없는 새 UI Component를 AI/사용자가 정의·등록(1차는 표준 10 Component 화이트리스트 고정) |
+| **Marketplace** | 조합형 위젯/컴포넌트/솔루션의 공유·배포 장터 |
+| **Plugin** | 외부 확장(커넥터·컴포넌트·규칙)을 플러그인으로 설치 |
+| **Versioning** | Widget Schema·CustomWidget의 버전 관리·롤백 |
+| **Collaborative Editing** | 다중 사용자 동시 편집·권한·리뷰 |
+
+> **1차 POC 범위(재확정, item 2·v1.1):** ~~"10종 위젯 제작"~~ → **① 10종 표준 Widget Type 제작 + ② 조합형 Widget 생성 Engine(Widget Schema Engine) 검증**([7-A](#7-a-widget-schema-engine-조합형-위젯-아키텍처--v11-신규), DoD-11). 조합의 재료(Component/Field/Rule)는 **등록된 화이트리스트로 고정**하고, 그 조합을 AI가 Schema로 생성·검증·미리보기·저장·재사용하는 것까지가 1차다.
 
 ---
 
